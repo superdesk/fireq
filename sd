@@ -1,0 +1,90 @@
+#!/usr/bin/env python
+import argparse
+import logging
+import string
+import subprocess
+import textwrap
+
+log = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    datefmt='%H:%M:%S',
+    format='%(asctime)s %(message)s'
+)
+dry_run = False
+
+
+def sh(cmd, params, ssh=None, exit=True):
+    cmd = textwrap.dedent(cmd)
+    cmd = string.Template(cmd).substitute(**params)
+    if ssh:
+        return sh('ssh {} "{}"'.format(ssh, cmd.replace('"', '\\"')))
+
+    log.info(cmd)
+    if dry_run:
+        log.info('Dry run!')
+        return 0
+
+    code = subprocess.call(cmd, shell=True)
+    if exit and code:
+        raise SystemExit(code)
+    return code
+
+
+def base_image(name, delete=False):
+    params = {'name': name}
+    if delete:
+        sh('lxc-stop -n ${name}; lxc-destroy -n ${name};', params, exit=False)
+    sh('''
+    lxc-create -t download -n ${name} -- -d ubuntu -r xenial -a amd64 &&
+    lxc-start -n ${name} &&
+    sleep 5 && lxc-attach --clear-env -n ${name} -- /bin/sh -c "
+        DEBIAN_FRONTEND=noninteractive
+        apt-get install -y openssh-server
+    " &&
+    cat ~/.ssh/id_rsa.pub | lxc-attach -n ${name} -- /bin/sh -c "
+        /bin/mkdir -p /root/.ssh;
+        /bin/cat > /root/.ssh/authorized_keys
+    " &&
+    echo "ssh root@$$(lxc-info -n ${name} -iH)"
+    ''', params)
+
+
+def install():
+    pass
+
+
+def main():
+    global dry_run
+
+    parser = argparse.ArgumentParser('sd')
+    cmds = parser.add_subparsers(help='commands')
+
+    def cmd(name, **kw):
+        p = cmds.add_parser(name, **kw)
+        p.set_defaults(cmd=name)
+        p.arg = lambda *a, **kw: p.add_argument(*a, **kw) and p
+        p.exe = lambda f: p.set_defaults(exe=f) and p
+
+        p.arg('--dry-run', action='store_true')
+        return p
+
+    cmd('install', aliases=['i']).exe(lambda a: install())
+
+    cmd('lxc-base')\
+        .arg('-d', '--delete', action='store_true')\
+        .exe(lambda a: base_image('sd-test', a.delete))
+
+    args = parser.parse_args()
+    dry_run = args.dry_run
+    if not hasattr(args, 'exe'):
+        parser.print_usage()
+    else:
+        args.exe(args)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        raise SystemExit(1)
