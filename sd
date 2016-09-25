@@ -12,7 +12,21 @@ logging.basicConfig(
     datefmt='%H:%M:%S',
     format='%(asctime)s %(message)s'
 )
+root = os.path.dirname(__file__)
 dry_run = False
+
+
+def remote(cmd, opts):
+    return sh(
+        'scp -r $root $opts:$tmp;'
+        'ssh $opts "cd $tmp; root=$tmp $cmd"',
+        {
+            'tmp': '/tmp/deploy',
+            'root': root,
+            'opts': opts,
+            'cmd': cmd.replace('"', '\\"')
+        }
+    )
 
 
 def sh(cmd, params=None, ssh=None, exit=True):
@@ -20,7 +34,7 @@ def sh(cmd, params=None, ssh=None, exit=True):
     cmd = textwrap.dedent(cmd)
     cmd = string.Template(cmd).safe_substitute(**params)
     if ssh:
-        return sh('ssh {} "{}"'.format(ssh, cmd.replace('"', '\\"')))
+        return remote(cmd, ssh)
 
     log.info(cmd)
     if dry_run:
@@ -39,34 +53,22 @@ def load(name):
         return f.read().decode()
 
 
-def base_image(name, delete=False):
-    params = {'name': name}
-    if delete:
-        sh('lxc-stop -n ${name}; lxc-destroy -n ${name};', params, exit=False)
-    sh('''
-    lxc-create -t download -n ${name} -- -d ubuntu -r xenial -a amd64 &&
-    lxc-start -n ${name} &&
-    sleep 5 && lxc-attach --clear-env -n ${name} -- /bin/sh -c "
-        DEBIAN_FRONTEND=noninteractive
-        apt-get install -y openssh-server
-    " &&
-    cat ~/.ssh/id_rsa.pub | lxc-attach -n ${name} -- /bin/sh -c "
-        /bin/mkdir -p /root/.ssh;
-        /bin/cat > /root/.ssh/authorized_keys
-    " &&
-    echo "ssh root@$$(lxc-info -n ${name} -iH)"
-    ''', params)
+def lxc_base(name, delete=False):
+    cmd = ' '.join((
+        'name=%s' % name,
+        'delete=true' if delete else '',
+        'bin/lxc_base.sh'
+    ))
+    sh(cmd)
 
 
-
-def install(ssh=None, services=False, app=False, dev=False):
-    services = load('bin/install_services.sh') if services else ''
-    app = load('bin/install_app.sh') if app else ''
-    cmd = '\n'.join((services, app))
-    params = {
-        'dev': 'true' if dev else ''
-    }
-    sh(cmd, params, ssh=ssh)
+def install(ssh=None, services=False, dev=False):
+    cmd = ' '.join((
+        'dev=true' if dev else '',
+        'services=true' if services else '',
+        'bin/install_app.sh'
+    ))
+    remote(cmd, ssh)
 
 
 def main():
@@ -87,13 +89,12 @@ def main():
     cmd('install', aliases=['i'])\
         .arg('-s', '--ssh', required=True)\
         .arg('--services', action='store_true')\
-        .arg('--app', action='store_true')\
         .arg('--dev', action='store_true')\
-        .exe(lambda a: install(a.ssh, a.services, a.app, a.dev))
+        .exe(lambda a: install(a.ssh, a.services, a.dev))
 
     cmd('lxc-base')\
         .arg('-d', '--delete', action='store_true')\
-        .exe(lambda a: base_image('sd-test', a.delete))
+        .exe(lambda a: lxc_base('sd-test', a.delete))
 
     args = parser.parse_args()
     dry_run = args.dry_run
