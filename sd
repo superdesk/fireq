@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import logging
+import os
 import string
 import subprocess
 import textwrap
@@ -14,9 +15,10 @@ logging.basicConfig(
 dry_run = False
 
 
-def sh(cmd, params, ssh=None, exit=True):
+def sh(cmd, params=None, ssh=None, exit=True):
+    params = params or {}
     cmd = textwrap.dedent(cmd)
-    cmd = string.Template(cmd).substitute(**params)
+    cmd = string.Template(cmd).safe_substitute(**params)
     if ssh:
         return sh('ssh {} "{}"'.format(ssh, cmd.replace('"', '\\"')))
 
@@ -29,6 +31,12 @@ def sh(cmd, params, ssh=None, exit=True):
     if exit and code:
         raise SystemExit(code)
     return code
+
+
+def load(name):
+    path = os.path.join(os.path.dirname(__file__), name)
+    with open(path, 'br') as f:
+        return f.read().decode()
 
 
 def base_image(name, delete=False):
@@ -50,8 +58,15 @@ def base_image(name, delete=False):
     ''', params)
 
 
-def install():
-    pass
+
+def install(ssh=None, services=False, app=False, dev=False):
+    services = load('bin/install_services.sh') if services else ''
+    app = load('bin/install_app.sh') if app else ''
+    cmd = '\n'.join((services, app))
+    params = {
+        'dev': 'true' if dev else ''
+    }
+    sh(cmd, params, ssh=ssh)
 
 
 def main():
@@ -69,7 +84,12 @@ def main():
         p.arg('--dry-run', action='store_true')
         return p
 
-    cmd('install', aliases=['i']).exe(lambda a: install())
+    cmd('install', aliases=['i'])\
+        .arg('-s', '--ssh', required=True)\
+        .arg('--services', action='store_true')\
+        .arg('--app', action='store_true')\
+        .arg('--dev', action='store_true')\
+        .exe(lambda a: install(a.ssh, a.services, a.app, a.dev))
 
     cmd('lxc-base')\
         .arg('-d', '--delete', action='store_true')\
