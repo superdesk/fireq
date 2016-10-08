@@ -93,8 +93,9 @@ def main():
         .exe(lambda a: install(a.ssh, a.services, a.dev))
 
     cmd('lxc-base')\
+        .arg('-n', '--name', default='sd-test')\
         .arg('-d', '--delete', action='store_true')\
-        .exe(lambda a: lxc_base('sd-test', a.delete))
+        .exe(lambda a: lxc_base(a.name, a.delete))
 
     args = parser.parse_args()
     dry_run = args.dry_run

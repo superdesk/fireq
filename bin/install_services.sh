@@ -28,10 +28,14 @@ echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
 #install
 apt-get -y update
 apt-get -y install \
-    exim4 \
     openjdk-8-jre-headless \
     elasticsearch \
     mongodb-org-server \
     redis-server \
     nginx
 apt-get -y clean
+
+systemctl restart elasticsearch
+systemctl restart mongod
+systemctl restart redis-server
+systemctl restart nginx

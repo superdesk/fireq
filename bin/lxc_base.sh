@@ -13,4 +13,4 @@ cat ~/.ssh/id_rsa.pub | lxc-attach -n ${name} -- /bin/sh -c "
     /bin/mkdir -p /root/.ssh;
     /bin/cat > /root/.ssh/authorized_keys
 " &&
-echo "ssh root@$$(lxc-info -n ${name} -iH)"
+echo "ssh root@$(lxc-info -n ${name} -iH)"
