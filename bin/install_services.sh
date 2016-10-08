@@ -35,7 +35,5 @@ apt-get -y install \
     nginx
 apt-get -y clean
 
-systemctl restart elasticsearch
-systemctl restart mongod
-systemctl restart redis-server
-systemctl restart nginx
+systemctl enable elasticsearch mongod redis-server nginx
+systemctl restart elasticsearch mongod redis-server nginx

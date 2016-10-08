@@ -1,14 +1,15 @@
 #!/bin/sh
 set -xe
 
-[ -n "$services" ] && $root/bin/install_services.sh
-
 repos=/opt
+root=$(dirname $(dirname $(realpath -s $0)))
+
+[ -n "$services" ] && $root/bin/install_services.sh
 
 DEBIAN_FRONTEND=noninteractive
 apt-get -y install --no-install-recommends \
-python3 python3-dev python3-venv python3-lxml \
-build-essential libffi-dev git \
+git python3 python3-dev python3-venv supervisor \
+build-essential libffi-dev \
 libtiff5-dev libjpeg8-dev zlib1g-dev \
 libfreetype6-dev liblcms2-dev libwebp-dev \
 curl libfontconfig libssl-dev
@@ -73,9 +74,12 @@ apt-get -y clean
 [ ! -f /usr/bin/node ] && ln -s /usr/bin/nodejs /usr/bin/node
 npm install -g grunt-cli
 
-cd $repos/superdesk/client
-npm install
-grunt build
+
+if [ ! -d $repos/superdesk/client/dist ] || [ -n "$force_client" ]; then
+    cd $repos/superdesk/client
+    npm install
+    grunt build
+fi
 
 venv() {
     path=$1
@@ -92,9 +96,12 @@ venv_capi=$repos/superdesk-content-api/env
 venv $venv_capi
 pip install -U -r $repos/superdesk-content-api/requirements.txt
 
+cp -v $root/dev/supervisor.conf  /etc/supervisor/conf.d/superdesk.conf
+systemctl enable supervisor
+systemctl restart supervisor
+
 if [ -n "$dev" ]; then
-    cp $root/dev/nginx.conf  /etc/nginx/conf.d/default.conf
-    cp $root/dev/nginx-params.conf  /etc/nginx/conf.d/params.conf
+    cp -rTv $root/dev/nginx  /etc/nginx/conf.d
     nginx -s reload
 
     . $venv_main/bin/activate
