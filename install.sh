@@ -1,13 +1,13 @@
 #!/bin/sh -e
 
-repo=/tmp/superdesk
+repo=/opt/superdesk-deploy
 
 apt-get update
 apt-get -y install git
 
 git clone --depth 1 https://github.com/naspeh-sf/deploy.git $repo
 
-cd $repo; ./sd i --dev --services
+cd $repo; ./sd i --services --prepopulate
 
 echo "*********************************************************************************"
 echo "Installation complete!"

@@ -14,12 +14,12 @@ root = os.path.dirname(__file__)
 dry_run = False
 
 
-def remote(cmd, opts, **kw):
+def remote(cmd, host, opts='-o "StrictHostKeyChecking no"'):
     cmd = cmd.replace('"', '\\"')
     return (
-        'scp -r {root} {opts}:{tmp};'
-        'ssh {opts} "cd {tmp}; {cmd}"'
-        .format(tmp='/tmp/deploy', root=root, opts=opts, cmd=cmd)
+        'rsync -ahv -e \'ssh {opts}\' {root}/ {host}:{tmp}/;'
+        'ssh {opts} {host} "cd {tmp}; {cmd}"'
+        .format(tmp='/tmp/deploy', root=root, host=host, opts=opts, cmd=cmd)
     )
 
 
@@ -39,31 +39,6 @@ def sh(cmd, params=None, ssh=None, exit=True):
     return code
 
 
-def load(name):
-    path = os.path.join(os.path.dirname(__file__), name)
-    with open(path, 'br') as f:
-        return f.read().decode()
-
-
-def lxc_base(name, delete=False):
-    cmd = ' '.join((
-        'name=%s' % name,
-        'delete=true' if delete else '',
-        'bin/lxc_base.sh'
-    ))
-    sh(cmd)
-
-
-def install(ssh=None, services=False, dev=False, force_client=False):
-    cmd = ' '.join((
-        'dev=true' if dev else '',
-        'services=true' if services else '',
-        'force_client=true' if force_client else '',
-        'bin/install.sh'
-    ))
-    sh(cmd, ssh=ssh)
-
-
 def main():
     global dry_run
 
@@ -80,16 +55,48 @@ def main():
         return p
 
     cmd('install', aliases=['i'])\
-        .arg('-s', '--ssh')\
+        .arg('--lxc-name')\
+        .arg('--ssh')\
+        .arg('-e', '--endpoint', default='default/superdesk.sh')\
+        .arg('--prepopulate', action='store_true')\
         .arg('--services', action='store_true')\
-        .arg('--dev', action='store_true')\
         .arg('--force-client', action='store_true')\
-        .exe(lambda a: install(a.ssh, a.services, a.dev, a.force_client))
+        .exe(lambda a: sh(
+            'services={services} '
+            'force_client={force_client} '
+            'prepopulate={prepopulate} '
+            '{endpoint}'
+            .format(
+                services=a.services or '',
+                force_client=a.force_client or '',
+                prepopulate=a.prepopulate or '',
+                endpoint=a.endpoint
+            ),
+            ssh=(
+                a.ssh or
+                (a.lxc_name and 'root@$(lxc-info -n %s -iH)' % a.lxc_name)
+            )
+        ))
 
     cmd('lxc-base')\
-        .arg('-n', '--name', default='sd-test')\
-        .arg('-d', '--delete', action='store_true')\
-        .exe(lambda a: lxc_base(a.name, a.delete))
+        .arg('-n', '--name', default='sd0')\
+        .arg('--rm', action='store_true')\
+        .exe(lambda a: sh(
+            'name={name} '
+            'rm={rm} '
+            'bin/lxc_base.sh'
+            .format(name=a.name, rm=a.rm or '')
+        ))
+
+    cmd('lxc-web')\
+        .arg('-n', '--name', default='sd0')\
+        .arg('-d', '--domain', required=True)\
+        .exe(lambda a: sh(
+            'name={name} '
+            'domain={domain} '
+            'bin/lxc_web.sh'
+            .format(name=a.name, domain=a.domain)
+        ))
 
     args = parser.parse_args()
     dry_run = args.dry_run

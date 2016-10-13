@@ -7,8 +7,10 @@ curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/install.sh | sudo
 
 ## LXC container
 ```sh
+apt-get install lxc
+
 ./sd lxc-base -n sd0
-./sd i -s root@$(lxc-info -n sd0 -iH) --services --dev
+./sd i --lxc-name=sd0 --services --prepopulate
 
 # more options
 ./sd -h
