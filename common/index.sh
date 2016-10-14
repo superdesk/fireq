@@ -74,7 +74,7 @@ _nginx() {
     apt-get -y install nginx
 
     path=/etc/nginx/conf.d
-    cp $root/common/nginx_params.conf $path/params.conf
+    cp $root/common/nginx-params.conf $path/params.conf
     . $nginx_tpl > $path/default.conf
 
     systemctl enable nginx
