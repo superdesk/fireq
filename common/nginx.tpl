@@ -2,6 +2,8 @@ cat <<EOF
 server {
     listen 80 default;
 
+$nginx_locations
+
     location /ws {
         proxy_pass http://localhost:5100;
         proxy_http_version 1.1;
@@ -18,8 +20,6 @@ server {
         sub_filter_once off;
         sub_filter 'http://localhost' 'http://\$host';
     }
-
-    ##addons##
 
     location / {
         root $repo/client/dist;

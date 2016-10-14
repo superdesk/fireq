@@ -2,30 +2,37 @@
 set -xe
 
 name=superdesk
-repo_git=https://github.com/superdesk/superdesk.git
+repo_remote=https://github.com/superdesk/superdesk.git
+
 root=$(dirname $(dirname $(realpath -s $0)))
 . $root/common/index.sh
 
-envfile() {
-    . $root/common/envfile.tpl > $envfile
-
+_envfile_end() {
     cat <<EOF >> $envfile
+
 DEFAULT_SOURCE_VALUE_FOR_MANUAL_ARTICLES=
 REUTERS_USERNAME=
 REUTERS_PASSWORD=
 EOF
 }
 
-backend() {
-    venv $env
-    pip install -U -r $repo/server/requirements.txt
-
-    . $root/common/supervisor.tpl > /etc/supervisor/conf.d/${name}.conf
-    systemctl enable supervisor
-    systemctl start supervisor || supervisorctl update
+_nginx_locations() {
+    action=_nginx_locations $root/superdesk/content_api
 }
 
-frontend() {
+_supervisor_adds() {
+    action=_supervisor_adds $root/superdesk/content_api
+}
+
+do_backend() {
+    _venv $env
+    pip install -U -r $repo/server/requirements.txt
+
+    action=do_backend $root/superdesk/content_api
+    _supervisor
+}
+
+do_frontend() {
     _npm
     npm install -g grunt-cli
 
@@ -34,11 +41,14 @@ frontend() {
     grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100'
 }
 
-prepopulate() {
+do_prepopulate() {
     . $env/bin/activate
     cd $repo/server
     python manage.py app:initialize_data
     python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+
+    action=do_prepopulate $root/superdesk/content_api
 }
 
-install
+$action
+services= $root/superdesk/content_api

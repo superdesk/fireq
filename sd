@@ -54,30 +54,43 @@ def main():
         p.arg('--dry-run', action='store_true')
         return p
 
+    def ssh(ssh, lxc_name):
+        return (
+            ssh or
+            (lxc_name and 'root@$(lxc-info -n %s -iH)' % lxc_name)
+        )
+
     cmd('install', aliases=['i'])\
         .arg('--lxc-name')\
         .arg('--ssh')\
-        .arg('-e', '--endpoint', default='default/superdesk.sh')\
+        .arg('-e', '--endpoint', default='superdesk/master')\
         .arg('--prepopulate', action='store_true')\
         .arg('--services', action='store_true')\
-        .arg('--force-client', action='store_true')\
+        .arg('--force-frontend', action='store_true')\
         .exe(lambda a: sh(
             'services={services} '
-            'force_client={force_client} '
+            'force_frontend={force_frontend} '
             'prepopulate={prepopulate} '
             '{endpoint}'
             .format(
                 services=a.services or '',
-                force_client=a.force_client or '',
+                force_frontend=a.force_frontend or '',
                 prepopulate=a.prepopulate or '',
                 endpoint=a.endpoint
             ),
-            ssh=(
-                a.ssh or
-                (a.lxc_name and 'root@$(lxc-info -n %s -iH)' % a.lxc_name)
-            )
+            ssh=ssh(a.ssh, a.lxc_name)
         ))
 
+    cmd('run', aliases=['r'])\
+        .arg('--lxc-name')\
+        .arg('--ssh')\
+        .arg('-e', '--endpoint', default='superdesk/master')\
+        .arg('action')\
+        .exe(lambda a: sh(
+            'action={action} {endpoint}'
+            .format(action=a.action, endpoint=a.endpoint),
+            ssh=ssh(a.ssh, a.lxc_name)
+        ))
     cmd('lxc-base')\
         .arg('-n', '--name', default='sd0')\
         .arg('--rm', action='store_true')\

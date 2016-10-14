@@ -5,39 +5,33 @@ TERM=xterm
 DEBIAN_FRONTEND=noninteractive
 
 root=$(dirname $(dirname $(realpath -s $0)))
-name=${name:-'liveblog'}
+name=${name:-liveblog}
 repo=/opt/$name
-repo_git=${repo_git:-'https://github.com/liveblog/liveblog.git'}
+repo_remote=${repo_remote:-'https://github.com/liveblog/liveblog.git'}
 repo_branch=${repo_branch:-}
 env=$repo/env
 envfile=$repo/envfile
+action=${action:-do_install}
 
-envfile() {
-    . $root/common/envfile.tpl > $envfile
-    cat <<EOF >> $envfile
+_envfile_end() {
+    cat <<EOF
 
 S3_THEMES_PREFIX=
 AMAZON_S3_SUBFOLDER=
 EOF
 }
 
-repo() {
-    [ -d $repo ] || git clone --depth=1 $repo_git $repo
+_envfile() {
+    . $root/common/envfile.tpl > $envfile
+    echo "$(_envfile_end)" >> $envfile
+}
+
+_repo() {
+    [ -d $repo ] || git clone --depth=1 $repo_remote $repo
     [ -d $repo_branch ] && (cd $repo && git checkout $repo_branch)
 }
 
-pre_install() {
-    apt-get -y install --no-install-recommends \
-    git python3 python3-dev python3-venv supervisor \
-    build-essential libffi-dev \
-    libtiff5-dev libjpeg8-dev zlib1g-dev \
-    libfreetype6-dev liblcms2-dev libwebp-dev \
-    curl libfontconfig libssl-dev
-
-    locale-gen en_US.UTF-8
-}
-
-venv() {
+_venv() {
     path=$1
     python3 -m venv $path
     echo "export \$(cat $envfile)" >> $path/bin/activate
@@ -45,13 +39,14 @@ venv() {
     pip install -U pip wheel
 }
 
-backend() {
-    venv $env
-    pip install -U -r $repo/server/requirements.txt
+_supervisor_adds() { :; }
+_supervisor() {
+    supervisor_tpl=${supervisor_tpl:-"$root/common/supervisor.tpl"}
+    supervisor_adds="$(_supervisor_adds)"
 
-    . $root/common/supervisor.tpl > /etc/supervisor/conf.d/${name}.conf
+    . $supervisor_tpl > /etc/supervisor/conf.d/${name}.conf
     systemctl enable supervisor
-    systemctl start supervisor || supervisorctl update
+    systemctl restart supervisor
 }
 
 _npm() {
@@ -61,7 +56,48 @@ _npm() {
     [ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
 }
 
-frontend() {
+_nginx_locations() { :; }
+_nginx() {
+    nginx_tpl=${nginx_tpl:-"$root/common/nginx.tpl"}
+    nginx_locations="$(_nginx_locations)"
+
+    wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
+    echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
+        > /etc/apt/sources.list.d/nginx.list
+
+    apt-get -y update
+    apt-get -y install nginx
+
+    path=/etc/nginx/conf.d
+    cp $root/common/nginx_params.conf $path/params.conf
+    . $nginx_tpl > $path/default.conf
+
+    systemctl enable nginx
+    systemctl restart nginx
+}
+
+do_init() {
+    apt-get -y install --no-install-recommends \
+    git python3 python3-dev python3-venv supervisor \
+    build-essential libffi-dev \
+    libtiff5-dev libjpeg8-dev zlib1g-dev \
+    libfreetype6-dev liblcms2-dev libwebp-dev \
+    curl libfontconfig libssl-dev
+
+    locale-gen en_US.UTF-8
+
+    _repo
+    _envfile
+}
+
+do_backend() {
+    _venv $env
+    pip install -U -r $repo/server/requirements.txt
+
+    _supervisor
+}
+
+do_frontend() {
     _npm
     npm install -g grunt-cli bower
 
@@ -71,7 +107,7 @@ frontend() {
     grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100' --force
 }
 
-prepopulate() {
+do_prepopulate() {
     . $env/bin/activate
     cd $repo/server
     python manage.py app:initialize_data
@@ -79,14 +115,11 @@ prepopulate() {
     python manage.py register_local_themes
 }
 
-post_install() {
-    path=/etc/nginx/conf.d
-    cp $root/common/nginx_params.conf $path/params.conf
-    . $root/common/nginx.tpl > $path/default.conf
-    nginx -s reload
+do_finish() {
+    _nginx
 }
 
-services() {
+do_services() {
     apt-get -y install wget software-properties-common
 
     #elasticsearch
@@ -102,36 +135,30 @@ services() {
     #redis
     add-apt-repository -y ppa:chris-lea/redis-server
 
-    #nginx
-    wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
-    echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
-        > /etc/apt/sources.list.d/nginx.list
-
     #install
     apt-get -y update
     apt-get -y install \
         openjdk-8-jre-headless \
         elasticsearch \
         mongodb-org-server \
-        redis-server \
-        nginx
+        redis-server
 
-    systemctl enable elasticsearch mongod redis-server nginx
-    systemctl restart elasticsearch mongod redis-server nginx
+    systemctl enable elasticsearch mongod redis-server
+    systemctl restart elasticsearch mongod redis-server
 }
 
-install() {
+do_install() {
     apt-get -y autoremove --purge ntpdate
     apt-get -y update
 
-    [ -n "$services" ] && services
-    pre_install
-    repo
-    envfile
-    backend
-    [ ! -d $repo/client/dist ] || [ -n "$force_client" ] && frontend
-    [ -n "$prepopulate" ] && prepopulate
-    post_install
+    [ ! -d $repo/client/dist ] || [ -n "$force_frontend" ] && frontend=1
+
+    do_init
+    [ -n "$services" ] && do_services
+    do_backend
+    [ -n "$frontend" ] && do_frontend
+    [ -n "$prepopulate" ] && do_prepopulate
+    do_finish
 
     apt-get -y clean
 }

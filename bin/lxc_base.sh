@@ -14,7 +14,7 @@ cat ~/.ssh/id_rsa.pub | lxc-attach --clear-env -n $name -- /bin/sh -c "
     /bin/mkdir -p /root/.ssh;
     /bin/cat > /root/.ssh/authorized_keys
 "
-echo "********************************"
+echo "**********************************************************************"
 echo "Go to container:"
 echo "$ ssh -o 'StrictHostKeyChecking no' root@$(lxc-info -n $name -iH)"
-echo "********************************"
+echo "**********************************************************************"

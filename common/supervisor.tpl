@@ -37,4 +37,6 @@ startsecs=10
 stdout_logfile=/var/log/supervisor/beat.log
 redirect_stderr=true
 directory=$repo/server
+
+$supervisor_adds
 EOF

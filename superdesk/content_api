@@ -1,0 +1,49 @@
+#!/bin/sh
+set -xe
+
+root=$(dirname $(dirname $(realpath -s $0)))
+name=superdesk-content-api
+repo_remote=https://github.com/superdesk/superdesk-content-api.git
+
+
+. $root/common/index.sh
+
+_nginx_locations() {
+    cat <<EOF
+    location /pubapi {
+        proxy_pass http://localhost:5050;
+    }
+EOF
+}
+
+_supervisor_adds() {
+     cat <<EOF
+[program:capi]
+command=/bin/sh -c '. $env/bin/activate && exec gunicorn -c gunicorn_config.py wsgi'
+autostart=true
+autorestart=false
+stdout_logfile=/var/log/supervisor/capi.log
+redirect_stderr=true
+directory=$repo
+EOF
+}
+
+do_backend() {
+    _repo
+    _envfile
+
+    _venv $env
+    pip install -U -r $repo/requirements.txt
+}
+do_prepopulate() {
+    . $env/bin/activate
+    cd $repo
+    python content_api_manage.py app:prepopulate || true
+}
+
+do_init() { :; }
+do_services() { :; }
+do_finish() { :; }
+do_install() { :; }
+
+$action
