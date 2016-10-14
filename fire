@@ -42,7 +42,7 @@ def sh(cmd, params=None, ssh=None, exit=True):
 def main():
     global dry_run
 
-    parser = argparse.ArgumentParser('sd')
+    parser = argparse.ArgumentParser('fire')
     cmds = parser.add_subparsers(help='commands')
 
     def cmd(name, **kw):
@@ -81,23 +81,27 @@ def main():
             ssh=ssh(a.ssh, a.lxc_name)
         ))
 
-    cmd('run', aliases=['r'])\
+    cmd('endpoint', aliases=['r'])\
         .arg('--lxc-name')\
         .arg('--ssh')\
-        .arg('-e', '--endpoint', default='superdesk/master')\
+        .arg('-n', '--name', default='superdesk/master')\
         .arg('action')\
         .exe(lambda a: sh(
-            'action={action} {endpoint}'
-            .format(action=a.action, endpoint=a.endpoint),
+            'action={action} {name}'
+            .format(action=a.action, name=a.name),
             ssh=ssh(a.ssh, a.lxc_name)
         ))
+
+    cmd('gen-files')\
+        .exe(lambda a: sh('bin/gen-files.sh'))
+
     cmd('lxc-base')\
         .arg('-n', '--name', default='sd0')\
         .arg('--rm', action='store_true')\
         .exe(lambda a: sh(
             'name={name} '
             'rm={rm} '
-            'bin/lxc_base.sh'
+            'bin/lxc-base.sh'
             .format(name=a.name, rm=a.rm or '')
         ))
 
@@ -107,7 +111,7 @@ def main():
         .exe(lambda a: sh(
             'name={name} '
             'domain={domain} '
-            'bin/lxc_web.sh'
+            'bin/lxc-web.sh'
             .format(name=a.name, domain=a.domain)
         ))
 

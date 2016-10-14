@@ -7,7 +7,7 @@ apt-get -y install git
 
 git clone --depth 1 https://github.com/naspeh-sf/deploy.git $repo
 
-cd $repo; ./sd i --services --prepopulate
+cd $repo; ./fire i -e liveblog/master --services --prepopulate
 
 echo "*********************************************************************************"
 echo "Installation complete!"
