@@ -28,7 +28,12 @@ _envfile() {
 
 _repo() {
     [ -d $repo ] || git clone --depth=1 $repo_remote $repo
-    [ -d $repo_branch ] && (cd $repo && git checkout $repo_branch)
+    if [ -n "$repo_branch" ]; then
+        cd $repo
+        git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+        git fetch origin $repo_branch
+        git checkout $repo_branch
+    fi
 }
 
 _venv() {
