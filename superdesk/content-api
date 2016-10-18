@@ -15,7 +15,7 @@ _nginx_locations() {
 EOF
 }
 
-_supervisor_adds() {
+_supervisor_append() {
      cat <<EOF
 [program:capi]
 command=/bin/sh -c '. $env/bin/activate && exec gunicorn -c gunicorn_config.py wsgi'

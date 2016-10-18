@@ -13,7 +13,7 @@ env=$repo/env
 envfile=$repo/envfile
 action=${action:-do_install}
 
-_envfile_end() {
+_envfile_append() {
     cat <<EOF
 
 S3_THEMES_PREFIX=
@@ -22,8 +22,8 @@ EOF
 }
 
 _envfile() {
+    envfile_append="$(_envfile_append)"
     . $root/common/envfile.tpl > $envfile
-    echo "$(_envfile_end)" >> $envfile
 }
 
 _repo() {
@@ -44,10 +44,10 @@ _venv() {
     pip install -U pip wheel
 }
 
-_supervisor_adds() { :; }
+_supervisor_append() { :; }
 _supervisor() {
     supervisor_tpl=${supervisor_tpl:-"$root/common/supervisor.tpl"}
-    supervisor_adds="$(_supervisor_adds)"
+    supervisor_append="$(_supervisor_append)"
 
     . $supervisor_tpl > /etc/supervisor/conf.d/${name}.conf
     systemctl enable supervisor

@@ -7,8 +7,8 @@ repo_remote=https://github.com/superdesk/superdesk.git
 root=$(dirname $(dirname $(realpath -s $0)))
 . $root/common/index.sh
 
-_envfile_end() {
-    cat <<EOF >> $envfile
+_envfile_append() {
+    cat <<EOF
 
 DEFAULT_SOURCE_VALUE_FOR_MANUAL_ARTICLES=
 REUTERS_USERNAME=
@@ -20,8 +20,8 @@ _nginx_locations() {
     action=_nginx_locations $root/superdesk/content-api
 }
 
-_supervisor_adds() {
-    action=_supervisor_adds $root/superdesk/content-api
+_supervisor_append() {
+    action=_supervisor_append $root/superdesk/content-api
 }
 
 do_backend() {
@@ -51,4 +51,3 @@ do_prepopulate() {
 }
 
 $action
-services= $root/superdesk/content-api
