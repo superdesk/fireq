@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -ex
 
 [ -n "$rm" ] && (lxc-stop -n $name; lxc-destroy -n $name)
 
@@ -10,7 +10,7 @@ lxc-attach --clear-env -n $name -- /bin/sh -c "
     DEBIAN_FRONTEND=noninteractive
     apt-get install -y openssh-server rsync
 "
-cat ~/.ssh/id_rsa.pub | lxc-attach --clear-env -n $name -- /bin/sh -c "
+cat ${keys:-"/root/.ssh/id_rsa.pub"} | lxc-attach --clear-env -n $name -- /bin/sh -c "
     /bin/mkdir -p /root/.ssh;
     /bin/cat > /root/.ssh/authorized_keys
 "

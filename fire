@@ -98,21 +98,25 @@ def main():
     cmd('lxc-base')\
         .arg('-n', '--name', default='sd0')\
         .arg('--rm', action='store_true')\
+        .arg('-k', '--keys', default='/root/.ssh/id_rsa.pub')\
         .exe(lambda a: sh(
             'name={name} '
             'rm={rm} '
+            'keys={keys} '
             'bin/lxc-base.sh'
-            .format(name=a.name, rm=a.rm or '')
+            .format(name=a.name, rm=a.rm or '', keys=a.keys)
         ))
 
     cmd('lxc-web')\
         .arg('-n', '--name', default='sd0')\
         .arg('-d', '--domain', required=True)\
+        .arg('-c', '--clean', action='store_true')\
         .exe(lambda a: sh(
             'name={name} '
             'domain={domain} '
+            'clean={clean} '
             'bin/lxc-web.sh'
-            .format(name=a.name, domain=a.domain)
+            .format(name=a.name, domain=a.domain, clean=a.clean or '')
         ))
 
     args = parser.parse_args()
