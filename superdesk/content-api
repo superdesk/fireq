@@ -20,7 +20,7 @@ _supervisor_append() {
 [program:capi]
 command=/bin/sh -c '. $env/bin/activate && exec gunicorn -c gunicorn_config.py wsgi'
 autostart=true
-autorestart=false
+autorestart=true
 stdout_logfile=/var/log/supervisor/capi.log
 redirect_stderr=true
 directory=$repo

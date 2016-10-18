@@ -15,7 +15,7 @@ action=${action:-do_install}
 
 _envfile_append() {
     cat <<EOF
-
+# Liveblog custom
 S3_THEMES_PREFIX=
 AMAZON_S3_SUBFOLDER=
 EOF
@@ -39,7 +39,7 @@ _repo() {
 _venv() {
     path=$1
     python3 -m venv $path
-    echo "export \$(cat $envfile)" >> $path/bin/activate
+    echo "set -a; . $envfile; set +a" >> $path/bin/activate
     . $path/bin/activate
     pip install -U pip wheel
 }
@@ -148,8 +148,9 @@ do_services() {
         mongodb-org-server \
         redis-server
 
-    systemctl enable elasticsearch mongod redis-server
-    systemctl restart elasticsearch mongod redis-server
+    services="elasticsearch.service mongod.service redis-server.service"
+    systemctl enable $services
+    systemctl restart $services
 }
 
 do_install() {

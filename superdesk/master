@@ -9,7 +9,7 @@ root=$(dirname $(dirname $(realpath -s $0)))
 
 _envfile_append() {
     cat <<EOF
-
+# Superdesk custom
 DEFAULT_SOURCE_VALUE_FOR_MANUAL_ARTICLES=
 REUTERS_USERNAME=
 REUTERS_PASSWORD=
