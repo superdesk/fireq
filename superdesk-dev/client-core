@@ -1,0 +1,40 @@
+#!/bin/bash
+
+name=superdesk-client-core
+repo_remote=https://github.com/superdesk/superdesk-client-core.git
+
+root=$(dirname $(dirname $(realpath -s $0)))
+action=true . $root/superdesk-dev/master
+
+_repo_client() {
+    echo $repo
+}
+
+_e2e_tests() {
+    _es_snapshots
+
+    webdriver-manager update
+    xvfb-run protractor protractor.conf.js --stackTrace --verbose \
+        --baseUrl 'http://localhost/' --params.baseBackendUrl 'http://localhost/api'
+}
+
+do_client_tests() {
+    [ -z "$ci" ] && [ -z "$e2e" ] && ci=1 && e2e=1
+
+    _chrome
+    cd $(_repo_client)
+
+    export PATH=./node_modules/.bin/:$PATH
+
+    [ -n "$ci" ] && xvfb-run grunt ci:travis
+    [ -n "$e2e" ] && _e2e_tests
+}
+
+do_backend() {
+    action=do_backend $root/superdesk-dev/master
+}
+
+do_backend_tests() { :; }
+do_prepopulate() { :; }
+
+eval $action

@@ -45,4 +45,4 @@ do_services() { :; }
 do_finish() { :; }
 do_install() { :; }
 
-$action
+eval $action

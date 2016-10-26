@@ -1,0 +1,63 @@
+#!/bin/bash
+
+root=$(dirname $(dirname $(realpath -s $0)))
+action=true . $root/superdesk/master
+
+_envfile_append() {
+    cat <<EOF
+SUPERDESK_TESTING=True
+EOF
+}
+
+_es_snapshots() {
+    es_backups=/tmp/es-backups
+    if [ ! -d $es_backups ]; then
+        mkdir $es_backups
+        chown elasticsearch:elasticsearch $es_backups
+        curl -XPUT 'http://localhost:9200/_snapshot/backups'\
+            -d '{"type": "fs", "settings": {"location": "/tmp/es-backups"}}'
+    fi
+}
+
+_chrome() {
+    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+    echo "deb http://dl.google.com/linux/chrome/deb/ stable main" \
+        > /etc/apt/sources.list.d/google.list
+    apt-get update
+    apt-get install -y xvfb google-chrome-stable
+
+    export CHROME_BIN=`which google-chrome` && $CHROME_BIN --version
+
+}
+
+_e2e_tests() {
+    _es_snapshots
+
+    webdriver-manager update
+    xvfb-run protractor protractor.conf.js --stackTrace --verbose \
+        --baseUrl 'http://localhost/' --params.baseBackendUrl 'http://localhost/api'
+}
+
+do_backend_tests() {
+    [ -z "$nose" ] && [ -z "$behave" ] && nose=1 && behave=1
+
+    _es_snapshots
+
+    . $env/bin/activate
+    cd $repo
+    [ -n "$nose" ] && time nosetests -v
+    [ -n "$behave" ] && time behave --format progress2 --logging-clear-handlers --logcapture
+}
+
+do_client_tests() {
+    _chrome
+    cd $(_repo_client)
+    npm test
+}
+
+do_tests() {
+    do_backend_tests
+    do_client_tests
+}
+
+eval $action

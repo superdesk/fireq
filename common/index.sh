@@ -49,6 +49,8 @@ _supervisor() {
     supervisor_tpl=${supervisor_tpl:-"$root/common/supervisor.tpl"}
     supervisor_append="$(_supervisor_append)"
 
+    apt-get -y install supervisor
+
     . $supervisor_tpl > /etc/supervisor/conf.d/${name}.conf
     systemctl enable supervisor
     systemctl restart supervisor
@@ -61,10 +63,15 @@ _npm() {
     [ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
 }
 
+_repo_client() {
+    echo $repo/client
+}
+
 _nginx_locations() { :; }
 _nginx() {
     nginx_tpl=${nginx_tpl:-"$root/common/nginx.tpl"}
     nginx_locations="$(_nginx_locations)"
+    repo_client="$(_repo_client)"
 
     wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
     echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
@@ -83,7 +90,7 @@ _nginx() {
 
 do_init() {
     apt-get -y install --no-install-recommends \
-    git python3 python3-dev python3-venv supervisor \
+    git python3 python3-dev python3-venv \
     build-essential libffi-dev \
     libtiff5-dev libjpeg8-dev zlib1g-dev \
     libfreetype6-dev liblcms2-dev libwebp-dev \
@@ -97,16 +104,15 @@ do_init() {
 
 do_backend() {
     _venv $env
-    pip install -U -r $repo/server/requirements.txt
-
-    _supervisor
+    cd $repo/server
+    pip install -U -r requirements.txt
 }
 
 do_frontend() {
     _npm
     npm install -g grunt-cli bower
 
-    cd $repo/client
+    cd $(_repo_client)
     npm install
     bower --allow-root install
     grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100' --force
@@ -121,6 +127,7 @@ do_prepopulate() {
 }
 
 do_finish() {
+    _supervisor
     _nginx
 }
 
@@ -157,7 +164,7 @@ do_install() {
     apt-get -y autoremove --purge ntpdate
     apt-get -y update
 
-    [ ! -d $repo/client/dist ] || [ -n "$force_frontend" ] && frontend=1
+    [ ! -d $(_repo_client)/dist ] || [ -n "$force_frontend" ] && frontend=1
 
     do_init
     [ -n "$services" ] && do_services

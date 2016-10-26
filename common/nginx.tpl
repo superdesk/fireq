@@ -22,7 +22,7 @@ $nginx_locations
     }
 
     location / {
-        root $repo/client/dist;
+        root ${repo_client}/dist;
 
         sub_filter_once off;
         sub_filter_types application/javascript;

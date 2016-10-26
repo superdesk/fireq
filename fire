@@ -17,7 +17,7 @@ dry_run = False
 def remote(cmd, host, opts='-o "StrictHostKeyChecking no"'):
     cmd = cmd.replace('"', '\\"')
     return (
-        'rsync -ahv -e \'ssh {opts}\' {root}/ {host}:{tmp}/;'
+        'rsync -ahv --delete -e \'ssh {opts}\' {root}/ {host}:{tmp}/;'
         'ssh {opts} {host} "cd {tmp}; {cmd}"'
         .format(tmp='/tmp/deploy', root=root, host=host, opts=opts, cmd=cmd)
     )
@@ -71,6 +71,7 @@ def main():
             'services={services} '
             'force_frontend={force_frontend} '
             'prepopulate={prepopulate} '
+            'action=do_install '
             '{endpoint}'
             .format(
                 services=a.services or '',
@@ -81,14 +82,14 @@ def main():
             ssh=ssh(a.ssh, a.lxc_name)
         ))
 
-    cmd('endpoint', aliases=['r'])\
+    cmd('run', aliases=['r'])\
         .arg('--lxc-name')\
         .arg('--ssh')\
-        .arg('-n', '--name', default='superdesk/master')\
+        .arg('-e', '--endpoint', default='superdesk/master')\
         .arg('action')\
         .exe(lambda a: sh(
-            'action={action} {name}'
-            .format(action=a.action, name=a.name),
+            'action={action!r} {endpoint}'
+            .format(action=a.action, endpoint=a.endpoint),
             ssh=ssh(a.ssh, a.lxc_name)
         ))
 

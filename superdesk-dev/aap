@@ -1,0 +1,16 @@
+#!/bin/bash
+
+name=superdesk-aap
+repo_remote=https://github.com/superdesk/superdesk-aap.git
+
+root=$(dirname $(dirname $(realpath -s $0)))
+action=true . $root/superdesk-dev/master
+
+eval "original_$(declare -f do_init)"
+
+do_init() {
+    apt-get -y install unixodbc-dev
+    original_do_init
+}
+
+eval $action
