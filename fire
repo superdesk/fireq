@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 import argparse
+import asyncio
+import contextlib
+import json
 import logging
 import os
 import subprocess
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -17,14 +21,16 @@ dry_run = False
 def remote(cmd, host, opts='-o "StrictHostKeyChecking no"'):
     cmd = cmd.replace('"', '\\"')
     return (
-        'rsync -ahv --delete -e \'ssh {opts}\' {root}/ {host}:{tmp}/;'
+        'set -e;rsync -ahv --delete -e \'ssh {opts}\' {root}/ {host}:{tmp}/;'
         'ssh {opts} {host} "cd {tmp}; {cmd}"'
         .format(tmp='/tmp/deploy', root=root, host=host, opts=opts, cmd=cmd)
     )
 
 
-def sh(cmd, params=None, ssh=None, exit=True):
+def sh(cmd, params=None, ssh=None, exit=True, sudo=False, sync=True):
     params = params or {}
+    if sudo:
+        cmd = 'sudo sh -c %r' % cmd
     if ssh:
         cmd = remote(cmd, ssh)
 
@@ -33,10 +39,81 @@ def sh(cmd, params=None, ssh=None, exit=True):
         log.info('Dry run!')
         return 0
 
-    code = subprocess.call(cmd, shell=True)
-    if exit and code:
-        raise SystemExit(code)
-    return code
+    if sync:
+        code = subprocess.call(cmd, shell=True)
+        if exit and code:
+            raise SystemExit(code)
+        return code
+
+    return asyncio.create_subprocess_shell(cmd)
+
+
+def gh_push(path, action='do_tests'):
+    path = Path(path)
+    with (path / 'request.json').open('r') as f:
+        req = json.loads(f.read())
+
+    lxc = 'sd-%s' % req['json']['after']
+
+    params = {
+        'lxc': 'sd-%s' % req['json']['after'],
+        'root': root,
+        'endpoint': 'superdesk-dev/core'
+    }
+
+    sh(
+        'set -e;'
+        'cd {root};'
+        #'./fire lxc-base -n {lxc} --rm;'
+        #'./fire i --lxc-name={lxc} -e {endpoint} --services;'
+        './fire r --lxc-name={lxc} -e {endpoint} "debug=1 do_tests"'
+        .format(**params)
+    )
+    return
+
+
+@contextlib.contextmanager
+def run_async(func, *a, **kw):
+    loop = asyncio.get_event_loop()
+    yield loop.run_until_complete(func(*a, **kw))
+    loop.close()
+
+
+def async_tests():
+    """TODO: finish async testing"""
+    async def tests():
+        cmd = (
+            'set -ex;'
+            'cd {root};'
+            'lxc-stop -n {lxc} || true;'
+            'lxc-stop -n {lxc_uniq} || true;'
+            'lxc-destroy -n {lxc_uniq} || true;'
+            'lxc-copy -n {lxc} -N {lxc_uniq};'
+            'lxc-start -n {lxc_uniq};'
+            'sleep 5;'
+            './fire r --lxc-name={lxc_uniq} -e {endpoint} {action!r}'
+        )
+        nose_cmd = cmd.format(
+            lxc_uniq='%s-nose' % params['lxc'],
+            action='nose=1 do_tests',
+            **params
+        )
+        behave_cmd = cmd.format(
+            lxc_uniq='%s-behave' % params['lxc'],
+            action='behave=1 do_tests',
+            **params
+        )
+        nose = await sh(nose_cmd, sudo=True, sync=False)
+        # return [await nose.wait()]
+        behave = await sh(behave_cmd, sudo=True, sync=False)
+        return await nose.wait(), await behave.wait()
+
+    with run_async(tests) as codes:
+        log.info('Exit codes: %s', codes)
+        code = [c for c in codes if c]
+        if code:
+            raise SystemExit(code[0])
+        return codes
 
 
 def main():
@@ -57,7 +134,7 @@ def main():
     def ssh(ssh, lxc_name):
         return (
             ssh or
-            (lxc_name and 'root@$(lxc-info -n %s -iH)' % lxc_name)
+            (lxc_name and 'root@$(sudo lxc-info -n %s -iH)' % lxc_name)
         )
 
     cmd('install', aliases=['i'])\
@@ -119,6 +196,11 @@ def main():
             'bin/lxc-web.sh'
             .format(name=a.name, domain=a.domain, clean=a.clean or '')
         ))
+
+    cmd('gh-push')\
+        .arg('path')\
+        .arg('-a', '--action', default='do_tests')\
+        .exe(lambda a: gh_push(a.path, a.action))
 
     args = parser.parse_args()
     dry_run = args.dry_run

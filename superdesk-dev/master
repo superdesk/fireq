@@ -9,13 +9,34 @@ SUPERDESK_TESTING=True
 EOF
 }
 
+_es_wait() {
+    elastic=0
+    while [ $elastic -eq 0 ]
+    do
+        curl -s "http://localhost:9200" 2>&1 > /dev/null \
+            && elastic=1 \
+            || echo "waiting for elastic..."
+        sleep 1
+    done
+}
+
 _es_snapshots() {
+    _es_wait
+    return 0
+
+    # TODO: fix snapshot feature
     es_backups=/tmp/es-backups
     if [ ! -d $es_backups ]; then
         mkdir $es_backups
         chown elasticsearch:elasticsearch $es_backups
-        curl -XPUT 'http://localhost:9200/_snapshot/backups'\
+        echo "path.repo: ['/tmp/es-backups']" \
+            | sudo tee -a /etc/elasticsearch/elasticsearch.yml
+        systemctl restart elasticsearch
+        _es_wait
+        curl -XPUT 'http://localhost:9200/_snapshot/backups' \
             -d '{"type": "fs", "settings": {"location": "/tmp/es-backups"}}'
+    else
+        _es_wait
     fi
 }
 
@@ -30,23 +51,17 @@ _chrome() {
 
 }
 
-_e2e_tests() {
-    _es_snapshots
-
-    webdriver-manager update
-    xvfb-run protractor protractor.conf.js --stackTrace --verbose \
-        --baseUrl 'http://localhost/' --params.baseBackendUrl 'http://localhost/api'
-}
-
 do_backend_tests() {
     [ -z "$nose" ] && [ -z "$behave" ] && nose=1 && behave=1
+    nose_filter=$([ -z "$debug" ] && echo "" || echo "tests/users_test.py")
+    behave_filter=$([ -z "$debug" ] && echo "" || echo "features/desks.feature")
 
     _es_snapshots
 
     . $env/bin/activate
     cd $repo
-    [ -n "$nose" ] && time nosetests -v
-    [ -n "$behave" ] && time behave --format progress2 --logging-clear-handlers --logcapture
+    [ -z "$nose" ] || time nosetests -v $nose_filter
+    [ -z "$behave" ] || time behave --format progress2 --logging-clear-handlers --logcapture $behave_filter
 }
 
 do_client_tests() {

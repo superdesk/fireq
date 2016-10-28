@@ -11,10 +11,12 @@ _repo_client() {
 }
 
 _e2e_tests() {
+    e2e_filter=$([ -z "$debug" ] && echo "" || echo "--specs spec/archived_spec.js")
+
     _es_snapshots
 
     webdriver-manager update
-    xvfb-run protractor protractor.conf.js --stackTrace --verbose \
+    xvfb-run protractor protractor.conf.js --stackTrace --verbose $e2e_filter\
         --baseUrl 'http://localhost/' --params.baseBackendUrl 'http://localhost/api'
 }
 

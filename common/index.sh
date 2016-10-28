@@ -8,7 +8,7 @@ root=$(dirname $(dirname $(realpath -s $0)))
 name=${name:-liveblog}
 repo=/opt/$name
 repo_remote=${repo_remote:-'https://github.com/liveblog/liveblog.git'}
-repo_branch=${repo_branch:-}
+repo_branch=${repo_branch:-'master'}
 env=$repo/env
 envfile=$repo/envfile
 action=${action:-do_install}
@@ -27,10 +27,20 @@ _envfile() {
 }
 
 _repo() {
-    [ -d $repo ] || git clone --depth=1 $repo_remote $repo
-    if [ -n "$repo_branch" ]; then
+    if [ ! -d $repo ]; then
+        mkdir $repo
         cd $repo
-        git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+        git init
+        git remote add origin $repo_remote
+    else
+        cd $repo
+    fi
+
+    if [ -n "$repo_pr" ]; then
+        branch=pr--$repo_pr
+        git fetch origin pull/$repo_pr/head:$branch
+        git checkout $branch
+    else
         git fetch origin $repo_branch
         git checkout $repo_branch
     fi

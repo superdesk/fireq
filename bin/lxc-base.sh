@@ -1,7 +1,7 @@
 #!/bin/sh
 set -ex
 
-[ -n "$rm" ] && (lxc-stop -n $name; lxc-destroy -n $name)
+[ -n "$rm" ] && (lxc-stop -n $name; lxc-destroy -n $name) || true
 
 lxc-create -t download -n $name -- -d ubuntu -r xenial -a amd64
 lxc-start -n $name
