@@ -8,7 +8,7 @@ lxc-start -n $name
 sleep 5
 lxc-attach --clear-env -n $name -- /bin/sh -c "
     DEBIAN_FRONTEND=noninteractive
-    apt-get install -y openssh-server rsync
+    apt-get install -y openssh-server rsync curl
 "
 cat ${keys:-"/root/.ssh/id_rsa.pub"} | lxc-attach --clear-env -n $name -- /bin/sh -c "
     /bin/mkdir -p /root/.ssh;

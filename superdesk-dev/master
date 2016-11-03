@@ -53,15 +53,17 @@ _chrome() {
 
 do_backend_tests() {
     [ -z "$nose" ] && [ -z "$behave" ] && nose=1 && behave=1
-    nose_filter=$([ -z "$debug" ] && echo "" || echo "tests/users_test.py")
-    behave_filter=$([ -z "$debug" ] && echo "" || echo "features/desks.feature")
 
     _es_snapshots
 
     . $env/bin/activate
-    cd $repo
-    [ -z "$nose" ] || time nosetests -v $nose_filter
-    [ -z "$behave" ] || time behave --format progress2 --logging-clear-handlers --logcapture $behave_filter
+    cd $repo/server
+    pip install -r dev-requirements.txt
+
+    [ -z "$nose" ] || time nosetests -v
+
+    [ -f "./features/*.feature" ] || behave=
+    [ -z "$behave" ] || time behave --format progress2 --logging-clear-handlers --logcapture
 }
 
 do_client_tests() {
@@ -73,6 +75,15 @@ do_client_tests() {
 do_tests() {
     do_backend_tests
     do_client_tests
+}
+
+do_gh_push() {
+    cd $root
+    ./fire i --lxc-name=$lxc -e superdesk-dev/master --prepopulate
+    ./fire r --lxc-name=$lxc -e superdesk-dev/master -a do_tests
+
+    . $root/superdesk-dev/nginx.tpl > /etc/nginx/sites-enabled/$name
+    nginx -s reload
 }
 
 eval $action

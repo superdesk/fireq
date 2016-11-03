@@ -5,6 +5,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -48,28 +49,73 @@ def sh(cmd, params=None, ssh=None, exit=True, sudo=False, sync=True):
     return asyncio.create_subprocess_shell(cmd)
 
 
-def gh_push(path, action='do_tests'):
+def get_config():
+    with open('config.json', 'r') as f:
+        conf = f.read()
+    return json.loads(conf)
+
+
+def pretty_json(obj):
+    return json.dumps(obj, indent=2, sort_keys=True)
+
+
+def gh_push(path, clean=True, capture=True):
+    import requests
+
     path = Path(path)
     with (path / 'request.json').open('r') as f:
         req = json.loads(f.read())
 
-    lxc = 'sd-%s' % req['json']['after']
-
+    name = req['json']['ref'].replace('refs/heads/', '')
+    name = re.sub('[^\w-]', '-', name)
+    logfile = path / ('%s.log' )
     params = {
-        'lxc': 'sd-%s' % req['json']['after'],
-        'root': root,
-        'endpoint': 'superdesk-dev/core'
+        'name': name,
+        'lxc': 'sd-%s' % name,
+        'endpoint': 'superdesk-dev/master',
+        'clean': clean or '',
+        'path': path.resolve(),
+        'capture': (
+            (' > %s 2>&1' if capture else ' 2>&1 | tee %s')
+            % (path / 'output.log')
+        )
     }
 
-    sh(
-        'set -e;'
-        'cd {root};'
-        #'./fire lxc-base -n {lxc} --rm;'
-        #'./fire i --lxc-name={lxc} -e {endpoint} --services;'
-        './fire r --lxc-name={lxc} -e {endpoint} "debug=1 do_tests"'
+    sha = req['json']['after']
+    repo = req['json']['repository']
+    url = repo['statuses_url'].format(sha=sha)
+    data = {
+        'state': 'pending',
+        'target_url': 'http://test.superdesk.org/push/%s/output.log' % sha,
+        'description': 'Superdesk Deploy in progress',
+        'context': 'naspeh-sf/deploy/push'
+    }
+    conf = get_config()
+    s = requests.Session()
+    s.auth = tuple(conf['github_auth'].split(':'))
+    resp = s.post(url, data=json.dumps(data))
+    print(resp.status_code)
+    print(pretty_json(resp.json()))
+    if resp.status_code != 201:
+        return
+    code = sh(
+        'name={name} '
+        'lxc={lxc} '
+        'endpoint={endpoint} '
+        'clean={clean} '
+        'path={path} '
+        'bin/gh-push.sh{capture}'
         .format(**params)
     )
-    return
+    update = {
+        'state': 'success' if code == 0 else 'failed',
+        'description': 'Superdesk Deploy passed'
+    }
+    data = dict(data, **update)
+    resp = s.post(url, data=json.dumps(data))
+    print(resp.status_code)
+    print(pretty_json(resp.json()))
+
 
 
 @contextlib.contextmanager
@@ -91,7 +137,7 @@ def async_tests():
             'lxc-copy -n {lxc} -N {lxc_uniq};'
             'lxc-start -n {lxc_uniq};'
             'sleep 5;'
-            './fire r --lxc-name={lxc_uniq} -e {endpoint} {action!r}'
+            './fire r --lxc-name={lxc_uniq} -e {endpoint} -a {action!r}'
         )
         nose_cmd = cmd.format(
             lxc_uniq='%s-nose' % params['lxc'],
@@ -163,7 +209,7 @@ def main():
         .arg('--lxc-name')\
         .arg('--ssh')\
         .arg('-e', '--endpoint', default='superdesk/master')\
-        .arg('action')\
+        .arg('-a', '--action', default='')\
         .exe(lambda a: sh(
             'action={action!r} {endpoint}'
             .format(action=a.action, endpoint=a.endpoint),
@@ -173,7 +219,7 @@ def main():
     cmd('gen-files')\
         .exe(lambda a: sh('bin/gen-files.sh'))
 
-    cmd('lxc-base')\
+    cmd('lxc-init')\
         .arg('-n', '--name', default='sd0')\
         .arg('--rm', action='store_true')\
         .arg('-k', '--keys', default='/root/.ssh/id_rsa.pub')\
@@ -181,7 +227,7 @@ def main():
             'name={name} '
             'rm={rm} '
             'keys={keys} '
-            'bin/lxc-base.sh'
+            'bin/lxc-init.sh'
             .format(name=a.name, rm=a.rm or '', keys=a.keys)
         ))
 
@@ -197,10 +243,27 @@ def main():
             .format(name=a.name, domain=a.domain, clean=a.clean or '')
         ))
 
+    cmd('lxc-base')\
+        .arg('-n', '--name', default='sd-base')\
+        .exe(lambda a: sh(
+            'set -ex;'
+            './fire lxc-init -n {name} --rm;'
+            './fire r --lxc-name={name} -e common/services.sh;'
+            'lxc-stop -n {name}'
+            .format(name=a.name)
+        ))
+
     cmd('gh-push')\
         .arg('path')\
-        .arg('-a', '--action', default='do_tests')\
-        .exe(lambda a: gh_push(a.path, a.action))
+        .arg('-r', '--capture', action='store_true')\
+        .arg('-c', '--clean', action='store_true')\
+        .exe(lambda a: gh_push(a.path, a.clean, a.capture))
+
+    cmd('web')\
+        .exe(lambda a: sh(
+            'SECRET={secret}  {root}/web.py'
+            .format(secret=get_config()['secret'], root=root)
+        ))
 
     args = parser.parse_args()
     dry_run = args.dry_run

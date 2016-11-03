@@ -9,7 +9,7 @@ curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/files/superdesk-1
 ```sh
 apt-get install lxc
 
-./fire lxc-base -n sd0
+./fire lxc-init -n sd0
 ./fire i --lxc-name=sd0 --services --prepopulate
 
 # more options
