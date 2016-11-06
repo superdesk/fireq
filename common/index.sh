@@ -9,6 +9,8 @@ name=${name:-liveblog}
 repo=/opt/$name
 repo_remote=${repo_remote:-'https://github.com/liveblog/liveblog.git'}
 repo_branch=${repo_branch:-'master'}
+repo_pr=${repo_pr:-''}
+repo_sha=${repo_sha:-''}
 env=$repo/env
 envfile=$repo/envfile
 action=${action:-do_install}
@@ -27,22 +29,19 @@ _envfile() {
 }
 
 _repo() {
-    if [ ! -d $repo ]; then
-        mkdir $repo
-        cd $repo
-        git init
-        git remote add origin $repo_remote
-    else
-        cd $repo
-    fi
+    [ -d $repo ] && rm -rf $repo
+    mkdir $repo
+    cd $repo
+    git init
+    git remote add origin $repo_remote
 
     if [ -n "$repo_pr" ]; then
         branch=pr--$repo_pr
-        git fetch origin pull/$repo_pr/head:$branch
-        git checkout $branch
+        git fetch origin pull/$repo_pr/head:current
+        git checkout ${repo_sha:-'current'}
     else
         git fetch origin $repo_branch
-        git checkout $repo_branch
+        git checkout ${repo_sha:-$repo_branch}
     fi
 }
 

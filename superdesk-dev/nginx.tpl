@@ -8,11 +8,11 @@ server {
     access_log /var/log/nginx/${name}.access.log;
 
     location / {
-        proxy_pass "http://${lxc}:80";
+        proxy_pass "http://${name}:80";
     }
 
     location /ws {
-        proxy_pass "http://${lxc}:80";
+        proxy_pass "http://${name}:80";
         proxy_buffering off;
         proxy_read_timeout 600;
         proxy_http_version 1.1;

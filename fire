@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
-import contextlib
 import json
 import logging
 import os
-import re
 import subprocess
 from pathlib import Path
 
@@ -22,7 +20,10 @@ dry_run = False
 def remote(cmd, host, opts='-o "StrictHostKeyChecking no"'):
     cmd = cmd.replace('"', '\\"')
     return (
-        'set -e;rsync -ahv --delete -e \'ssh {opts}\' {root}/ {host}:{tmp}/;'
+        'set -e;rsync -ahv --delete'
+        ' -e \'ssh {opts}\''
+        ' --exclude=.git --exclude=push --exclude=env'
+        ' {root}/ {host}:{tmp}/;'
         'ssh {opts} {host} "cd {tmp}; {cmd}"'
         .format(tmp='/tmp/deploy', root=root, host=host, opts=opts, cmd=cmd)
     )
@@ -49,79 +50,9 @@ def sh(cmd, params=None, ssh=None, exit=True, sudo=False, sync=True):
     return asyncio.create_subprocess_shell(cmd)
 
 
-def get_config():
-    with open('config.json', 'r') as f:
-        conf = f.read()
-    return json.loads(conf)
-
-
-def pretty_json(obj):
-    return json.dumps(obj, indent=2, sort_keys=True)
-
-
-def gh_push(path, clean=True, capture=True):
-    import requests
-
-    path = Path(path)
-    with (path / 'request.json').open('r') as f:
-        req = json.loads(f.read())
-
-    name = req['json']['ref'].replace('refs/heads/', '')
-    name = re.sub('[^\w-]', '-', name)
-    logfile = path / ('%s.log' )
-    params = {
-        'name': name,
-        'lxc': 'sd-%s' % name,
-        'endpoint': 'superdesk-dev/master',
-        'clean': clean or '',
-        'path': path.resolve(),
-        'capture': (
-            (' > %s 2>&1' if capture else ' 2>&1 | tee %s')
-            % (path / 'output.log')
-        )
-    }
-
-    sha = req['json']['after']
-    repo = req['json']['repository']
-    url = repo['statuses_url'].format(sha=sha)
-    data = {
-        'state': 'pending',
-        'target_url': 'http://test.superdesk.org/push/%s/output.log' % sha,
-        'description': 'Superdesk Deploy in progress',
-        'context': 'naspeh-sf/deploy/push'
-    }
-    conf = get_config()
-    s = requests.Session()
-    s.auth = tuple(conf['github_auth'].split(':'))
-    resp = s.post(url, data=json.dumps(data))
-    print(resp.status_code)
-    print(pretty_json(resp.json()))
-    if resp.status_code != 201:
-        return
-    code = sh(
-        'name={name} '
-        'lxc={lxc} '
-        'endpoint={endpoint} '
-        'clean={clean} '
-        'path={path} '
-        'bin/gh-push.sh{capture}'
-        .format(**params)
-    )
-    update = {
-        'state': 'success' if code == 0 else 'failed',
-        'description': 'Superdesk Deploy passed'
-    }
-    data = dict(data, **update)
-    resp = s.post(url, data=json.dumps(data))
-    print(resp.status_code)
-    print(pretty_json(resp.json()))
-
-
-
-@contextlib.contextmanager
 def run_async(func, *a, **kw):
     loop = asyncio.get_event_loop()
-    yield loop.run_until_complete(func(*a, **kw))
+    loop.run_until_complete(func(*a, **kw))
     loop.close()
 
 
@@ -190,17 +121,20 @@ def main():
         .arg('--prepopulate', action='store_true')\
         .arg('--services', action='store_true')\
         .arg('--force-frontend', action='store_true')\
+        .arg('--env')\
         .exe(lambda a: sh(
             'services={services} '
             'force_frontend={force_frontend} '
             'prepopulate={prepopulate} '
             'action=do_install '
+            '{env} '
             '{endpoint}'
             .format(
                 services=a.services or '',
                 force_frontend=a.force_frontend or '',
                 prepopulate=a.prepopulate or '',
-                endpoint=a.endpoint
+                endpoint=a.endpoint,
+                env=a.env or ''
             ),
             ssh=ssh(a.ssh, a.lxc_name)
         ))
@@ -210,9 +144,10 @@ def main():
         .arg('--ssh')\
         .arg('-e', '--endpoint', default='superdesk/master')\
         .arg('-a', '--action', default='')\
+        .arg('--env')\
         .exe(lambda a: sh(
-            'action={action!r} {endpoint}'
-            .format(action=a.action, endpoint=a.endpoint),
+            'action={action!r} {env} {endpoint}'
+            .format(action=a.action, endpoint=a.endpoint, env=a.env or ''),
             ssh=ssh(a.ssh, a.lxc_name)
         ))
 
@@ -248,22 +183,27 @@ def main():
         .exe(lambda a: sh(
             'set -ex;'
             './fire lxc-init -n {name} --rm;'
-            './fire r --lxc-name={name} -e common/services.sh;'
+            './fire i --lxc-name={name} --services --prepopulate;'
+            './fire r --lxc-name={name} -e superdesk-dev/master -a do_tests;'
             'lxc-stop -n {name}'
             .format(name=a.name)
         ))
 
-    cmd('gh-push')\
-        .arg('path')\
-        .arg('-r', '--capture', action='store_true')\
-        .arg('-c', '--clean', action='store_true')\
-        .exe(lambda a: gh_push(a.path, a.clean, a.capture))
+    try:
+        import web
 
-    cmd('web')\
-        .exe(lambda a: sh(
-            'SECRET={secret}  {root}/web.py'
-            .format(secret=get_config()['secret'], root=root)
-        ))
+        def gh_push(path, *a, **kw):
+            path = Path(path)
+            with (path / 'request.json').open('r') as f:
+                req = json.loads(f.read())
+            return run_async(web.gh_push, req, *a, **kw)
+
+        cmd('gh-push')\
+            .arg('path')\
+            .arg('-c', '--clean', action='store_true')\
+            .exe(lambda a: gh_push(a.path, a.clean))
+    except Exception as e:
+        print('Can\'t import web.py module: %s' % e)
 
     args = parser.parse_args()
     dry_run = args.dry_run

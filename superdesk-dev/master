@@ -77,13 +77,4 @@ do_tests() {
     do_client_tests
 }
 
-do_gh_push() {
-    cd $root
-    ./fire i --lxc-name=$lxc -e superdesk-dev/master --prepopulate
-    ./fire r --lxc-name=$lxc -e superdesk-dev/master -a do_tests
-
-    . $root/superdesk-dev/nginx.tpl > /etc/nginx/sites-enabled/$name
-    nginx -s reload
-}
-
 eval $action

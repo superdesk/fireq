@@ -7,6 +7,10 @@ repo_remote=https://github.com/superdesk/superdesk-content-api.git
 root=$(dirname $(dirname $(realpath -s $0)))
 . $root/common/index.sh
 
+_repo() {
+    [ -d $repo ] || git clone --depth=1 $repo_remote $repo
+}
+
 _nginx_locations() {
     cat <<EOF
     location /pubapi {
