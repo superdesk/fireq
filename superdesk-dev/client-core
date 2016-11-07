@@ -20,7 +20,7 @@ _e2e_tests() {
         --baseUrl 'http://localhost/' --params.baseBackendUrl 'http://localhost/api'
 }
 
-do_client_tests() {
+do_checks() {
     [ -z "$ci" ] && [ -z "$e2e" ] && ci=1 && e2e=1
 
     _chrome
@@ -36,7 +36,6 @@ do_backend() {
     action=do_backend $root/superdesk-dev/master
 }
 
-do_backend_tests() { :; }
 do_prepopulate() { :; }
 
 eval $action

@@ -72,12 +72,12 @@ def async_tests():
         )
         nose_cmd = cmd.format(
             lxc_uniq='%s-nose' % params['lxc'],
-            action='nose=1 do_tests',
+            action='nose=1 do_checks',
             **params
         )
         behave_cmd = cmd.format(
             lxc_uniq='%s-behave' % params['lxc'],
-            action='behave=1 do_tests',
+            action='behave=1 do_checks',
             **params
         )
         nose = await sh(nose_cmd, sudo=True, sync=False)
@@ -184,10 +184,19 @@ def main():
             'set -ex;'
             './fire lxc-init -n {name} --rm;'
             './fire i --lxc-name={name} --services --prepopulate;'
-            './fire r --lxc-name={name} -e superdesk-dev/master -a do_tests;'
+            './fire r --lxc-name={name} -e superdesk-dev/master -a do_checks;'
             'lxc-stop -n {name}'
             .format(name=a.name)
         ))
+
+    cmd('lxc-rm')\
+        .arg('name', nargs='+')\
+        .exe(lambda a: sh('; '.join(
+            'lxc-stop -n {name};'
+            'lxc-destroy -n {name}'
+            .format(name=name)
+            for name in a.name
+        )))
 
     try:
         import web

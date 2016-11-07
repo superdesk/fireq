@@ -31,13 +31,13 @@ def get_ctx(headers, body):
         if body['action'] not in ('opened', 'reopened', 'synchronize'):
             return {}
         sha = body['pull_request']['head']['sha']
-        name = 'sdpr--%s' % body['number']
+        name = 'sdpr-%s' % body['number']
         env = 'repo_pr=%s repo_sha=%s' % (body['number'], sha)
     elif event == 'push':
         sha = body['after']
         branch = body['ref'].replace('refs/heads/', '')
-        name = re.sub('[^\w-]', '-', branch)
-        name = 'sd--%s' % name
+        name = re.sub('[^a-z0-9]', '', branch)
+        name = 'sd-%s' % name
         env = 'repo_sha=%s repo_branch=%s' % (sha, branch)
     else:
         return {}
@@ -108,33 +108,34 @@ async def gh_push(req, clean=True):
     if resp.status != 201:
         return
 
+    async def clean(code):
+        await post_status(ctx, 'success' if code == 0 else 'failure')
+        await sh('''
+        lxc-stop -n {lxc_uniq} || true;
+        lxc-destroy -n {lxc_uniq} || true;
+        ''', ctx)
+
     code = await sh('''
-    [ -n "{clean}" ] && (name={name} bin/lxc-copy.sh; sleep 10;)
+    clean={clean} name={name} bin/lxc-copy.sh;
     ./fire i --lxc-name={name} --env="{env}" -e {endpoint} --prepopulate;
+    name={lxc_uniq} base={name} bin/lxc-copy.sh;
     name={name} . superdesk-dev/nginx.tpl > /etc/nginx/sites-enabled/{name};
-    nginx -s reload
+    nginx -s reload || true
     ''', ctx)
 
-    await post_status(ctx, 'success' if code == 0 else 'failure', {
+    if code:
+        await clean(code)
+        return
+
+    await post_status(ctx, 'success', {
         'target_url': 'http://%s.test.superdesk.org' % ctx['name'],
         'context': 'naspeh-sf/deploy/web'
     })
-    if code:
-        await post_status(ctx, 'failure')
-        return
 
     code = await sh('''
-    name={lxc_uniq} from={name} bin/lxc-copy.sh;
-    lxc-start -n {name};
-    sleep 10;
-    ./fire r --lxc-name={lxc_uniq} --env="{env}" -e {endpoint} -a do_tests;
+    ./fire r --lxc-name={lxc_uniq} --env="{env}" -e {endpoint} -a do_checks;
     ''', ctx)
-
-    await post_status(ctx, 'success' if code == 0 else 'failure')
-    await sh('''
-    lxc-stop -n {lxc_uniq} || true;
-    lxc-destroy -n {lxc_uniq} || true;
-    ''', ctx)
+    await clean(code)
 
 
 async def hook(request):
@@ -160,7 +161,7 @@ async def hook(request):
         os.makedirs(ctx['path'], exist_ok=True)
         async with open(ctx['path'] + '/request.json', mode='w') as f:
             await f.write(pretty_json(req))
-        await sh('./fire gh-push -c {path}', ctx)
+        await sh('./fire gh-push {path}', ctx)
     return web.json_response('OK')
 
 

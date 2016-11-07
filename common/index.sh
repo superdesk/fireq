@@ -36,9 +36,8 @@ _repo() {
     git remote add origin $repo_remote
 
     if [ -n "$repo_pr" ]; then
-        branch=pr--$repo_pr
-        git fetch origin pull/$repo_pr/head:current
-        git checkout ${repo_sha:-'current'}
+        git fetch origin pull/$repo_pr/head:$repo_pr
+        git checkout ${repo_sha:-$repo_pr}
     else
         git fetch origin $repo_branch
         git checkout ${repo_sha:-$repo_branch}
@@ -173,9 +172,9 @@ do_install() {
     apt-get -y autoremove --purge ntpdate
     apt-get -y update
 
+    do_init
     [ ! -d $(_repo_client)/dist ] || [ -n "$force_frontend" ] && frontend=1
 
-    do_init
     [ -n "$services" ] && do_services
     do_backend
     [ -n "$frontend" ] && do_frontend

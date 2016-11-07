@@ -12,6 +12,10 @@ do_backend() {
     pip install -U -r requirements.txt
 }
 
+do_checks() {
+    _backend_checks
+}
+
 do_client_tests() { :; }
 do_frontend() { :; }
 do_finish() { :; }
