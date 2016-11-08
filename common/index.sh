@@ -137,10 +137,7 @@ do_prepopulate() {
     python manage.py register_local_themes
 }
 
-do_finish() {
-    _supervisor
-    _nginx
-}
+do_finish() { :; }
 
 do_services() {
     apt-get -y install wget software-properties-common
@@ -184,5 +181,7 @@ do_install() {
     [ -n "$prepopulate" ] && do_prepopulate
     do_finish
 
+    _supervisor
+    _nginx
     apt-get -y clean
 }

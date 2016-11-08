@@ -3,7 +3,6 @@ import argparse
 import asyncio
 import json
 import logging
-import os
 import subprocess
 from pathlib import Path
 
@@ -13,7 +12,7 @@ logging.basicConfig(
     datefmt='%H:%M:%S',
     format='%(asctime)s %(message)s'
 )
-root = os.path.dirname(__file__)
+root = Path(__file__).resolve().parent
 dry_run = False
 
 
@@ -54,43 +53,6 @@ def run_async(func, *a, **kw):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(func(*a, **kw))
     loop.close()
-
-
-def async_tests():
-    """TODO: finish async testing"""
-    async def tests():
-        cmd = (
-            'set -ex;'
-            'cd {root};'
-            'lxc-stop -n {lxc} || true;'
-            'lxc-stop -n {lxc_uniq} || true;'
-            'lxc-destroy -n {lxc_uniq} || true;'
-            'lxc-copy -n {lxc} -N {lxc_uniq};'
-            'lxc-start -n {lxc_uniq};'
-            'sleep 5;'
-            './fire r --lxc-name={lxc_uniq} -e {endpoint} -a {action!r}'
-        )
-        nose_cmd = cmd.format(
-            lxc_uniq='%s-nose' % params['lxc'],
-            action='nose=1 do_checks',
-            **params
-        )
-        behave_cmd = cmd.format(
-            lxc_uniq='%s-behave' % params['lxc'],
-            action='behave=1 do_checks',
-            **params
-        )
-        nose = await sh(nose_cmd, sudo=True, sync=False)
-        # return [await nose.wait()]
-        behave = await sh(behave_cmd, sudo=True, sync=False)
-        return await nose.wait(), await behave.wait()
-
-    with run_async(tests) as codes:
-        log.info('Exit codes: %s', codes)
-        code = [c for c in codes if c]
-        if code:
-            raise SystemExit(code[0])
-        return codes
 
 
 def main():
@@ -200,9 +162,10 @@ def main():
 
     cmd('lxc-ssh')\
         .arg('name')\
+        .arg('-c', '--cmd', default='')\
         .exe(lambda a: sh(
-            'ssh -o "StrictHostKeyChecking no" $(lxc-info -n %s -iH)'
-            % a.name
+            'ssh -o "StrictHostKeyChecking no" $(lxc-info -n %s -iH) %s'
+            % (a.name, a.cmd)
         ))
 
     try:

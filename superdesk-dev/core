@@ -1,24 +1,31 @@
 #!/bin/bash
 
-name=superdesk-core
-repo_remote=https://github.com/superdesk/superdesk-core.git
-
 root=$(dirname $(dirname $(realpath -s $0)))
 action=true . $root/superdesk-dev/master
 
-do_backend() {
-    _venv $env
+repo_core=$repo/server-core
+
+eval "_orig$(declare -f _repo)"
+_repo() {
     cd $repo
-    pip install -U -r requirements.txt
+    git remote add tmp https://github.com/naspeh-sf/superdesk.git || true
+    git fetch tmp submodules
+    git checkout tmp/submodules
+
+    repo=$repo_core _orig_repo
+}
+
+do_finish() {
+    _es_snapshots
+
+    . $env/bin/activate
+    cd $repo_core
+    pip install -r requirements.txt
 }
 
 do_checks() {
+    cd $repo_core
     _backend_checks
 }
-
-do_client_tests() { :; }
-do_frontend() { :; }
-do_finish() { :; }
-do_prepopulate() { :; }
 
 eval $action

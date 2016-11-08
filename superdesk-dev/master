@@ -52,30 +52,38 @@ _chrome() {
 }
 
 _backend_checks() {
-    [ -z "$nose" ] && [ -z "$behave" ] && nose=1 && behave=1
+    _es_wait
+    . $env/bin/activate
 
+    [ -z "$nose" ] && [ -z "$behave" ] && [ -z "$flake8" ] && nose=1 && behave=1 && flake8=1
+
+    [ -z "$flake8" ] || flake8
+
+    [ -z "$nose" ] || time nosetests -v --with-id
+
+    feature=(./features/*.feature)
+    [ -f $feature ] || behave=
+    [ -z "$behave" ] || time behave --format progress2 --logging-clear-handlers --logcapture
+}
+
+_client_checks() {
+    _es_wait
+    _chrome
+    npm test
+}
+
+do_finish() {
     _es_snapshots
 
     . $env/bin/activate
     cd $repo/server
     pip install -r dev-requirements.txt
-
-    flake8
-
-    [ -z "$nose" ] || time nosetests -v
-
-    [ -f "./features/*.feature" ] || behave=
-    [ -z "$behave" ] || time behave --format progress2 --logging-clear-handlers --logcapture
 }
-
-_client_checks() {
-    _chrome
-    cd $(_repo_client)
-    npm test
-}
-
 do_checks() {
+    cd $repo/server
     _backend_checks
+
+    cd $repo/client
     _client_checks
 }
 

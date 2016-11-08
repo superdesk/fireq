@@ -2,8 +2,8 @@
 set -ex
 
 base=${base:-'sd-base'}
-secs=${secs-5}
-clean=${clean-1}
+clean=${clean-0}
+start=${start-1}
 
 if [ -n "$clean" ]; then
     lxc-stop -n $name || true
@@ -17,7 +17,12 @@ if [ -z "$exist" ]; then
     [ -n "$base_stoped" ] && lxc-start -n $base
     exist='STOPPED'
 fi
-if [ "$exist" = "STOPPED" ]; then
+
+start=$([ -n "$start" ] && [ "$exist" = "STOPPED" ] && echo 1 || echo '')
+if [ -n "$start"  ] ; then
     lxc-start -n $name
-    [ -n "$secs" ] && sleep $secs
+    lxc-wait -n $name -s RUNNING;
+    while ! $(./fire lxc-ssh $name -c true); do
+        sleep 1
+    done
 fi
