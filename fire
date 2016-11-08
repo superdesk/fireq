@@ -198,6 +198,13 @@ def main():
             for name in a.name
         )))
 
+    cmd('lxc-ssh')\
+        .arg('name')\
+        .exe(lambda a: sh(
+            'ssh -o "StrictHostKeyChecking no" $(lxc-info -n %s -iH)'
+            % a.name
+        ))
+
     try:
         import web
 

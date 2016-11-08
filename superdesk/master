@@ -1,5 +1,5 @@
 #!/bin/sh
-set -xe
+set -ex
 
 name=${name:-superdesk}
 repo_remote=${repo_remote:-https://github.com/superdesk/superdesk.git}
@@ -26,7 +26,8 @@ _supervisor_append() {
 
 do_backend() {
     _venv $env
-    pip install -U -r $repo/server/requirements.txt
+    cd $repo/server
+    pip install -U -r requirements.txt
 
     action=do_backend $root/superdesk/content-api
 }

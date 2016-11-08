@@ -24,8 +24,10 @@ EOF
 }
 
 _envfile() {
+    set +x
     envfile_append="$(_envfile_append)"
     . $root/common/envfile.tpl > $envfile
+    set -x
 }
 
 _repo() {
@@ -42,12 +44,13 @@ _repo() {
         git fetch origin $repo_branch
         git checkout ${repo_sha:-$repo_branch}
     fi
+    git submodule update --init
 }
 
 _venv() {
     path=$1
     python3 -m venv $path
-    echo "set -a; . $envfile; set +a" >> $path/bin/activate
+    echo "set -a +x; . $envfile; set +a -x" >> $path/bin/activate
     . $path/bin/activate
     pip install -U pip wheel
 }

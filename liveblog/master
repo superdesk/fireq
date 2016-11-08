@@ -1,5 +1,5 @@
 #!/bin/sh
-set -xe
+set -ex
 
 root=$(dirname $(dirname $(realpath -s $0)))
 . $root/common/index.sh
