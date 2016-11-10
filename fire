@@ -142,13 +142,14 @@ def main():
 
     cmd('lxc-base')\
         .arg('-n', '--name', default='sd-base')\
+        .arg('-p', '--path', default='/opt/superdesk')\
         .exe(lambda a: sh(
             'set -ex;'
             './fire lxc-init -n {name} --rm;'
-            './fire i --lxc-name={name} --services --prepopulate;'
-            './fire r --lxc-name={name} -e superdesk-dev/master -a do_checks;'
+            './fire i --lxc-name={name} --services;'
+            './fire lxc-ssh sd-base -c "rm -rf {path}";'
             'lxc-stop -n {name}'
-            .format(name=a.name)
+            .format(name=a.name, path=a.path)
         ))
 
     cmd('lxc-rm')\
@@ -165,7 +166,23 @@ def main():
         .arg('-c', '--cmd', default='')\
         .exe(lambda a: sh(
             'ssh -o "StrictHostKeyChecking no" $(lxc-info -n %s -iH) %s'
-            % (a.name, a.cmd)
+            % (a.name, a.cmd),
+            sudo=True
+        ))
+
+    cmd('lxc-wait')\
+        .arg('name')\
+        .exe(lambda a: sh(
+            'while ! $(./fire lxc-ssh %s -c true); do sleep 1; done'
+            % a.name
+
+        ))
+
+    cmd('lxc-clean')\
+        .arg('pattern', default='^sd', nargs='?')\
+        .exe(lambda a: sh(
+            'lxc-ls -1 | grep "%s" | xargs ./fire lxc-rm'
+            % a.pattern
         ))
 
     try:

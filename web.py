@@ -13,7 +13,7 @@ from aiofiles import open
 from aiohttp import web, ClientSession
 
 root = Path(__file__).resolve().parent
-
+domain = 'test.superdesk.org'
 
 async def get_config():
     async with open('config.json', 'r') as f:
@@ -23,6 +23,19 @@ async def get_config():
 
 def pretty_json(obj):
     return json.dumps(obj, indent=2, sort_keys=True)
+
+
+async def sh(cmd, ctx, *, logfile=None):
+    ctx = ctx or {}
+    cmd = 'set -ex; cd %s; %s' % (root, cmd.format(**ctx))
+    logfile = logfile or ctx['logfile']
+    if logfile:
+        cmd = '(%s) >> %s 2>&1' % (cmd, ctx['logpath'] + logfile)
+    print(cmd)
+    proc = await asyncio.create_subprocess_shell(cmd)
+    code = await proc.wait()
+    print(code, cmd)
+    return code
 
 
 def get_ctx(headers, body):
@@ -51,31 +64,37 @@ def get_ctx(headers, body):
     if repo == 'superdesk/superdesk':
         endpoint = 'superdesk-dev/master'
         prefix = 'sd' + prefix
-        checks = 'sd_checks'
+        checks = {'name': 'sd_checks'}
     elif repo == 'superdesk/superdesk-core':
         endpoint = 'superdesk-dev/core'
         prefix = 'sds' + prefix
-        checks = 'sds_checks'
+        checks = {'name': 'sds_checks', 'env': 'frontend='}
     else:
         print('Repository %r is not supported', repo)
         return {}
 
     name = '%s-%s' % (prefix, name)
-    path = 'push/{name}/{sha}'.format(name=name, sha=sha)
+    uniq = (name, sha[:10])
+    name_uniq = '%s-%s' % uniq
+    path = 'push/%s/%s' % uniq
     env += ' repo_remote=%s' % body['repository']['clone_url']
-    return {
+    ctx = {
         'sha': sha,
         'name': name,
+        'name_uniq': name_uniq,
         'path': path,
         'endpoint': endpoint,
         'checks': checks,
-        'logfile': (
-            '{path}/{time:%Y%m%d-%H%M%S}.log'
+        'logpath': (
+            '{path}/{time:%Y%m%d-%H%M%S}-'
             .format(path=path, time=dt.datetime.now())
         ),
+        'logfile': 'push.log',
         'env': env,
         'statuses_url': body['repository']['statuses_url'].format(sha=sha)
     }
+    ctx['logurl'] = 'https://%s/%s' % (domain, ctx['logpath'])
+    return ctx
 
 
 async def post_status(ctx, state=None, extend=None, code=None):
@@ -85,7 +104,7 @@ async def post_status(ctx, state=None, extend=None, code=None):
 
     data = {
         'state': state,
-        'target_url': 'https://test.superdesk.org/%s' % ctx['logfile'],
+        'target_url': ctx['logurl'] + ctx['logfile'],
         'description': 'Superdesk Deploy',
         'context': 'naspeh-sf/deploy/push'
     }
@@ -101,105 +120,108 @@ async def post_status(ctx, state=None, extend=None, code=None):
             return resp
 
 
-async def sh(cmd, ctx=None, logfile=None, code=True):
-    ctx = ctx or {}
-    cmd = 'set -ex; cd %s; %s' % (root, cmd.format(**ctx))
-    logfile = logfile or ctx.get('logfile')
-    if logfile:
-        cmd = '(%s) >> %s 2>&1' % (cmd, logfile)
-    print(cmd)
-    proc = await asyncio.create_subprocess_shell(cmd, stdout=None, stderr=None)
-    if code:
-        code = await proc.wait()
-        print(code, cmd)
-        return code
-    return proc
-
-
 async def sd_checks(ctx):
     return await sh('''
-    lxc-start -n {lxc_uniq};
-    ./fire r --lxc-name={lxc_uniq} --env="{env}" -e {endpoint} -a do_checks;
+    lxc-start -n {name_uniq};
+    ./fire lxc-wait {name_uniq};
+    ./fire r --lxc-name={name_uniq} --env="{env}" -e {endpoint} -a do_checks;
     ''', ctx)
 
 
 async def sds_checks(ctx):
     targets = ['flake8', 'nose', 'behave']
     cmd = '''
-    lxc={lxc_uniq}-{t};
-    name=$lxc base={lxc_uniq} bin/lxc-copy.sh;
+    lxc={name_uniq}-{t};
+    name=$lxc base={name_uniq} bin/lxc-copy.sh;
     ./fire r --lxc-name=$lxc --env="{env}" -e {endpoint} -a "{t}=1 do_checks"
     '''
 
     async def run(target):
-        logfile = '%s-%s.log' % (ctx['logfile'][:-4], target)
-        proc = await sh(
+        logfile = 'check-%s.log' % target
+        status = {
+            'target_url': ctx['logurl'] + logfile,
+            'context': 'naspeh-sf/deploy/check-%s' % target
+        }
+        await post_status(ctx, 'pending', extend=status)
+        code = await sh(
             cmd.format(t=target, **ctx),
-            logfile=logfile,
-            code=False,
+            ctx, logfile=logfile
         )
-        code = await proc.wait()
-        await post_status(ctx, code=code, extend={
-            'target_url': 'https://test.superdesk.org/%s' % logfile,
-            'context': 'naspeh-sf/deploy/%s' % target
-        })
-        print('Target: %s; exit code: %s' % (target, code))
+        await post_status(ctx, code=code, extend=status)
+        print('Finished %r with %s' % (target, code))
         return code
 
     proces = [run(t) for t in targets]
     failed = False
     for f in asyncio.as_completed(proces):
         failed = await f or failed
-
-    names = ('{lxc_uniq}-{t}'.format(t=t, **ctx) for t in targets)
-    await sh('./fire lxc-rm %s' % ' '.join(names))
     return failed and 1 or 0
 
 
-async def gh_push(req, clean=True):
-    ctx = get_ctx(req['headers'], req['json'])
-
-    os.makedirs(ctx['path'], exist_ok=True)
-    async with open(ctx['path'] + '/request.json', mode='w') as f:
-        await f.write(pretty_json(req))
-
-    ctx.update(**{
-        'lxc_uniq': '{name}--{sha}'.format(**ctx),
-        'clean': clean or '',
-    })
-    print(pretty_json(ctx))
-
-    resp = await post_status(ctx, 'pending')
-    if resp.status != 201:
-        return
-
+async def checks(ctx):
     async def clean(code):
         await post_status(ctx, code=code)
-        await sh('''
-        lxc-stop -n {lxc_uniq} || true;
-        lxc-destroy -n {lxc_uniq} || true;
-        ''', ctx)
+        await sh('./fire lxc-clean "^{name_uniq}"', ctx)
+
+    name = ctx['checks']['name']
+    env = ctx['checks'].get('env', '')
 
     code = await sh('''
-    clean={clean} name={name} bin/lxc-copy.sh;
-    ./fire i --lxc-name={name} --env="{env}" -e {endpoint} --prepopulate;
-    name={lxc_uniq} base={name} start= bin/lxc-copy.sh;
-    name={name} . superdesk-dev/nginx.tpl > /etc/nginx/sites-enabled/{name};
-    lxc-wait -n {name} -s RUNNING; sleep 1;
-    nginx -s reload || true
-    ''', ctx)
+    name={name_uniq} bin/lxc-copy.sh;
+    ./fire lxc-wait {name_uniq};
+    ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
+    lxc-stop -n {name_uniq};
+    ''', dict(ctx, env='%s %s' % (env, ctx['env'])))
 
     if code:
         await clean(code)
         return
 
-    await post_status(ctx, 'success', {
-        'target_url': 'http://%s.test.superdesk.org' % ctx['name'],
-        'context': 'naspeh-sf/deploy/web'
-    })
-
-    code = await globals()[ctx['checks']](ctx)
+    code = await globals()[name](ctx)
     await clean(code)
+    return code
+
+
+async def pubweb(ctx):
+    logfile = 'web.log'
+    status = {
+        'target_url': ctx['logurl'] + logfile,
+        'context': 'naspeh-sf/deploy/web'
+    }
+    await post_status(ctx, 'pending', extend=status)
+    code = await sh('''
+    clean={clean} name={name} bin/lxc-copy.sh;
+    ./fire i --lxc-name={name} --env="{env}" -e {endpoint} --prepopulate;
+    name={name} . superdesk-dev/nginx.tpl > /etc/nginx/instances/{name};
+    nginx -s reload || true
+    ''', ctx, logfile=logfile)
+
+    if code == 0:
+        status['target_url'] = 'http://%s.%s' % (ctx['name'], domain)
+    await post_status(ctx, code=code, extend=status)
+    return code
+
+
+async def gh_push(req, clean=True):
+    ctx = get_ctx(req['headers'], req['json'])
+    ctx.update(clean=clean or '')
+    print(pretty_json(ctx))
+
+    os.makedirs(ctx['path'], exist_ok=True)
+    async with open(ctx['path'] + '/request.json', mode='w') as f:
+        await f.write(pretty_json(req))
+
+    resp = await post_status(ctx, 'pending')
+    if resp.status != 201:
+        return
+
+    proces = [t(ctx) for t in (pubweb, checks)]
+    failed = 0
+    for f in asyncio.as_completed(proces):
+        failed = await f or failed
+
+    if failed:
+        raise SystemExit(failed)
 
 
 async def hook(request):
@@ -219,14 +241,9 @@ async def hook(request):
     print(pretty_json(body))
     ctx = get_ctx(headers, body)
     if ctx:
-        # TODO: seems it never ends that way
-        # await gh_push({'headers': headers, 'json': body})
-
-        req = {'headers': headers, 'json': body}
-        os.makedirs(ctx['path'], exist_ok=True)
-        async with open(ctx['path'] + '/request.json', mode='w') as f:
-            await f.write(pretty_json(req))
-        await sh('./fire gh-push {path}', ctx)
+        request.app.loop.create_task(
+            gh_push({'headers': headers, 'json': body})
+        )
     return web.json_response('OK')
 
 

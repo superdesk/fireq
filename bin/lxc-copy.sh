@@ -2,7 +2,7 @@
 set -ex
 
 base=${base:-'sd-base'}
-clean=${clean-0}
+clean=${clean-1}
 start=${start-1}
 
 if [ -n "$clean" ]; then
@@ -22,7 +22,5 @@ start=$([ -n "$start" ] && [ "$exist" = "STOPPED" ] && echo 1 || echo '')
 if [ -n "$start"  ] ; then
     lxc-start -n $name
     lxc-wait -n $name -s RUNNING;
-    while ! $(./fire lxc-ssh $name -c true); do
-        sleep 1
-    done
+    ./fire lxc-wait $name
 fi

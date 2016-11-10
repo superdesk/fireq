@@ -7,10 +7,14 @@ repo_core=$repo/server-core
 
 eval "_orig$(declare -f _repo)"
 _repo() {
+    [ -d $repo ] && rm -rf $repo
+    mkdir $repo
     cd $repo
-    git remote add tmp https://github.com/naspeh-sf/superdesk.git || true
+    git init
+    git remote add tmp https://github.com/naspeh-sf/superdesk.git
     git fetch tmp submodules
     git checkout tmp/submodules
+    git submodule update --init
 
     repo=$repo_core _orig_repo
 }

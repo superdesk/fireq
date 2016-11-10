@@ -1,6 +1,6 @@
 cat <<EOF
 [program:rest]
-command=/bin/sh -c '. $env/bin/activate && exec gunicorn -c gunicorn_config.py wsgi'
+command=/bin/sh -c '. $env/bin/activate && exec gunicorn -b 0.0.0.0:5000 wsgi'
 autostart=true
 autorestart=true
 stdout_logfile=/var/log/supervisor/rest.log
@@ -21,7 +21,6 @@ user=nobody
 autostart=true
 autorestart=true
 startsecs=10
-stopwaitsecs=600
 killasgroup=true
 stdout_logfile=/var/log/supervisor/work.log
 redirect_stderr=true

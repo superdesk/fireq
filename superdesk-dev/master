@@ -3,12 +3,6 @@
 root=$(dirname $(dirname $(realpath -s $0)))
 action=true . $root/superdesk/master
 
-_envfile_append() {
-    cat <<EOF
-SUPERDESK_TESTING=True
-EOF
-}
-
 _es_wait() {
     elastic=0
     while [ $elastic -eq 0 ]
@@ -21,15 +15,11 @@ _es_wait() {
 }
 
 _es_snapshots() {
-    _es_wait
-    return 0
-
-    # TODO: fix snapshot feature
     es_backups=/tmp/es-backups
     if [ ! -d $es_backups ]; then
         mkdir $es_backups
         chown elasticsearch:elasticsearch $es_backups
-        echo "path.repo: ['/tmp/es-backups']" \
+        echo "path.repo: $es_backups" \
             | sudo tee -a /etc/elasticsearch/elasticsearch.yml
         systemctl restart elasticsearch
         _es_wait

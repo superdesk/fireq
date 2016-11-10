@@ -25,6 +25,9 @@ EOF
 
 _envfile() {
     set +x
+    config=$root/etc/${name}.sh
+    [ -f $config ] && . $config
+
     envfile_append="$(_envfile_append)"
     . $root/common/envfile.tpl > $envfile
     set -x
@@ -163,6 +166,19 @@ do_services() {
         mongodb-org-server \
         redis-server
 
+    # tune elasticsearch
+    config='/etc/elasticsearch/elasticsearch.yml'
+    pattern='superdesk-deploy'
+    sed 's/$pattern.*//' $config
+    cat << EOF >> $config
+# superdesk-deploy
+network.bind_host: 127.0.0.1
+index.refresh_interval: 30s
+index.number_of_shards: 1
+index.number_of_replicas: 0
+processors: 2
+EOF
+
     services="elasticsearch.service mongod.service redis-server.service"
     systemctl enable $services
     systemctl restart $services
@@ -173,12 +189,15 @@ do_install() {
     apt-get -y update
 
     do_init
-    [ ! -d $(_repo_client)/dist ] || [ -n "$force_frontend" ] && frontend=1
+
+    frontend=${frontend-1}
+    backend=${backend-1}
 
     [ -n "$services" ] && do_services
-    do_backend
+    [ -n "$backend" ] && do_backend
     [ -n "$frontend" ] && do_frontend
     [ -n "$prepopulate" ] && do_prepopulate
+
     do_finish
 
     _supervisor

@@ -22,7 +22,7 @@ EOF
 _supervisor_append() {
      cat <<EOF
 [program:capi]
-command=/bin/sh -c '. $env/bin/activate && exec gunicorn -c gunicorn_config.py wsgi'
+command=/bin/sh -c '. $env/bin/activate && exec gunicorn -b 0.0.0.0:5050 wsgi'
 autostart=true
 autorestart=true
 stdout_logfile=/var/log/supervisor/capi.log
