@@ -192,7 +192,8 @@ def main():
             path = Path(path)
             with (path / 'request.json').open('r') as f:
                 req = json.loads(f.read())
-            return run_async(web.gh_push, req, *a, **kw)
+            code = run_async(web.gh_push, req, *a, **kw)
+            raise SystemExit(code)
 
         cmd('gh-push')\
             .arg('path')\

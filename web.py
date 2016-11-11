@@ -220,8 +220,7 @@ async def gh_push(req, clean=True):
     for f in asyncio.as_completed(proces):
         failed = await f or failed
 
-    if failed:
-        raise SystemExit(failed)
+    return failed
 
 
 async def hook(request):

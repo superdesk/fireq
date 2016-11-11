@@ -168,10 +168,10 @@ do_services() {
 
     # tune elasticsearch
     config='/etc/elasticsearch/elasticsearch.yml'
-    pattern='superdesk-deploy'
+    pattern='# superdesk-deploy'
     sed 's/$pattern.*//' $config
     cat << EOF >> $config
-# superdesk-deploy
+$pattern
 network.bind_host: 127.0.0.1
 index.refresh_interval: 30s
 index.number_of_shards: 1
