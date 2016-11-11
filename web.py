@@ -202,7 +202,7 @@ async def pubweb(ctx):
     return code
 
 
-async def gh_push(req, clean=True):
+async def gh_push(req, clean=False):
     ctx = get_ctx(req['headers'], req['json'])
     ctx.update(clean=clean or '')
     print(pretty_json(ctx))

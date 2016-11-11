@@ -39,7 +39,7 @@ do_backend() {
     pip install -U -r $repo/requirements.txt
 }
 do_prepopulate() {
-    . $env/bin/activate
+    _activate
     cd $repo
     python content_api_manage.py app:prepopulate || true
 }

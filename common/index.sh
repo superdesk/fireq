@@ -53,9 +53,14 @@ _repo() {
 _venv() {
     path=$1
     python3 -m venv $path
-    echo "set -a +x; . $envfile; set +a -x" >> $path/bin/activate
-    . $path/bin/activate
+    echo "set -a +x; . $envfile; set +a" >> $path/bin/activate
+    _activate
     pip install -U pip wheel
+}
+
+_activate() {
+    . $env/bin/activate
+    set -x
 }
 
 _supervisor_append() { :; }
@@ -133,7 +138,7 @@ do_frontend() {
 }
 
 do_prepopulate() {
-    . $env/bin/activate
+    _activate
     cd $repo/server
     python manage.py app:initialize_data
     python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin true
@@ -174,9 +179,10 @@ do_services() {
 $pattern
 network.bind_host: 127.0.0.1
 index.refresh_interval: 30s
-index.number_of_shards: 1
-index.number_of_replicas: 0
 processors: 2
+# Next settings brake behave tests
+#index.number_of_shards: 1
+#index.number_of_replicas: 0
 EOF
 
     services="elasticsearch.service mongod.service redis-server.service"

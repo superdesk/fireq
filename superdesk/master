@@ -42,9 +42,11 @@ do_frontend() {
 }
 
 do_prepopulate() {
-    . $env/bin/activate
+    sample_data=${sample_data-'--sample-data'}
+
+    _activate
     cd $repo/server
-    python manage.py app:initialize_data --sample-data
+    python manage.py app:initialize_data $sample_data
     python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 
     action=do_prepopulate $root/superdesk/content-api

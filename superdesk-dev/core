@@ -21,8 +21,8 @@ _repo() {
 
 do_finish() {
     _es_snapshots
+    _activate
 
-    . $env/bin/activate
     cd $repo_core
     pip install -r requirements.txt
 }

@@ -42,8 +42,10 @@ _chrome() {
 }
 
 _backend_checks() {
+    export SUPERDESK_TESTING=True
+
     _es_wait
-    . $env/bin/activate
+    _activate
 
     [ -z "$nose" ] && [ -z "$behave" ] && [ -z "$flake8" ] && nose=1 && behave=1 && flake8=1
 
@@ -64,11 +66,12 @@ _client_checks() {
 
 do_finish() {
     _es_snapshots
+    _activate
 
-    . $env/bin/activate
     cd $repo/server
     pip install -r dev-requirements.txt
 }
+
 do_checks() {
     cd $repo/server
     _backend_checks
