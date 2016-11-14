@@ -6,6 +6,7 @@ DEBIAN_FRONTEND=noninteractive
 
 root=$(dirname $(dirname $(realpath -s $0)))
 name=${name:-liveblog}
+host=${host:-localhost}
 repo=/opt/$name
 repo_remote=${repo_remote:-'https://github.com/liveblog/liveblog.git'}
 repo_branch=${repo_branch:-'master'}

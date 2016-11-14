@@ -15,6 +15,7 @@ _nginx_locations() {
     cat <<EOF
     location /pubapi {
         proxy_pass http://localhost:5050;
+        expires epoch;
     }
 EOF
 }

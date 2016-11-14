@@ -80,12 +80,14 @@ def get_ctx(headers, body):
     name = '%s-%s' % (prefix, name)
     uniq = (name, sha[:10])
     name_uniq = '%s-%s' % uniq
+    host = '%s.%s' % (name, domain)
     path = 'push/%s/%s' % uniq
-    env += ' repo_remote=%s' % body['repository']['clone_url']
+    env += ' repo_remote=%s host=%s' % (body['repository']['clone_url'], host)
     ctx = {
         'sha': sha,
         'name': name,
         'name_uniq': name_uniq,
+        'host': '%s.%s' % (name, domain),
         'path': path,
         'endpoint': endpoint,
         'checks': checks,
@@ -197,7 +199,8 @@ async def pubweb(ctx):
     code = await sh('''
     clean={clean_web} name={name} bin/lxc-copy.sh;
     ./fire i --lxc-name={name} --env="{env}" -e {endpoint} --prepopulate;
-    name={name} . superdesk-dev/nginx.tpl > /etc/nginx/instances/{name};
+    name={name} host={host}\
+    . superdesk-dev/nginx.tpl > /etc/nginx/instances/{name};
     nginx -s reload || true
     ''', ctx, logfile=logfile)
 

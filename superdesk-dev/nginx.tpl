@@ -3,12 +3,13 @@ server {
     listen  80;
     listen [::]:80;
 
-    server_name ${name}.test.superdesk.org;
+    server_name ${host};
 
     access_log /var/log/nginx/${name}.access.log;
 
     location / {
         proxy_pass "http://${name}:80";
+        expires epoch;
     }
 
     location /ws {
