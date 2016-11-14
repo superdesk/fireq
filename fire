@@ -198,7 +198,8 @@ def main():
         cmd('gh-push')\
             .arg('path')\
             .arg('-c', '--clean', action='store_true')\
-            .exe(lambda a: gh_push(a.path, a.clean))
+            .arg('--clean-web', action='store_true')\
+            .exe(lambda a: gh_push(a.path, a.clean, a.clean_web))
     except Exception as e:
         print('Can\'t import web.py module: %s' % e)
 

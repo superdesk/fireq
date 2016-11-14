@@ -69,6 +69,10 @@ def get_ctx(headers, body):
         endpoint = 'superdesk-dev/core'
         prefix = 'sds' + prefix
         checks = {'name': 'sds_checks', 'env': 'frontend='}
+    elif repo == 'superdesk/superdesk-client-core':
+        endpoint = 'superdesk-dev/client-core'
+        prefix = 'sdc' + prefix
+        checks = {'name': 'sd_checks'}
     else:
         print('Repository %r is not supported', repo)
         return {}
@@ -161,13 +165,14 @@ async def sds_checks(ctx):
 async def checks(ctx):
     async def clean(code):
         await post_status(ctx, code=code)
-        await sh('./fire lxc-clean "^{name_uniq}"', ctx)
+        if ctx['clean']:
+            await sh('./fire lxc-clean "^{name_uniq}"', ctx)
 
     name = ctx['checks']['name']
     env = ctx['checks'].get('env', '')
 
     code = await sh('''
-    name={name_uniq} bin/lxc-copy.sh;
+    clean={clean} name={name_uniq} bin/lxc-copy.sh;
     ./fire lxc-wait {name_uniq};
     ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
     lxc-stop -n {name_uniq};
@@ -190,7 +195,7 @@ async def pubweb(ctx):
     }
     await post_status(ctx, 'pending', extend=status)
     code = await sh('''
-    clean={clean} name={name} bin/lxc-copy.sh;
+    clean={clean_web} name={name} bin/lxc-copy.sh;
     ./fire i --lxc-name={name} --env="{env}" -e {endpoint} --prepopulate;
     name={name} . superdesk-dev/nginx.tpl > /etc/nginx/instances/{name};
     nginx -s reload || true
@@ -202,9 +207,9 @@ async def pubweb(ctx):
     return code
 
 
-async def gh_push(req, clean=False):
+async def gh_push(req, clean=False, clean_web=False):
     ctx = get_ctx(req['headers'], req['json'])
-    ctx.update(clean=clean or '')
+    ctx.update(clean=clean or '', clean_web=clean_web or '')
     print(pretty_json(ctx))
 
     os.makedirs(ctx['path'], exist_ok=True)
@@ -241,7 +246,7 @@ async def hook(request):
     ctx = get_ctx(headers, body)
     if ctx:
         request.app.loop.create_task(
-            gh_push({'headers': headers, 'json': body})
+            gh_push({'headers': headers, 'json': body}, clean=True)
         )
     return web.json_response('OK')
 
@@ -252,4 +257,4 @@ def get_app():
     return app
 
 if __name__ == '__main__':
-    web.run_app(get_app())
+    web.run_app(get_app(), port=os.environ.get('PORT', 8080))

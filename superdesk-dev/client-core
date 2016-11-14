@@ -1,41 +1,43 @@
 #!/bin/bash
-
-name=superdesk-client-core
-repo_remote=https://github.com/superdesk/superdesk-client-core.git
+set -e
 
 root=$(dirname $(dirname $(realpath -s $0)))
-action=true . $root/superdesk-dev/master
+action=true . $root/superdesk-dev/core
+
+repo_core=$repo/client-core
 
 _repo_client() {
-    echo $repo
+    echo $repo_core
 }
 
 _e2e_tests() {
-    e2e_filter=$([ -z "$debug" ] && echo "" || echo "--specs spec/archived_spec.js")
-
     _es_snapshots
 
     webdriver-manager update
-    xvfb-run protractor protractor.conf.js --stackTrace --verbose $e2e_filter\
-        --baseUrl 'http://localhost/' --params.baseBackendUrl 'http://localhost/api'
+    time xvfb-run protractor protractor.conf.js --stackTrace --verbose\
+        --baseUrl 'http://localhost'\
+        --params.baseBackendUrl 'http://localhost/api'
 }
 
 do_checks() {
+    _es_wait
+    _chrome
+
+    echo 'SUPERDESK_TESTING=true' >> $envfile
+    supervisorctl restart all
+
     [ -z "$ci" ] && [ -z "$e2e" ] && ci=1 && e2e=1
 
-    _chrome
-    cd $(_repo_client)
-
+    cd $repo_core
     export PATH=./node_modules/.bin/:$PATH
 
     [ -n "$ci" ] && xvfb-run grunt ci:travis
     [ -n "$e2e" ] && _e2e_tests
 }
 
-do_backend() {
-    action=do_backend $root/superdesk-dev/master
+do_finish() {
+    _es_snapshots
+    _activate
 }
-
-do_prepopulate() { :; }
 
 eval $action
