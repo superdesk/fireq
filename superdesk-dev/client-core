@@ -23,7 +23,12 @@ do_checks() {
     _es_wait
     _chrome
 
-    echo 'SUPERDESK_TESTING=true' >> $envfile
+    cat <<EOF >> $envfile
+SUPERDESK_TESTING=true
+SUPERDESK_URL=http://localhost/api
+SUPERDESK_CLIENT_URL=http://localhost
+SUPERDESK_WS_URL=ws://localhost
+EOF
     supervisorctl restart all
 
     [ -z "$ci" ] && [ -z "$e2e" ] && ci=1 && e2e=1
