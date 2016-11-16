@@ -15,6 +15,7 @@ $nginx_locations
 
     location /api {
         proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
         expires epoch;
 
         sub_filter_types application/json;

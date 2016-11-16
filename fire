@@ -3,7 +3,10 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import subprocess
+import sys
+import urllib.request
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -14,9 +17,10 @@ logging.basicConfig(
 )
 root = Path(__file__).resolve().parent
 dry_run = False
+ssh_opts='-o "StrictHostKeyChecking no"'
 
 
-def remote(cmd, host, opts='-o "StrictHostKeyChecking no"'):
+def remote(cmd, host, opts=ssh_opts):
     cmd = cmd.replace('"', '\\"')
     return (
         'set -e;rsync -ahv --delete'
@@ -28,10 +32,8 @@ def remote(cmd, host, opts='-o "StrictHostKeyChecking no"'):
     )
 
 
-def sh(cmd, params=None, ssh=None, exit=True, sudo=False, sync=True):
+def sh(cmd, params=None, ssh=None, exit=True):
     params = params or {}
-    if sudo:
-        cmd = 'sudo sh -c %r' % cmd
     if ssh:
         cmd = remote(cmd, ssh)
 
@@ -40,19 +42,40 @@ def sh(cmd, params=None, ssh=None, exit=True, sudo=False, sync=True):
         log.info('Dry run!')
         return 0
 
-    if sync:
-        code = subprocess.call(cmd, shell=True)
-        if exit and code:
-            raise SystemExit(code)
-        return code
-
-    return asyncio.create_subprocess_shell(cmd)
+    code = subprocess.call(cmd, shell=True)
+    if exit and code:
+        raise SystemExit(code)
+    return code
 
 
 def run_async(func, *a, **kw):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(func(*a, **kw))
     loop.close()
+
+
+def gh_push(path, url, *a, **kw):
+    path = Path(path)
+    with (path / 'request.json').open('r') as f:
+        req = json.loads(f.read())
+
+    if not url:
+        try:
+            import web
+        except Exception as e:
+            print('Can\'t import web.py module: %s' % e)
+            raise SystemExit(1)
+
+        web.init_conf()
+        code = run_async(web.gh_push, req, *a, **kw)
+        raise SystemExit(code)
+
+    headers = req['headers']
+    del headers['Content-Length']
+    data = json.dumps(req['json'], indent=2, sort_keys=True)
+    req = urllib.request.Request(url, data.encode(), headers)
+    resp = urllib.request.urlopen(req)
+    print(resp.status, resp.reason)
 
 
 def main():
@@ -73,7 +96,7 @@ def main():
     def ssh(ssh, lxc_name):
         return (
             ssh or
-            (lxc_name and 'root@$(sudo lxc-info -n %s -iH)' % lxc_name)
+            (lxc_name and '$(lxc-info -n %s -iH)' % lxc_name)
         )
 
     cmd('install', aliases=['i'])\
@@ -140,6 +163,18 @@ def main():
             .format(name=a.name, domain=a.domain, clean=a.clean or '')
         ))
 
+    cmd('lxc-copy')\
+        .arg('name')\
+        .arg('-b', '--base', default='sd-base')\
+        .arg('-c', '--clean', action='store_true')\
+        .exe(lambda a: sh(
+            'name={name} '
+            'clean={clean} '
+            'base={base} '
+            'bin/lxc-copy.sh'
+            .format(name=a.name, base=a.base, clean=a.clean or '')
+        ))
+
     cmd('lxc-base')\
         .arg('-n', '--name', default='sd-base')\
         .arg('-p', '--path', default='/opt/superdesk')\
@@ -165,43 +200,33 @@ def main():
         .arg('name')\
         .arg('-c', '--cmd', default='')\
         .exe(lambda a: sh(
-            'ssh -o "StrictHostKeyChecking no" $(lxc-info -n %s -iH) %s'
-            % (a.name, a.cmd),
-            sudo=True
+            'ssh {ssh_opts} $(lxc-info -n {name} -iH) {cmd}'
+            .format(ssh_opts=ssh_opts, name=a.name, cmd=a.cmd)
         ))
 
     cmd('lxc-wait')\
         .arg('name')\
         .exe(lambda a: sh(
-            'while ! $(./fire lxc-ssh %s -c true); do sleep 1; done'
-            % a.name
-
+            'lxc-wait -n {name} -s RUNNING &&'
+            'while ! $(./fire lxc-ssh {name} -c true > /dev/null);'
+            '   do sleep 1; '
+            'done'
+            .format(name=a.name)
         ))
 
     cmd('lxc-clean')\
         .arg('pattern', default='^sd', nargs='?')\
         .exe(lambda a: sh(
-            'lxc-ls -1 | grep "%s" | xargs ./fire lxc-rm'
-            % a.pattern
+            'lxc-ls -1 | grep "{pattern}" | xargs ./fire lxc-rm'
+            .format(pattern=a.pattern)
         ))
 
-    try:
-        import web
-
-        def gh_push(path, *a, **kw):
-            path = Path(path)
-            with (path / 'request.json').open('r') as f:
-                req = json.loads(f.read())
-            code = run_async(web.gh_push, req, *a, **kw)
-            raise SystemExit(code)
-
-        cmd('gh-push')\
-            .arg('path')\
-            .arg('-c', '--clean', action='store_true')\
-            .arg('--clean-web', action='store_true')\
-            .exe(lambda a: gh_push(a.path, a.clean, a.clean_web))
-    except Exception as e:
-        print('Can\'t import web.py module: %s' % e)
+    cmd('gh-push')\
+        .arg('path')\
+        .arg('-u', '--url')\
+        .arg('-c', '--clean', action='store_true')\
+        .arg('--clean-web', action='store_true')\
+        .exe(lambda a: gh_push(a.path, a.url, a.clean, a.clean_web))
 
     args = parser.parse_args()
     dry_run = args.dry_run
@@ -213,6 +238,9 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        if os.geteuid() != 0:
+            subprocess.call(['sudo'] + sys.argv)
+        else:
+            main()
     except KeyboardInterrupt:
         raise SystemExit(1)

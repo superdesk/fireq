@@ -4,31 +4,18 @@ LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8
 PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
-MONGO_URI=mongodb://127.0.0.1/${name}
-PUBLICAPI_MONGO_URI=mongodb://127.0.0.1/${name}_pa
-LEGAL_ARCHIVE_URI=mongodb://127.0.0.1/${name}_la
-ARCHIVED_URI=mongodb://127.0.0.1/${name}_ar
-ELASTICSEARCH_URL=http://127.0.0.1:9200
+
+MONGO_URI=${MONGO_URI:-"mongodb://127.0.0.1/${name}"}
+PUBLICAPI_MONGO_URI=${PUBLICAPI_MONGO_URI:-"mongodb://127.0.0.1/${name}_pa"}
+LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://127.0.0.1/${name}_la"}
+ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://127.0.0.1/${name}_ar"}
+ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://127.0.0.1:9200"}
 ELASTICSEARCH_INDEX=${name}
 
 C_FORCE_ROOT=1
-CELERYBEAT_SCHEDULE_FILENAME=/tmp/celerybeatschedule
-CELERY_BROKER_URL=redis://127.0.0.1:6379/1
-REDIS_URL=redis://127.0.0.1:6379/1
-
-AMAZON_ACCESS_KEY_ID=
-AMAZON_CONTAINER_NAME=
-AMAZON_REGION=
-AMAZON_SECRET_ACCESS_KEY=
-AMAZON_SERVE_DIRECT_LINKS=True
-AMAZON_S3_USE_HTTPS=False
-AMAZON_SERVER=
-AMAZON_PROXY_SERVER=
-AMAZON_URL_GENERATOR=default
-
-SENTRY_DSN=
-VIEW_DATE_FORMAT=
-VIEW_TIME_FORMAT=
+CELERYBEAT_SCHEDULE_FILENAME=${CELERYBEAT_SCHEDULE_FILENAME:-/tmp/celerybeatschedule}
+CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://127.0.0.1:6379/1}
+REDIS_URL=${REDIS_URL:-redis://127.0.0.1:6379/1}
 
 MAIL_SERVER=${MAIL_SERVER-localhost}
 MAIL_PASSWORD=${MAIL_PASSWORD-''}
@@ -37,10 +24,15 @@ MAIL_USERNAME=${MAIL_USERNAME-''}
 MAIL_USE_SSL=${MAIL_USE_SSL-False}
 MAIL_USE_TLS=${MAIL_USE_TLS-False}
 
-SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-http://$host}
-SUPERDESK_WS_URL=${SUPERDESK_WS_URL:-ws://$host/ws}
-SUPERDESK_URL=${SUPERDESK_URL:-http://$host/api}
-PUBLICAPI_URL=${PUBLICAPI_URL:-http://$host/pubapi}
+# TODO: need to get rid this for proper SaaS
+SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-"http://$host"}
+
+# To work properly inside and outside container, must be
+# - "proxy_set_header Host {{host}};" in nginx
+# - the same "{{host}}" for next two settings
+# TODO: try to fix at backend side, it should accept any host
+SUPERDESK_URL=${SUPERDESK_URL:-"http://$host/api"}
+PUBLICAPI_URL=${PUBLICAPI_URL:-"http://$host/pubapi"}
 
 $envfile_append
 EOF

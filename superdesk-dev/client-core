@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+repo_remote=${repo_remote:-https://github.com/superdesk/superdesk-client-core.git}
+
 root=$(dirname $(dirname $(realpath -s $0)))
 action=true . $root/superdesk-dev/core
 

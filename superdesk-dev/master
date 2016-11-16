@@ -35,7 +35,7 @@ _chrome() {
     echo "deb http://dl.google.com/linux/chrome/deb/ stable main" \
         > /etc/apt/sources.list.d/google.list
     apt-get update
-    apt-get install -y xvfb google-chrome-stable
+    apt-get install -y --no-install-recommends xvfb google-chrome-stable
 
     export CHROME_BIN=`which google-chrome` && $CHROME_BIN --version
 

@@ -33,6 +33,7 @@ do_backend() {
 }
 
 do_frontend() {
+    _activate # env vars
     _npm
     npm install -g grunt-cli
 
