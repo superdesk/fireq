@@ -23,6 +23,10 @@ $nginx_locations
         sub_filter 'http://localhost' 'http://\$host';
     }
 
+    location /.well-known {
+        root /var/tmp;
+    }
+
     location / {
         root ${repo_client}/dist;
 

@@ -20,12 +20,19 @@ _repo() {
     repo=$repo_core _orig_repo
 }
 
+do_backend() {
+    _venv $env
+    if [ "$0" = "superdesk-dev/client-core" ]; then
+        cd $repo_core/test-server
+        pip install -Ur requirements.txt
+    else
+        cd $repo_core
+        pip install -Ur requirements.txt
+    fi
+}
+
 do_finish() {
     _es_snapshots
-    _activate
-
-    cd $repo_core
-    pip install -r requirements.txt
 }
 
 do_checks() {

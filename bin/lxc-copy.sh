@@ -1,7 +1,7 @@
 #!/bin/sh
 set -ex
 
-base=${base:-'sd-base'}
+base=${base:-'sdbase'}
 clean=${clean-1}
 start=${start-1}
 

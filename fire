@@ -55,27 +55,28 @@ def run_async(func, *a, **kw):
 
 
 def gh_push(path, url, *a, **kw):
+    import web
+
+    web.init_conf()
+
     path = Path(path)
     with (path / 'request.json').open('r') as f:
         req = json.loads(f.read())
 
     if not url:
-        try:
-            import web
-        except Exception as e:
-            print('Can\'t import web.py module: %s' % e)
-            raise SystemExit(1)
-
-        web.init_conf()
         code = run_async(web.gh_push, req, *a, **kw)
         raise SystemExit(code)
 
+    data = json.dumps(req['json'], indent=2, sort_keys=True).encode()
     headers = req['headers']
-    del headers['Content-Length']
-    data = json.dumps(req['json'], indent=2, sort_keys=True)
-    req = urllib.request.Request(url, data.encode(), headers)
-    resp = urllib.request.urlopen(req)
-    print(resp.status, resp.reason)
+    headers['X-Hub-Signature'] = web.get_signature(data)
+    headers['Content-Length'] = len(data)
+    req = urllib.request.Request(url, data, headers)
+    try:
+        resp = urllib.request.urlopen(req)
+        print(resp.status, resp.reason)
+    except Exception as e:
+        print(e)
 
 
 def main():
@@ -165,25 +166,34 @@ def main():
 
     cmd('lxc-copy')\
         .arg('name')\
-        .arg('-b', '--base', default='sd-base')\
+        .arg('-b', '--base', default='sdbase')\
         .arg('-c', '--clean', action='store_true')\
+        .arg('-s', '--start', action='store_true')\
         .exe(lambda a: sh(
             'name={name} '
             'clean={clean} '
+            'start={start} '
             'base={base} '
             'bin/lxc-copy.sh'
-            .format(name=a.name, base=a.base, clean=a.clean or '')
+            .format(
+                name=a.name,
+                base=a.base,
+                start=a.start or '',
+                clean=a.clean or ''
+            )
         ))
 
     cmd('lxc-base')\
-        .arg('-n', '--name', default='sd-base')\
+        .arg('-n', '--name', default='sdbase')\
         .arg('-p', '--path', default='/opt/superdesk')\
         .exe(lambda a: sh(
             'set -ex;'
-            './fire lxc-init -n {name} --rm;'
-            './fire i --lxc-name={name} --services;'
-            './fire lxc-ssh sd-base -c "rm -rf {path}";'
-            'lxc-stop -n {name}'
+            'tmp={name}--tmp; '
+            './fire lxc-init -n $tmp --rm;'
+            './fire i --lxc-name=$tmp --services;'
+            './fire lxc-ssh $tmp -c "rm -rf {path}";'
+            './fire lxc-copy -c -b $tmp {name};'
+            './fire lxc-rm $tmp'
             .format(name=a.name, path=a.path)
         ))
 
@@ -239,7 +249,7 @@ def main():
 if __name__ == '__main__':
     try:
         if os.geteuid() != 0:
-            subprocess.call(['sudo'] + sys.argv)
+            subprocess.call(['sudo', sys.executable] + sys.argv)
         else:
             main()
     except KeyboardInterrupt:

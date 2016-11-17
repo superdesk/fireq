@@ -48,7 +48,6 @@ _repo() {
         git fetch origin $repo_branch
         git checkout ${repo_sha:-$repo_branch}
     fi
-    git submodule update --init
 }
 
 _venv() {

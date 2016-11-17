@@ -9,12 +9,10 @@ import os
 import re
 from pathlib import Path
 
-
 from aiofiles import open as async_open
 from aiohttp import web, ClientSession
 
 root = Path(__file__).resolve().parent
-
 conf = None
 
 
@@ -23,11 +21,17 @@ def pretty_json(obj):
 
 
 async def sh(cmd, ctx, *, logfile=None):
-    ctx = ctx or {}
     cmd = 'set -ex; cd %s; %s' % (root, cmd.format(**ctx))
     logfile = logfile or ctx['logfile']
     if logfile:
-        cmd = '(%s) >> %s 2>&1' % (cmd, ctx['logpath'] + logfile)
+        cmd = (
+            '({cmd}) >> {path} 2>&1;'
+            'code=$?;'
+            'echo "\\033[0m" >> {path};'
+            'cat {path} | aha -w --black > {path}.htm;'
+            'exit $code'
+            .format(cmd=cmd, path=ctx['logpath'] + logfile)
+        )
     print(cmd)
     proc = await asyncio.create_subprocess_shell(cmd)
     code = await proc.wait()
@@ -90,10 +94,11 @@ def get_ctx(headers, body):
         'name_uniq': name_uniq,
         'host': '%s.%s' % (name, conf['domain']),
         'path': path,
+        'sdbase': conf['sdbase'],
         'endpoint': endpoint,
         'checks': checks,
         'logpath': (
-            '{path}/{time:%Y%m%d-%H%M%S}-'
+            '{path}/{time:%Y%m%d-%H%M%S}/'
             .format(path=path, time=dt.datetime.now())
         ),
         'logfile': 'push.log',
@@ -109,9 +114,13 @@ async def post_status(ctx, state=None, extend=None, code=None):
     if code is not None:
         state = 'success' if code == 0 else 'failure'
 
+    logfile = ctx['logfile']
+    if state != 'pending':
+        logfile += '.htm'
+
     data = {
         'state': state,
-        'target_url': ctx['logurl'] + ctx['logfile'],
+        'target_url': ctx['logurl'],
         'description': 'Superdesk Deploy',
         'context': 'naspeh-sf/deploy/push'
     }
@@ -121,10 +130,18 @@ async def post_status(ctx, state=None, extend=None, code=None):
     headers = {'Authorization': 'Basic %s' % b64auth}
     async with ClientSession(headers=headers) as s:
         async with s.post(ctx['statuses_url'], data=json.dumps(data)) as resp:
+            body = pretty_json(await resp.json())
             print('Posted status: %s' % resp.status)
-            print(pretty_json(await resp.json()))
+            print(body)
             if resp.status != 201:
                 print(pretty_json(data))
+            path = '{path}{target}-{state}.json'.format(
+                path=ctx['logpath'],
+                target=data['context'].rsplit('/', 1)[1],
+                state=state
+            )
+            async with async_open(path, mode='w') as f:
+                await f.write(body)
             return resp
 
 
@@ -140,7 +157,7 @@ async def sds_checks(ctx):
     targets = ['flake8', 'nose', 'behave']
     cmd = '''
     lxc={name_uniq}-{t};
-    ./fire lxc-copy -b {name_uniq} $lxc
+    ./fire lxc-copy -s -b {name_uniq} $lxc
     ./fire r --lxc-name=$lxc --env="{env}" -e {endpoint} -a "{t}=1 do_checks"
     '''
 
@@ -176,8 +193,7 @@ async def checks(ctx):
     env = ctx['checks'].get('env', '')
 
     code = await sh('''
-    ./fire lxc-copy {clean} {name_uniq}
-    ./fire lxc-wait {name_uniq};
+    ./fire lxc-copy -s -b {sdbase} {clean} {name_uniq}
     ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
     lxc-stop -n {name_uniq};
     ''', dict(ctx, env='%s %s' % (env, ctx['env'])))
@@ -199,10 +215,10 @@ async def pubweb(ctx):
     }
     await post_status(ctx, 'pending', extend=status)
     code = await sh('''
-    ./fire lxc-copy {clean_web} {name}
+    ./fire lxc-copy -s -b {sdbase} {clean_web} {name}
     ./fire i --lxc-name={name} --env="{env}" -e {endpoint} --prepopulate;
-    name={name} host={host}. superdesk-dev/nginx.tpl \
-        > /etc/nginx/instances/{name};
+    name={name} host={host} \
+        . superdesk-dev/nginx.tpl > /etc/nginx/instances/{name};
     nginx -s reload || true
     ''', ctx, logfile=logfile)
 
@@ -220,7 +236,7 @@ async def gh_push(req, clean=False, clean_web=False):
     )
     print(pretty_json(ctx))
 
-    os.makedirs(ctx['path'], exist_ok=True)
+    os.makedirs(ctx['logpath'], exist_ok=True)
     async with async_open(ctx['path'] + '/request.json', mode='w') as f:
         await f.write(pretty_json(req))
 
@@ -233,22 +249,27 @@ async def gh_push(req, clean=False, clean_web=False):
     return failed
 
 
+def get_signature(body):
+    sha1 = hmac.new(conf['secret'].encode(), body, hashlib.sha1).hexdigest()
+    return 'sha1=' + sha1
+
 async def hook(request):
     body = await request.read()
-    sha1 = hmac.new(conf['secret'].encode(), body, hashlib.sha1).hexdigest()
     check_signature = hmac.compare_digest(
-        'sha1=' + sha1,
+        get_signature(body),
         request.headers.get('X-Hub-Signature', '')
     )
-    if not check_signature and not conf['debug']:
+    if not check_signature:
         return web.Response(status=400)
 
     body = await request.json()
     headers = dict(request.headers.items())
+    del headers['X-Hub-Signature']
     print(pretty_json(headers))
     print(pretty_json(body))
     ctx = get_ctx(headers, body)
     if ctx:
+        print(pretty_json(ctx))
         request.app.loop.create_task(
             gh_push({'headers': headers, 'json': body}, clean=True)
         )
@@ -260,8 +281,16 @@ def init_conf():
     with open('config.json', 'r') as f:
         conf = json.loads(f.read())
 
-    conf.setdefault('domain', 'localhost')
-    conf.setdefault('logurl', 'http://%s/' % conf['domain'])
+    defaults = [
+        ('debug', False),
+        ('sdbase', 'sdbase'),
+        ('domain', 'localhost'),
+        ('logurl', lambda c: 'http://%s/' % c['domain']),
+    ]
+    for key, value in defaults:
+        if callable(value):
+            value = value(conf)
+        conf.setdefault(key, value)
 
 
 def get_app():

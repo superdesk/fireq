@@ -18,20 +18,31 @@ _e2e_tests() {
     webdriver-manager update
     time xvfb-run protractor protractor.conf.js --stackTrace --verbose\
         --baseUrl 'http://localhost'\
-        --params.baseBackendUrl 'http://localhost/api'
+        --params.baseBackendUrl 'http://localhost/api'\
+        #--specs spec/users_spec.js
+}
+
+_chrome() {
+    if grep "google-chrome-stable" $repo_core/.travis.yml; then
+        _chrome_stable
+    else
+        # it was using before protractor 4.0
+        # e2e tests are not working with "google-chrome-stable"
+        # https://github.com/superdesk/superdesk-client-core/pull/1067/
+        apt-get install -y --no-install-recommends unzip xvfb libgconf-2-4 chromium-browser
+        cd /tmp
+        wget -N --no-verbose 'https://storage.googleapis.com/chromium-browser-continuous/Linux_x64/353893/chrome-linux.zip'
+        unzip -qo chrome-linux.zip
+        export CHROME_BIN=$(pwd)/chrome-linux/chrome && $CHROME_BIN --version
+    fi
 }
 
 do_checks() {
+    echo SUPERDESK_TESTING=true  >> $envfile
+    supervisorctl restart all
+
     _es_wait
     _chrome
-
-    cat <<EOF >> $envfile
-SUPERDESK_TESTING=true
-SUPERDESK_URL=http://localhost/api
-SUPERDESK_CLIENT_URL=http://localhost
-SUPERDESK_WS_URL=ws://localhost
-EOF
-    supervisorctl restart all
 
     [ -z "$ci" ] && [ -z "$e2e" ] && ci=1 && e2e=1
 
