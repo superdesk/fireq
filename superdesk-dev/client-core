@@ -37,20 +37,21 @@ _chrome() {
 }
 
 do_checks() {
-    echo SUPERDESK_TESTING=true  >> $envfile
-    supervisorctl restart all
-
     cd $repo_core
     export PATH=./node_modules/.bin/:$PATH
 
-    [ -z "$npmtest" ] && [ -z "$e2e" ] && npmtest=1 && e2e=1
+    [ -z "$npmtest" ] && [ -z "$e2e" ] && [ -z "$docs" ] && npmtest=1 && e2e=1 && docs=1
     [ -z "$npmtest" ] || time xvfb-run npm test
     [ -z "$e2e" ] || _e2e_tests
+    [ -z "$docs" ] || ([ ! $(grep no-serve tasks/options/dgeni-alive.js) ] || grunt docs --no-serve)
 }
 
 do_finish() {
     _es_snapshots
     _chrome
+
+    echo SUPERDESK_TESTING=true  >> $envfile
+    supervisorctl restart all
 }
 
 eval $action
