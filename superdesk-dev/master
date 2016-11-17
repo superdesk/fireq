@@ -3,6 +3,8 @@
 root=$(dirname $(dirname $(realpath -s $0)))
 action=true . $root/superdesk/master
 
+repo_backend=${repo_backend:-"$repo/server"}
+
 _es_wait() {
     elastic=0
     while [ $elastic -eq 0 ]
@@ -52,12 +54,10 @@ _chrome() {
 }
 
 _backend_checks() {
+    cd $repo_backend
+
     export SUPERDESK_TESTING=True
-
-    _es_wait
     _activate
-
-    [ -z "$nose" ] && [ -z "$behave" ] && [ -z "$flake8" ] && nose=1 && behave=1 && flake8=1
 
     [ -z "$flake8" ] || flake8
 
@@ -69,24 +69,27 @@ _backend_checks() {
 }
 
 _client_checks() {
-    _es_wait
-    _chrome
-    npm test
+    cd $repo/client
+    [ -z "$npmtest" ] || time npm test
 }
 
 do_finish() {
     _es_snapshots
-    _activate
+    _chrome
 
+    _activate
     cd $repo/server
     pip install -r dev-requirements.txt
 }
 
 do_checks() {
-    cd $repo/server
+    if [ -z "$nose" ] && [ -z "$behave" ] && [ -z "$flake8" ] && [ -z "$npmtest" ]; then
+        nose=1
+        behave=1
+        flake8=1
+        npmtest=1
+    fi
     _backend_checks
-
-    cd $repo/client
     _client_checks
 }
 

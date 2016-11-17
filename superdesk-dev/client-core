@@ -1,12 +1,11 @@
 #!/bin/bash
 set -e
 
-repo_remote=${repo_remote:-https://github.com/superdesk/superdesk-client-core.git}
-
 root=$(dirname $(dirname $(realpath -s $0)))
 action=true . $root/superdesk-dev/core
 
 repo_core=$repo/client-core
+repo_remote=${repo_remote:-$repo_remote_client}
 
 _repo_client() {
     echo $repo_core
@@ -41,21 +40,17 @@ do_checks() {
     echo SUPERDESK_TESTING=true  >> $envfile
     supervisorctl restart all
 
-    _es_wait
-    _chrome
-
-    [ -z "$ci" ] && [ -z "$e2e" ] && ci=1 && e2e=1
-
     cd $repo_core
     export PATH=./node_modules/.bin/:$PATH
 
-    [ -n "$ci" ] && xvfb-run grunt ci:travis
-    [ -n "$e2e" ] && _e2e_tests
+    [ -z "$npmtest" ] && [ -z "$e2e" ] && npmtest=1 && e2e=1
+    [ -z "$npmtest" ] || time xvfb-run npm test
+    [ -z "$e2e" ] || _e2e_tests
 }
 
 do_finish() {
     _es_snapshots
-    _activate
+    _chrome
 }
 
 eval $action

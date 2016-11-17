@@ -27,7 +27,6 @@ async def sh(cmd, ctx, *, logfile=None):
         cmd = (
             '({cmd}) >> {path} 2>&1;'
             'code=$?;'
-            'echo "\\033[0m" >> {path};'
             'cat {path} | aha -w --black > {path}.htm;'
             'exit $code'
             .format(cmd=cmd, path=ctx['logpath'] + logfile)
@@ -39,7 +38,7 @@ async def sh(cmd, ctx, *, logfile=None):
     return code
 
 
-def get_ctx(headers, body):
+def get_ctx(headers, body, **extend):
     event = headers.get('X-Github-Event')
     if event == 'pull_request':
         if body['action'] not in ('opened', 'reopened', 'synchronize'):
@@ -69,15 +68,18 @@ def get_ctx(headers, body):
     if repo == 'superdesk/superdesk':
         endpoint = 'superdesk-dev/master'
         prefix = 'sd' + prefix
-        checks = {'name': 'sd_checks'}
+        checks = {'targets': ['flake8', 'npmtest']}
     elif repo == 'superdesk/superdesk-core':
         endpoint = 'superdesk-dev/core'
         prefix = 'sds' + prefix
-        checks = {'name': 'sds_checks', 'env': 'frontend='}
+        checks = {
+            'targets': ['flake8', 'nose', 'behave'],
+            'env': 'frontend='
+        }
     elif repo == 'superdesk/superdesk-client-core':
         endpoint = 'superdesk-dev/client-core'
         prefix = 'sdc' + prefix
-        checks = {'name': 'sd_checks'}
+        checks = {'targets': ['e2e', 'npmtest']}
     else:
         print('Repository %r is not supported', repo)
         return {}
@@ -101,11 +103,19 @@ def get_ctx(headers, body):
             '{path}/{time:%Y%m%d-%H%M%S}/'
             .format(path=path, time=dt.datetime.now())
         ),
-        'logfile': 'push.log',
+        'logfile': 'build.log',
         'env': env,
-        'statuses_url': body['repository']['statuses_url'].format(sha=sha)
+        'statuses_url': body['repository']['statuses_url'].format(sha=sha),
+        'install': True
     }
-    ctx['logurl'] = conf['logurl'] + ctx['logpath']
+    ctx.update(**extend)
+    ctx.update(
+        clean=ctx.get('clean') and '--clean' or '',
+        clean_web=ctx.get('clean_web') and '--clean-web' or '',
+        logurl=conf['logurl'] + ctx['logpath']
+    )
+    os.makedirs(ctx['logpath'], exist_ok=True)
+    print(pretty_json(ctx))
     return ctx
 
 
@@ -120,9 +130,9 @@ async def post_status(ctx, state=None, extend=None, code=None):
 
     data = {
         'state': state,
-        'target_url': ctx['logurl'],
+        'target_url': ctx['logurl'] + logfile,
         'description': 'Superdesk Deploy',
-        'context': 'naspeh-sf/deploy/push'
+        'context': 'naspeh-sf/deploy/build'
     }
     if extend:
         data.update(extend)
@@ -145,16 +155,29 @@ async def post_status(ctx, state=None, extend=None, code=None):
             return resp
 
 
-async def sd_checks(ctx):
-    return await sh('''
-    lxc-start -n {name_uniq};
-    ./fire lxc-wait {name_uniq};
-    ./fire r --lxc-name={name_uniq} --env="{env}" -e {endpoint} -a do_checks;
-    ''', ctx)
+async def checks(ctx):
+    async def clean(code):
+        await post_status(ctx, code=code)
+        await sh(
+            './fire lxc-clean "^{name_uniq}-";'
+            '[ -z "{clean}" ] || ./fire lxc-rm {name_uniq}',
+            ctx
+        )
 
+    targets = ctx['checks']['targets']
+    env = ctx['checks'].get('env', '')
 
-async def sds_checks(ctx):
-    targets = ['flake8', 'nose', 'behave']
+    if ctx['install']:
+        code = await sh('''
+        ./fire lxc-copy -s -b {sdbase} {clean} {name_uniq}
+        ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
+        lxc-stop -n {name_uniq};
+        ''', dict(ctx, env='%s %s' % (env, ctx['env'])))
+
+        if code:
+            await clean(code)
+            return
+
     cmd = '''
     lxc={name_uniq}-{t};
     ./fire lxc-copy -s -b {name_uniq} $lxc
@@ -177,32 +200,10 @@ async def sds_checks(ctx):
         return code
 
     proces = [run(t) for t in targets]
-    failed = False
+    code = 0
     for f in asyncio.as_completed(proces):
-        failed = await f or failed
-    return failed and 1 or 0
+        code = await f or 1
 
-
-async def checks(ctx):
-    async def clean(code):
-        await post_status(ctx, code=code)
-        if ctx['clean']:
-            await sh('./fire lxc-clean "^{name_uniq}"', ctx)
-
-    name = ctx['checks']['name']
-    env = ctx['checks'].get('env', '')
-
-    code = await sh('''
-    ./fire lxc-copy -s -b {sdbase} {clean} {name_uniq}
-    ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
-    lxc-stop -n {name_uniq};
-    ''', dict(ctx, env='%s %s' % (env, ctx['env'])))
-
-    if code:
-        await clean(code)
-        return
-
-    code = await globals()[name](ctx)
     await clean(code)
     return code
 
@@ -228,30 +229,19 @@ async def pubweb(ctx):
     return code
 
 
-async def gh_push(req, clean=False, clean_web=False):
-    ctx = get_ctx(req['headers'], req['json'])
-    ctx.update(
-        clean=clean and '--clean' or '',
-        clean_web=clean_web and '--clean-web' or ''
-    )
-    print(pretty_json(ctx))
-
-    os.makedirs(ctx['logpath'], exist_ok=True)
-    async with async_open(ctx['path'] + '/request.json', mode='w') as f:
-        await f.write(pretty_json(req))
-
+async def build(ctx):
     await post_status(ctx, 'pending')
     proces = [t(ctx) for t in (pubweb, checks)]
     failed = 0
     for f in asyncio.as_completed(proces):
         failed = await f or failed
-
     return failed
 
 
 def get_signature(body):
     sha1 = hmac.new(conf['secret'].encode(), body, hashlib.sha1).hexdigest()
     return 'sha1=' + sha1
+
 
 async def hook(request):
     body = await request.read()
@@ -267,12 +257,13 @@ async def hook(request):
     del headers['X-Hub-Signature']
     print(pretty_json(headers))
     print(pretty_json(body))
-    ctx = get_ctx(headers, body)
+    ctx = get_ctx(headers, body, clean=True)
     if ctx:
-        print(pretty_json(ctx))
-        request.app.loop.create_task(
-            gh_push({'headers': headers, 'json': body}, clean=True)
-        )
+        os.makedirs(ctx['logpath'], exist_ok=True)
+        async with async_open(ctx['path'] + '/request.json', mode='w') as f:
+            await f.write(pretty_json([headers, body]))
+
+        request.app.loop.create_task(build(ctx))
     return web.json_response('OK')
 
 

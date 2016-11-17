@@ -35,7 +35,8 @@ _envfile() {
 }
 
 _repo() {
-    [ -d $repo ] && rm -rf $repo
+    # try to remove twise, because sometimes it can't do it at first time
+    [ -d $repo ] && (rm -rf $repo || rm -rf $repo)
     mkdir $repo
     cd $repo
     git init
@@ -135,6 +136,7 @@ do_frontend() {
     npm install
     bower --allow-root install
     grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100' --force
+    echo "\033[0m"
 }
 
 do_prepopulate() {

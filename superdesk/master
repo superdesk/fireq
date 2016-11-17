@@ -40,6 +40,7 @@ do_frontend() {
     cd $(_repo_client)
     npm install
     grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100'
+    echo "\033[0m"
 }
 
 do_prepopulate() {

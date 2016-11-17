@@ -48,27 +48,38 @@ def sh(cmd, params=None, ssh=None, exit=True):
     return code
 
 
-def run_async(func, *a, **kw):
+def run_async(fn, *a, **kw):
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(func(*a, **kw))
+    loop.run_until_complete(fn(*a, **kw))
     loop.close()
 
 
-def gh_push(path, url, *a, **kw):
+def gh_build(path, url, only_checks, **kw):
     import web
-
-    web.init_conf()
 
     path = Path(path)
     with (path / 'request.json').open('r') as f:
         req = json.loads(f.read())
 
-    if not url:
-        code = run_async(web.gh_push, req, *a, **kw)
-        raise SystemExit(code)
+    if isinstance(req, dict):
+        # TODO: remove it later
+        headers, body = req['headers'], req['json']
+    else:
+        headers, body = req
 
-    data = json.dumps(req['json'], indent=2, sort_keys=True).encode()
-    headers = req['headers']
+    web.init_conf()
+    ctx = web.get_ctx(headers, body, **kw)
+
+    if only_checks:
+        ctx['install'] = False
+        run_async(web.checks, ctx)
+        return
+
+    elif not url:
+        run_async(web.build, ctx)
+        return
+
+    data = json.dumps(body, indent=2, sort_keys=True).encode()
     headers['X-Hub-Signature'] = web.get_signature(data)
     headers['Content-Length'] = len(data)
     req = urllib.request.Request(url, data, headers)
@@ -106,18 +117,15 @@ def main():
         .arg('-e', '--endpoint', default='superdesk/master')\
         .arg('--prepopulate', action='store_true')\
         .arg('--services', action='store_true')\
-        .arg('--force-frontend', action='store_true')\
         .arg('--env')\
         .exe(lambda a: sh(
             'services={services} '
-            'force_frontend={force_frontend} '
             'prepopulate={prepopulate} '
             'action=do_install '
             '{env} '
             '{endpoint}'
             .format(
                 services=a.services or '',
-                force_frontend=a.force_frontend or '',
                 prepopulate=a.prepopulate or '',
                 endpoint=a.endpoint,
                 env=a.env or ''
@@ -135,6 +143,17 @@ def main():
             'action={action!r} {env} {endpoint}'
             .format(action=a.action, endpoint=a.endpoint, env=a.env or ''),
             ssh=ssh(a.ssh, a.lxc_name)
+        ))
+
+    cmd('gh-build')\
+        .arg('path')\
+        .arg('-u', '--url')\
+        .arg('-c', '--only-checks', action='store_true')\
+        .arg('--clean', action='store_true')\
+        .arg('--clean-web', action='store_true')\
+        .exe(lambda a: gh_build(
+            a.path, a.url, a.only_checks,
+            clean=a.clean, clean_web=a.clean_web
         ))
 
     cmd('gen-files')\
@@ -203,7 +222,7 @@ def main():
             'lxc-stop -n {name};'
             'lxc-destroy -n {name}'
             .format(name=name)
-            for name in a.name
+            for name in a.name if name
         )))
 
     cmd('lxc-ssh')\
@@ -230,13 +249,6 @@ def main():
             'lxc-ls -1 | grep "{pattern}" | xargs ./fire lxc-rm'
             .format(pattern=a.pattern)
         ))
-
-    cmd('gh-push')\
-        .arg('path')\
-        .arg('-u', '--url')\
-        .arg('-c', '--clean', action='store_true')\
-        .arg('--clean-web', action='store_true')\
-        .exe(lambda a: gh_push(a.path, a.url, a.clean, a.clean_web))
 
     args = parser.parse_args()
     dry_run = args.dry_run
