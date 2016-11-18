@@ -13,12 +13,14 @@ _repo_client() {
 
 _e2e_tests() {
     _es_snapshots
+    specs=$([ -z "$specs" ] || echo "--specs $specs")
+    # specs="--specs spec/login_spec.js"
 
     webdriver-manager update
     time xvfb-run protractor protractor.conf.js --stackTrace --verbose\
         --baseUrl 'http://localhost'\
         --params.baseBackendUrl 'http://localhost/api'\
-        #--specs spec/users_spec.js
+        $specs
 }
 
 _chrome() {
@@ -34,6 +36,14 @@ _chrome() {
         unzip -qo chrome-linux.zip
         export CHROME_BIN=$(pwd)/chrome-linux/chrome && $CHROME_BIN --version
     fi
+}
+
+do_specs() {
+    cd $repo_core
+    set +x
+    echo "$pattern"
+    find spec -type f -name "*spec*.js" | sort
+    set -x
 }
 
 do_checks() {

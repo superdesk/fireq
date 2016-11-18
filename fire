@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import asyncio
 import json
 import logging
 import os
@@ -48,12 +47,6 @@ def sh(cmd, params=None, ssh=None, exit=True):
     return code
 
 
-def run_async(fn, *a, **kw):
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(fn(*a, **kw))
-    loop.close()
-
-
 def gh_build(path, url, only_checks, **kw):
     import web
 
@@ -70,14 +63,19 @@ def gh_build(path, url, only_checks, **kw):
     web.init_conf()
     ctx = web.get_ctx(headers, body, **kw)
 
+    target = None
     if only_checks:
         ctx['install'] = False
-        run_async(web.checks, ctx)
-        return
-
+        target = web.checks
     elif not url:
-        run_async(web.build, ctx)
-        return
+        target = web.build
+
+    if target:
+        loop = web.init_loop()
+        code = loop.run_until_complete(target(ctx))
+        loop.close()
+        log.info(code)
+        raise SystemExit(code)
 
     data = json.dumps(body, indent=2, sort_keys=True).encode()
     headers['X-Hub-Signature'] = web.get_signature(data)
@@ -85,9 +83,9 @@ def gh_build(path, url, only_checks, **kw):
     req = urllib.request.Request(url, data, headers)
     try:
         resp = urllib.request.urlopen(req)
-        print(resp.status, resp.reason)
+        log.info('%s: %s', resp.status, resp.reason)
     except Exception as e:
-        print(e)
+        log.error(e)
 
 
 def main():

@@ -83,6 +83,7 @@ do_finish() {
 }
 
 do_checks() {
+    _es_wait
     if [ -z "$nose" ] && [ -z "$behave" ] && [ -z "$flake8" ] && [ -z "$npmtest" ]; then
         nose=1
         behave=1

@@ -32,15 +32,16 @@ _client_checks() { :; }
 
 do_backend() {
     _venv $env
-    # if [ "$0" = "superdesk-dev/client-core" ]; then
-    #     cd $repo_core/test-server
-    #     pip install -Ur requirements.txt
-    # fi
+    if [ "$0" = "superdesk-dev/client-core" ]; then
+        cd $repo_core/test-server
+        pip install -r requirements.txt
+        return
+    fi
     cd $repo_backend
     pip install -r requirements.txt
 
     cd $repo/server
-    pip install -r dev-requirements.txt
+    pip install -r requirements.txt
 }
 
 do_finish() {
