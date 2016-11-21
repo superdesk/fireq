@@ -135,7 +135,7 @@ def get_ctx(headers, body, **extend):
     elif repo == 'superdesk/superdesk-client-core':
         endpoint = 'superdesk-dev/client-core'
         prefix = 'sdc' + prefix
-        checks = {'targets': ['e2e', 'npmtest', 'docs']}
+        checks = {'targets': ['e2e', 'npmtest']}
     else:
         log.warn('Repository %r is not supported', repo)
         return {}

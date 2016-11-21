@@ -53,12 +53,14 @@ do_checks() {
     [ -z "$npmtest" ] && [ -z "$e2e" ] && [ -z "$docs" ] && npmtest=1 && e2e=1 && docs=1
     [ -z "$npmtest" ] || time xvfb-run npm test
     [ -z "$e2e" ] || _e2e_tests
-    [ -z "$docs" ] || ([ ! $(grep no-serve tasks/options/dgeni-alive.js) ] || grunt docs --no-serve)
+    [ -z "$docs" ] || ([ "$(grep -c no-serve tasks/options/dgeni-alive.js)" = "0" ] || grunt docs --no-serve)
 }
 
 do_finish() {
     _es_snapshots
     _chrome
+
+    docs=1 do_checks
 
     echo SUPERDESK_TESTING=true  >> $envfile
     supervisorctl restart all

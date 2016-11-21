@@ -47,7 +47,7 @@ def sh(cmd, params=None, ssh=None, exit=True):
     return code
 
 
-def gh_build(path, url, only_checks, **kw):
+def gh_build(path, url, only_checks, only_web, **kw):
     import web
 
     path = Path(path)
@@ -67,6 +67,8 @@ def gh_build(path, url, only_checks, **kw):
     if only_checks:
         ctx['install'] = False
         target = web.checks
+    elif only_web:
+        target = web.pubweb
     elif not url:
         target = web.build
 
@@ -147,10 +149,11 @@ def main():
         .arg('path')\
         .arg('-u', '--url')\
         .arg('-c', '--only-checks', action='store_true')\
+        .arg('-w', '--only-web', action='store_true')\
         .arg('--clean', action='store_true')\
         .arg('--clean-web', action='store_true')\
         .exe(lambda a: gh_build(
-            a.path, a.url, a.only_checks,
+            a.path, a.url, a.only_checks, a.only_web,
             clean=a.clean, clean_web=a.clean_web
         ))
 
