@@ -59,7 +59,8 @@ _backend_checks() {
     export SUPERDESK_TESTING=True
     _activate
 
-    [ -z "$flake8" ] || flake8
+    # run flake8 with on jobs, because it could lock the build for ever
+    [ -z "$flake8" ] || flake8 --jobs=1
 
     [ -z "$nose" ] || time nosetests -v --with-id
 

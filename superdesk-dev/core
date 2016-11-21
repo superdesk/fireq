@@ -28,8 +28,6 @@ _repo() {
     repo=$repo_core _orig_repo
 }
 
-_client_checks() { :; }
-
 do_backend() {
     _venv $env
     if [ "$0" = "superdesk-dev/client-core" ]; then
@@ -46,6 +44,21 @@ do_backend() {
 
 do_finish() {
     _es_snapshots
+    (docs=1 do_checks) || true
+}
+
+do_checks() {
+    if [ -z "$nose" ] && [ -z "$behave" ] && [ -z "$flake8" ] && [ -z "$docs" ]; then
+        docs=1
+        nose=1
+        behave=1
+        flake8=1
+    fi
+
+    _activate
+    [ -z "$docs" ] || (cd $repo_core/docs && make html && [ ! -d $repo/client/dist ] || cp -Tr _build/html $repo/client/dist/docs)
+
+    _backend_checks
 }
 
 eval $action

@@ -129,7 +129,7 @@ def get_ctx(headers, body, **extend):
         endpoint = 'superdesk-dev/core'
         prefix = 'sds' + prefix
         checks = {
-            'targets': ['flake8', 'nose', 'behave'],
+            'targets': ['docs', 'flake8', 'nose', 'behave'],
             'env': 'frontend='
         }
     elif repo == 'superdesk/superdesk-client-core':
