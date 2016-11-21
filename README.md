@@ -22,4 +22,7 @@ apt-get install lxc
 ```sh
 curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/files/liveblog.sh | sudo sh
 ```
-
+# Run github integration server
+```sh
+gunicorn web:app --bind localhost:8080 --worker-class aiohttp.worker.GunicornWebWorker --reload
+```

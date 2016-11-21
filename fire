@@ -73,7 +73,7 @@ def gh_build(path, url, only_checks, only_web, **kw):
         target = web.build
 
     if target:
-        loop = web.init_loop()
+        loop = web.app.loop
         code = loop.run_until_complete(target(ctx))
         loop.close()
         log.info(code)

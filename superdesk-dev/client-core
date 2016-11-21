@@ -60,7 +60,7 @@ do_finish() {
     _es_snapshots
     _chrome
 
-    docs=1 do_checks
+    (docs=1 do_checks) || true
 
     echo SUPERDESK_TESTING=true  >> $envfile
     supervisorctl restart all

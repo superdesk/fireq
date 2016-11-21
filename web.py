@@ -135,7 +135,7 @@ def get_ctx(headers, body, **extend):
     elif repo == 'superdesk/superdesk-client-core':
         endpoint = 'superdesk-dev/client-core'
         prefix = 'sdc' + prefix
-        checks = {'targets': ['e2e', 'npmtest']}
+        checks = {'targets': ['e2e', 'npmtest', 'docs']}
     else:
         log.warn('Repository %r is not supported', repo)
         return {}
@@ -377,5 +377,6 @@ async def hook(request):
     return web.json_response('OK')
 
 
+app = get_app()
 if __name__ == '__main__':
-    web.run_app(get_app(), port=os.environ.get('PORT', 8080))
+    web.run_app(app, port=os.environ.get('PORT', 8080))
