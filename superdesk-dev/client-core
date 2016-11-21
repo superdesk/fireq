@@ -46,6 +46,7 @@ do_specs() {
 }
 
 do_checks() {
+    _es_wait
     cd $repo_core
     export PATH=./node_modules/.bin/:$PATH
 

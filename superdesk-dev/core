@@ -62,6 +62,7 @@ do_checks() {
     _activate
     [ -z "$docs" ] || (cd $repo_core/docs && make html && [ ! -d $repo/client/dist ] || cp -Tr _build/html $repo/client/dist/docs)
 
+    _es_wait
     _backend_checks
 }
 
