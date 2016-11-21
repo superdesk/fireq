@@ -17,13 +17,14 @@ _es_wait() {
 }
 
 _es_init() {
-    echo "index.store.type: memory" > /etc/elasticsearch/elasticsearch.yml
+    echo "index.store.type: memory" >> /etc/elasticsearch/elasticsearch.yml
 
+    use_snapshots=${use_snapshots-''}
     es_backups=/tmp/es-backups
-    if [ ! -d $es_backups ]; then
+    if [ ! -d "$es_backups" ] && [ -n "$use_snapshots" ]; then
         mkdir $es_backups
         chown elasticsearch:elasticsearch $es_backups
-        echo "path.repo: $es_backups" > /etc/elasticsearch/elasticsearch.yml
+        echo "path.repo: $es_backups" >> /etc/elasticsearch/elasticsearch.yml
         systemctl restart elasticsearch
         _es_wait
         curl -XPUT 'http://localhost:9200/_snapshot/backups' \
@@ -37,6 +38,7 @@ _es_init() {
 _mongo_init() {
     # disable journal
     sudo sed -i 's\enabled: true\enabled: false\' /etc/mongod.conf
+    systemctl restart mongod
 }
 
 _db_init() {
