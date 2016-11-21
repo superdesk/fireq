@@ -43,8 +43,12 @@ do_backend() {
 }
 
 do_finish() {
-    _es_snapshots
+    # build docs in web container
     (docs=1 do_checks) || true
+
+    [ -n "$for_checks" ] || return 0
+
+    _db_init
 }
 
 do_checks() {

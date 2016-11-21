@@ -247,7 +247,7 @@ def main():
     cmd('lxc-clean')\
         .arg('pattern', default='^sd', nargs='?')\
         .exe(lambda a: sh(
-            'lxc-ls -1 | grep "{pattern}" | xargs ./fire lxc-rm'
+            'lxc-ls -1 | grep "{pattern}" | xargs -r ./fire lxc-rm'
             .format(pattern=a.pattern)
         ))
 

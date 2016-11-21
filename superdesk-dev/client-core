@@ -12,7 +12,6 @@ _repo_client() {
 }
 
 _e2e_tests() {
-    _es_snapshots
     specs=$([ -z "$specs" ] || echo "--specs $specs")
     # specs="--specs spec/login_spec.js"
 
@@ -57,10 +56,13 @@ do_checks() {
 }
 
 do_finish() {
-    _es_snapshots
-    _chrome
-
+    # build docs in web container
     (docs=1 do_checks) || true
+
+    [ -n "$for_checks" ] || return 0
+
+    _db_init
+    _chrome
 
     echo SUPERDESK_TESTING=true  >> $envfile
     supervisorctl restart all

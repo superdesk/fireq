@@ -16,20 +16,32 @@ _es_wait() {
     done
 }
 
-_es_snapshots() {
+_es_init() {
+    echo "index.store.type: memory" > /etc/elasticsearch/elasticsearch.yml
+
     es_backups=/tmp/es-backups
     if [ ! -d $es_backups ]; then
         mkdir $es_backups
         chown elasticsearch:elasticsearch $es_backups
-        echo "path.repo: $es_backups" \
-            | sudo tee -a /etc/elasticsearch/elasticsearch.yml
+        echo "path.repo: $es_backups" > /etc/elasticsearch/elasticsearch.yml
         systemctl restart elasticsearch
         _es_wait
         curl -XPUT 'http://localhost:9200/_snapshot/backups' \
             -d '{"type": "fs", "settings": {"location": "/tmp/es-backups"}}'
     else
+        systemctl restart elasticsearch
         _es_wait
     fi
+}
+
+_mongo_init() {
+    # disable journal
+    sudo sed -i 's\enabled: true\enabled: false\' /etc/mongod.conf
+}
+
+_db_init() {
+    _es_init
+    _mongo_init
 }
 
 _chromium() {
@@ -75,7 +87,9 @@ _client_checks() {
 }
 
 do_finish() {
-    _es_snapshots
+    [ -n "$for_checks" ] || return 0
+
+    _db_init
     _chrome
 
     _activate

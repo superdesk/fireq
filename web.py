@@ -303,6 +303,7 @@ async def checks(ctx):
     targets = ctx['checks']['targets']
     env = ctx['checks'].get('env', '')
     env = ' '.join(i for i in (env, ctx['env']) if i)
+    env += ' for_checks=1'
 
     if ctx['install']:
         code = await sh('''
