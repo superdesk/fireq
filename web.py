@@ -87,10 +87,9 @@ async def sh(cmd, ctx, *, logfile=None):
             .format(cmd=cmd, path=ctx['logpath'] + logfile)
         )
     log.info(cmd)
-    proc = await asyncio.create_subprocess_shell(cmd, stdout=PIPE, stderr=PIPE)
-    out, err = await proc.communicate()
-    code = proc.returncode
-    log.info('code=%s\n%s\nout=%r\nerr=%r', code, cmd, out, err)
+    proc = await asyncio.create_subprocess_shell(cmd)
+    code = await proc.wait()
+    log.info('%s: %s', code, cmd)
     return code
 
 
