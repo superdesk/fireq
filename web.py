@@ -104,10 +104,21 @@ def get_ctx(headers, body, **extend):
         env = 'repo_pr=%s repo_sha=%s' % (body['number'], sha)
     elif event == 'push':
         sha = body['after']
-        branch = body['ref'].replace('refs/heads/', '')
-        name = re.sub('[^a-z0-9]', '', branch)
+        refs = (
+            ('refs/heads/', ''),
+            ('refs/tags/', 'tag'),
+        )
+        ref = body['ref']
         prefix = ''
-        env = 'repo_sha=%s repo_branch=%s' % (sha, branch)
+        for b, p in refs:
+            if not ref.startswith(b):
+                continue
+            ref = ref.replace(b, '')
+            prefix = p
+            break
+
+        name = re.sub('[^a-z0-9]', '', ref)
+        env = 'repo_sha=%s repo_branch=%s' % (sha, ref)
     else:
         return {}
 
