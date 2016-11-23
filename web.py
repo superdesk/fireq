@@ -4,7 +4,6 @@ import datetime as dt
 import hashlib
 import hmac
 import json
-import math
 import os
 import re
 import warnings
@@ -46,16 +45,16 @@ async def sh(cmd, ctx, *, logfile=None):
     logfile = logfile or ctx['logfile']
     if logfile:
         cmd = (
-            '({cmd}) >> {path} 2>&1;'
-            'code=$?;'
-            'cat {path} | aha -w --black > {path}.htm;'
-            'exit $code'
+            '({cmd}) 2>&1'
+            '  | tee -a {path}'
+            '  | aha -w --black >> {path}.htm;'
+            'exit ${{PIPESTATUS[0]}}'
             .format(cmd=cmd, path=ctx['logpath'] + logfile)
         )
     log.info(cmd)
-    proc = await asyncio.create_subprocess_shell(cmd)
+    proc = await asyncio.create_subprocess_shell(cmd, executable='/bin/bash')
     code = await proc.wait()
-    log.info('%s: %s', code, cmd)
+    log.info('code=%s: %s', code, cmd)
     return code
 
 

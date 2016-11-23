@@ -57,16 +57,16 @@ do_checks() {
 }
 
 do_finish() {
-    # build docs in web container
-    (docs=1 do_checks) || true
+    if [ -n "$for_checks" ]; then
+        _db_init
+        _chrome
 
-    [ -n "$for_checks" ] || return 0
-
-    _db_init
-    _chrome
-
-    echo SUPERDESK_TESTING=true  >> $envfile
-    supervisorctl restart all
+        echo SUPERDESK_TESTING=true  >> $envfile
+        supervisorctl restart all
+    else
+        # build docs in web container
+        (docs=1 do_checks) || true
+    fi
 }
 
 eval $action
