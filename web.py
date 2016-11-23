@@ -187,10 +187,19 @@ async def post_status(ctx, state=None, extend=None, code=None):
             return resp
 
 
-def chunked(l, n):
-    # inspiration: http://stackoverflow.com/a/24484181
-    chunksize = int(math.ceil(len(l) / n))
-    return (l[i * chunksize:i * chunksize + chunksize] for i in range(n))
+def chunked_specs(l, n):
+    l = dict(i.split() for i in l.split('\n') if i)
+    chunksize = sum(int(i) for i in l.values()) / n
+    names = sorted(l)
+    chunk, size = [], 0
+    for name in names:
+        size += int(l[name])
+        chunk.append(name)
+        if size > chunksize:
+            yield chunk
+            chunk, size = [], 0
+    if chunk:
+        yield chunk
 
 
 async def check_e2e(ctx):
@@ -209,9 +218,8 @@ async def check_e2e(ctx):
     if proc.returncode != 0:
         log.error('ERROR: %s', err)
         return 1
-    specs = out.decode().rsplit(pattern, 1)[-1].split()
-
-    targets = chunked(specs, conf['e2e_count'])
+    specs = out.decode().rsplit(pattern, 1)[-1]
+    targets = chunked_specs(specs, conf['e2e_count'])
     targets = [
         {
             'target': 'e2e--part%s' % num,

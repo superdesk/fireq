@@ -41,7 +41,7 @@ do_specs() {
     cd $repo_core
     set +x
     echo "$pattern"
-    find spec -type f -name "*spec*.js" | sort
+    find spec -type f -name "*spec*.js" -printf $'%p\t%s\n' | sort -k2,2n
     set -x
 }
 
