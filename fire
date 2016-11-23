@@ -3,18 +3,14 @@ import argparse
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import urllib.request
 from pathlib import Path
 
-log = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    datefmt='%H:%M:%S',
-    format='%(asctime)s %(message)s'
-)
-root = Path(__file__).resolve().parent
+from common import root, log, conf, gh_auth
+
 dry_run = False
 ssh_opts='-o "StrictHostKeyChecking no"'
 
@@ -91,6 +87,12 @@ def gh_build(path, url, only_checks, only_web, **kw):
         log.error(e)
 
 
+def sd_containers(opts=''):
+    names = subprocess.check_output('lxc-ls -1 %s' % opts, shell=True)
+    names = names.decode().split()
+    return (n for n in names if re.match('^sd[a-z]*-[a-z0-9]+$', n))
+
+
 def gh_clean():
     """
     Remove contaner if
@@ -98,12 +100,9 @@ def gh_clean():
     - branch was removed
     otherwise keep container alive
     """
-    import re
-    import web
-
     def gh_open(url):
         try:
-            req = urllib.request.Request(url, headers=web.gh_auth())
+            req = urllib.request.Request(url, headers=gh_auth())
             res = urllib.request.urlopen(req)
             res = json.loads(res.read().decode())
             return res
@@ -114,10 +113,7 @@ def gh_clean():
     clean = []
     names = subprocess.check_output('lxc-ls -1', shell=True)
     names = names.decode().split()
-    for name in names:
-        if not re.match('^sd[a-z]*-[a-z0-9]+$', name):
-            log.info('Skip %s', name)
-            continue
+    for name in sd_containers():
         path = root / 'push' / name
         if not path.exists():
             clean.append(name)
@@ -146,7 +142,22 @@ def gh_clean():
         log.info('Nothing to clean')
         return
 
-    sh(';\n'.join('./fire lxc-clean "^%s"' % n for n in clean))
+    cmd = ';\n'.join('./fire lxc-clean "^%s"' % n for n in clean)
+    sh('\n%s;\n./fire nginx' % cmd)
+
+
+def update_nginx(path):
+    cmd = ''
+    for name in sd_containers('--running'):
+        cmd += (
+            '\nname={name} host={name}.{domain} . superdesk-dev/nginx.tpl;'
+            .format(name=name, domain=conf['domain'])
+        )
+    sh(
+        '({cmd}) > {path};'
+        'nginx -s reload'
+        .format(cmd=cmd, path=path)
+    )
 
 
 def main():
@@ -218,6 +229,10 @@ def main():
 
     cmd('gh-clean', help='remove unused containers')\
         .exe(lambda a: gh_clean())
+
+    cmd('nginx', help='update nginx config')\
+        .arg('-p', '--path', default='/etc/nginx/sites-enabled/sd')\
+        .exe(lambda a: update_nginx(a.path))
 
     cmd('gen-files')\
         .exe(lambda a: sh('bin/gen-files.sh'))

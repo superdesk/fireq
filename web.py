@@ -1,52 +1,22 @@
 #!/usr/bin/env python3
 import asyncio
-import base64
 import datetime as dt
 import hashlib
 import hmac
 import json
-import logging
 import math
 import os
 import re
 import warnings
 from asyncio.subprocess import PIPE
-from pathlib import Path
 
 # from aiofiles import open as async_open
 from aiohttp import web, ClientSession
 
-log = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    datefmt='%H:%M:%S',
-    format='%(asctime)s %(message)s'
-)
-root = Path(__file__).resolve().parent
-conf = None
-
-
-def init_conf():
-    global conf
-    with open('config.json', 'r') as f:
-        conf = json.loads(f.read())
-
-    defaults = [
-        ('debug', False),
-        ('debug_aio', False),
-        ('sdbase', 'sdbase'),
-        ('domain', 'localhost'),
-        ('logurl', lambda c: 'http://%s/' % c['domain']),
-        ('e2e_count', 4),
-    ]
-    for key, value in defaults:
-        if callable(value):
-            value = value(conf)
-        conf.setdefault(key, value)
+from common import root, log, conf, gh_auth, pretty_json
 
 
 def init_loop(loop=None):
-    init_conf()
     if not loop:
         loop = asyncio.get_event_loop()
 
@@ -69,10 +39,6 @@ def get_app():
     app.router.add_post('/', hook)
     app.router.add_static('/push', root / 'push', show_index=True)
     return app
-
-
-def pretty_json(obj):
-    return json.dumps(obj, indent=2, sort_keys=True)
 
 
 async def sh(cmd, ctx, *, logfile=None):
@@ -184,12 +150,6 @@ def get_ctx(headers, body, **extend):
     os.makedirs(ctx['logpath'], exist_ok=True)
     log.info(pretty_json(ctx))
     return ctx
-
-
-def gh_auth():
-    b64auth = base64.b64encode(conf['github_auth'].encode()).decode()
-    headers = {'Authorization': 'Basic %s' % b64auth}
-    return headers
 
 
 async def post_status(ctx, state=None, extend=None, code=None):
@@ -346,9 +306,7 @@ async def pubweb(ctx):
     code = await sh('''
     ./fire lxc-copy -s -b {sdbase} {clean_web} {name}
     ./fire i --lxc-name={name} --env="{env}" -e {endpoint} --prepopulate;
-    name={name} host={host} \
-        . superdesk-dev/nginx.tpl > /etc/nginx/instances/{name};
-    nginx -s reload || true
+    ./fire nginx || true
     ''', ctx, logfile=logfile)
 
     if code == 0:
