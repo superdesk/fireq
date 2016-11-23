@@ -47,20 +47,21 @@ def sh(cmd, params=None, ssh=None, exit=True):
     return code
 
 
-def gh_build(path, url, only_checks, only_web, **kw):
-    import web
-
-    path = Path(path)
-    with (path / 'request.json').open('r') as f:
-        req = json.loads(f.read())
+def gh_request(path):
+    path = Path(path) / 'request.json'
+    req = json.loads(path.read_text())
 
     if isinstance(req, dict):
         # TODO: remove it later
-        headers, body = req['headers'], req['json']
+        return req['headers'], req['json']
     else:
-        headers, body = req
+        return req
 
-    web.init_conf()
+
+def gh_build(path, url, only_checks, only_web, **kw):
+    import web
+
+    headers, body = gh_request(path)
     ctx = web.get_ctx(headers, body, **kw)
 
     target = None
@@ -88,6 +89,64 @@ def gh_build(path, url, only_checks, only_web, **kw):
         log.info('%s: %s', resp.status, resp.reason)
     except Exception as e:
         log.error(e)
+
+
+def gh_clean():
+    """
+    Remove contaner if
+    - pull request was closed
+    - branch was removed
+    otherwise keep container alive
+    """
+    import re
+    import web
+
+    def gh_open(url):
+        try:
+            req = urllib.request.Request(url, headers=web.gh_auth())
+            res = urllib.request.urlopen(req)
+            res = json.loads(res.read().decode())
+            return res
+        except Exception as e:
+            pass
+        return None
+
+    clean = []
+    names = subprocess.check_output('lxc-ls -1', shell=True)
+    names = names.decode().split()
+    for name in names:
+        if not re.match('^sd[a-z]*-[a-z0-9]+$', name):
+            log.info('Skip %s', name)
+            continue
+        path = root / 'push' / name
+        if not path.exists():
+            clean.append(name)
+            continue
+        path = next(path.glob('?' * 10))
+        headers, req = gh_request(path)
+        event = headers.get('X-Github-Event')
+        if event == 'pull_request':
+            url = req['pull_request']['_links']['self']['href']
+            res = gh_open(url)
+            if res['state'] == 'open':
+                log.info('Skip %s', name)
+                continue
+        elif event == 'push':
+            url = req['repository']['merges_url'].rsplit('/', 1)[0]
+            url = '%s/git/%s' % (url, req['ref'])
+            if gh_open(url):
+                log.info('Skip %s', name)
+                continue
+        else:
+            log.info('Skip %s', name)
+            continue
+        clean.append(name)
+
+    if not clean:
+        log.info('Nothing to clean')
+        return
+
+    sh(';\n'.join('./fire lxc-clean "^%s"' % n for n in clean))
 
 
 def main():
@@ -156,6 +215,9 @@ def main():
             a.path, a.url, a.only_checks, a.only_web,
             clean=a.clean, clean_web=a.clean_web
         ))
+
+    cmd('gh-clean', help='remove unused containers')\
+        .exe(lambda a: gh_clean())
 
     cmd('gen-files')\
         .exe(lambda a: sh('bin/gen-files.sh'))

@@ -108,7 +108,7 @@ def get_ctx(headers, body, **extend):
             ('refs/heads/', ''),
             ('refs/tags/', 'tag'),
         )
-        ref = body['ref']
+        ref = body['ref'].lower()
         prefix = ''
         for b, p in refs:
             if not ref.startswith(b):
@@ -130,6 +130,7 @@ def get_ctx(headers, body, **extend):
     if repo.startswith('naspeh-sf'):
         # For testing purpose
         repo = repo.replace('naspeh-sf', 'superdesk')
+        prefix = 'dev' + prefix
 
     if repo == 'superdesk/superdesk':
         endpoint = 'superdesk-dev/master'
@@ -185,6 +186,12 @@ def get_ctx(headers, body, **extend):
     return ctx
 
 
+def gh_auth():
+    b64auth = base64.b64encode(conf['github_auth'].encode()).decode()
+    headers = {'Authorization': 'Basic %s' % b64auth}
+    return headers
+
+
 async def post_status(ctx, state=None, extend=None, code=None):
     assert state is not None or code is not None
     if code is not None:
@@ -202,9 +209,7 @@ async def post_status(ctx, state=None, extend=None, code=None):
     }
     if extend:
         data.update(extend)
-    b64auth = base64.b64encode(conf['github_auth'].encode()).decode()
-    headers = {'Authorization': 'Basic %s' % b64auth}
-    async with ClientSession(headers=headers) as s:
+    async with ClientSession(headers=gh_auth()) as s:
         async with s.post(ctx['statuses_url'], data=json.dumps(data)) as resp:
             body = pretty_json(await resp.json())
             log.info('Posted status: %s\n%s', resp.status, body)
