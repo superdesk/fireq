@@ -90,14 +90,13 @@ _client_checks() {
 }
 
 do_finish() {
-    [ -n "$for_checks" ] || return 0
-
-    _db_init
     _chrome
 
     _activate
     cd $repo/server
     pip install -r dev-requirements.txt
+
+    [ -z "$for_checks" ] || _db_init
 }
 
 do_checks() {

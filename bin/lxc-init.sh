@@ -3,7 +3,7 @@ set -ex
 
 [ -n "$rm" ] && (lxc-stop -n $name; lxc-destroy -n $name) || true
 
-lxc-create -t download -n $name -- -d ubuntu -r xenial -a amd64
+lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 lxc-start -n $name
 sleep 5
 lxc-attach --clear-env -n $name -- /bin/sh -c "
