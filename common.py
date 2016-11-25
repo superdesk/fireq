@@ -24,7 +24,7 @@ def get_conf():
     defaults = [
         ('debug', False),
         ('debug_aio', False),
-        ('sdbase', 'sdbase'),
+        ('sdbase', 'base-sd'),
         ('domain', 'localhost'),
         ('logurl', lambda c: 'http://%s/' % c['domain']),
         ('e2e_count', 4),

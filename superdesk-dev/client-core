@@ -46,27 +46,21 @@ do_specs() {
 }
 
 do_checks() {
-    _es_wait
+    _db_init
+    echo SUPERDESK_TESTING=true  >> $envfile
+    supervisorctl restart all
+
     cd $repo_core
     export PATH=./node_modules/.bin/:$PATH
 
     [ -z "$npmtest" ] && [ -z "$e2e" ] && [ -z "$docs" ] && npmtest=1 && e2e=1 && docs=1
     [ -z "$npmtest" ] || time xvfb-run npm test
     [ -z "$e2e" ] || _e2e_tests
-    [ -z "$docs" ] || ([ "$(grep -c no-serve tasks/options/dgeni-alive.js)" = "0" ] || grunt docs --no-serve)
+    [ -z "$docs" ] || do_docs
 }
 
-do_finish() {
-    if [ -n "$for_checks" ]; then
-        _db_init
-        _chrome
-
-        echo SUPERDESK_TESTING=true  >> $envfile
-        supervisorctl restart all
-    else
-        # build docs in web container
-        (docs=1 do_checks) || true
-    fi
+do_docs() {
+    [ "$(grep -c no-serve tasks/options/dgeni-alive.js)" = "0" ] || grunt docs --no-serve
 }
 
 eval $action

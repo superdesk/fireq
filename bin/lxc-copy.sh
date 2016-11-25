@@ -1,7 +1,7 @@
 #!/bin/sh
 set -ex
 
-base=${base:-'sdbase'}
+base=${base:-'base-sd'}
 clean=${clean-1}
 start=${start-1}
 [ -z "$rename" ] || rename='--rename'

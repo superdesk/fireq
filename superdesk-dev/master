@@ -54,6 +54,8 @@ _chromium() {
 }
 
 _chrome_stable() {
+    [ dpkg -l | grep google-chrome-stable ] && return 0
+
     wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
     echo "deb http://dl.google.com/linux/chrome/deb/ stable main" \
         > /etc/apt/sources.list.d/google.list
@@ -95,20 +97,48 @@ do_finish() {
     _activate
     cd $repo/server
     pip install -r dev-requirements.txt
-
-    [ -z "$for_checks" ] || _db_init
 }
 
 do_checks() {
-    _es_wait
     if [ -z "$nose" ] && [ -z "$behave" ] && [ -z "$flake8" ] && [ -z "$npmtest" ]; then
         nose=1
         behave=1
         flake8=1
         npmtest=1
     fi
+    _db_init
     _backend_checks
     _client_checks
+}
+
+do_docs() { :; }
+
+do_web() {
+    # systemctl stop elasticsearch mongod
+    # systemctl disable elasticsearch mongodb
+    apt-get -y remove \
+        openjdk-8-jre-headless \
+        elasticsearch \
+        mongodb-org-server
+    apt-get -y autoremove
+
+    [ -n "$db_name" ] || exit 1
+    cat <<EOF >> $envfile
+# Persistent storage
+MONGO_URI="mongodb://data-sd/${db_name}"
+LEGAL_ARCHIVE_URI="mongodb://data-sd/${db_name}_la"
+ARCHIVED_URI="mongodb://data-sd/${db_name}_ar"
+CONTENTAPI_MONGO_URI="mongodb://data-sd/${db_name}_pa"
+PUBLICAPI_MONGO_URI="mongodb://data-sd/${db_name}_pa"
+ELASTICSEARCH_URL="http://data-sd:9200"
+ELASTICSEARCH_INDEX=${db_name}
+CONTENTAPI_ELASTICSEARCH_INDEX=${db_name}_capi
+EOF
+    supervisorctl restart all
+
+    sample_data=1 do_prepopulate
+
+    do_docs || true
 }
 
 eval $action

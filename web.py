@@ -274,32 +274,11 @@ async def run_targets(ctx, targets):
 
 
 async def checks(ctx):
-    async def clean(code):
-        await post_status(ctx, code=code)
-        await sh(
-            './fire lxc-clean "^{name_uniq}-";'
-            '[ -z "{clean}" ] || ./fire lxc-rm {name_uniq}',
-            ctx
-        )
-
     targets = ctx['checks']['targets']
     env = ctx['checks'].get('env', '')
     env = ' '.join(i for i in (env, ctx['env']) if i)
-    env += ' for_checks=1'
 
-    if ctx['install']:
-        code = await sh('''
-        ./fire lxc-copy -s -b {sdbase} {clean} {name_uniq}
-        ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
-        lxc-stop -n {name_uniq};
-        ''', dict(ctx, env=env))
-
-        if code:
-            await clean(code)
-            return code
-
-    code = await run_targets(ctx, targets)
-    await clean(code)
+    code = await run_targets(dict(ctx, env=env), targets)
     return code
 
 
@@ -310,9 +289,13 @@ async def pubweb(ctx):
         'context': 'naspeh-sf/deploy/web'
     }
     await post_status(ctx, 'pending', extend=status)
+
     code = await sh('''
-    ./fire lxc-copy -s -b {sdbase} {clean_web} {name}
-    ./fire i --lxc-name={name} --env="{env}" -e {endpoint} --prepopulate;
+    lxc={name_uniq}-web;
+    env="{env} db_name={name}";
+    ./fire lxc-copy {clean} -s -b {name_uniq} $lxc;
+    ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_web";
+    ./fire lxc-copy --no-snapshot -rcs -b $lxc {name};
     ./fire nginx || true
     ''', ctx, logfile=logfile)
 
@@ -323,9 +306,29 @@ async def pubweb(ctx):
 
 
 async def build(ctx):
+    async def clean(code):
+        await post_status(ctx, code=code)
+        await sh(
+            './fire lxc-clean "^{name_uniq}-";'
+            '[ -z "{clean}" ] || ./fire lxc-rm {name_uniq}',
+            ctx
+        )
+
     await post_status(ctx, 'pending')
+    if ctx['install']:
+        code = await sh('''
+        ./fire lxc-copy -s -b {sdbase} {clean} {name_uniq}
+        ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
+        lxc-stop -n {name_uniq};
+        ''', ctx)
+
+        if code:
+            await clean(code)
+            return code
+
     proces = [t(ctx) for t in (pubweb, checks)]
-    return await wait_for(proces)
+    code = await wait_for(proces)
+    await clean(code)
 
 
 def get_signature(body):

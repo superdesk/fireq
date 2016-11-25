@@ -42,15 +42,6 @@ do_backend() {
     pip install -r requirements.txt
 }
 
-do_finish() {
-    if [ -n "$for_checks" ]; then
-        _db_init
-    else
-        # build docs in web container
-        (docs=1 do_checks) || true
-    fi
-}
-
 do_checks() {
     if [ -z "$nose" ] && [ -z "$behave" ] && [ -z "$flake8" ] && [ -z "$docs" ]; then
         docs=1
@@ -60,10 +51,16 @@ do_checks() {
     fi
 
     _activate
-    [ -z "$docs" ] || (cd $repo_core/docs && make html && [ ! -d $repo/client/dist ] || cp -Tr _build/html $repo/client/dist/docs)
+    [ -z "$docs" ] || do_docs
 
-    _es_wait
+    _db_init
     _backend_checks
+}
+
+do_docs() {
+    cd $repo_core/docs
+    make html
+    [ ! -d $repo/client/dist ] || cp -Tr _build/html $repo/client/dist/docs
 }
 
 eval $action

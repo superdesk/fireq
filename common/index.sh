@@ -35,8 +35,7 @@ _envfile() {
 }
 
 _repo() {
-    # try to remove twise, because sometimes it can't do it at first time
-    [ -d $repo ] && (rm -rf $repo || rm -rf $repo)
+    [ -d $repo ] && rm -rf $repo
     mkdir $repo
     cd $repo
     git init
@@ -167,7 +166,7 @@ do_services() {
 
     #install
     apt-get -y update
-    apt-get -y install \
+    apt-get -y install --no-install-recommends \
         openjdk-8-jre-headless \
         elasticsearch \
         mongodb-org-server \
@@ -176,15 +175,31 @@ do_services() {
     # tune elasticsearch
     config='/etc/elasticsearch/elasticsearch.yml'
     pattern='# superdesk-deploy'
-    sed 's/$pattern.*//' $config
+    sed -i "/$pattern/,\$d" $config
     cat << EOF >> $config
 $pattern
-network.bind_host: 127.0.0.1
-index.refresh_interval: 30s
-processors: 2
-# Next settings brake behave tests
-#index.number_of_shards: 1
-#index.number_of_replicas: 0
+network.bind_host: 0.0.0.0
+node.local: true
+#discovery.zen.ping.multicast: false
+#index.refresh_interval: 30s
+EOF
+
+    # tune mongo
+    cat << EOF > /etc/mongod.conf
+storage:
+  dbPath: /var/lib/mongodb
+  journal:
+    enabled: true
+
+# where to write logging data.
+systemLog:
+  destination: file
+  logAppend: true
+  path: /var/log/mongodb/mongod.log
+
+net:
+  port: 27017
+  bindIp: 0.0.0.0
 EOF
 
     services="elasticsearch.service mongod.service redis-server.service"
