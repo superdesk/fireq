@@ -45,7 +45,7 @@ async def sh(cmd, ctx, *, logfile=None):
     logfile = logfile or ctx['logfile']
     if logfile:
         cmd = (
-            '({cmd}) 2>&1'
+            '(time ({cmd})) 2>&1'
             '  | tee -a {path}'
             '  | aha -w --black >> {path}.htm;'
             'exit ${{PIPESTATUS[0]}}'
@@ -317,9 +317,10 @@ async def build(ctx):
     await post_status(ctx, 'pending')
     if ctx['install']:
         code = await sh('''
-        ./fire lxc-copy -s -b {sdbase} {clean} {name_uniq}
-        ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
-        lxc-stop -n {name_uniq};
+        time ./fire lxc-clean "^{name_uniq}-" || true;
+        time ./fire lxc-copy -s -b {sdbase} {clean} {name_uniq};
+        time ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
+        time lxc-stop -n {name_uniq};
         ''', ctx)
 
         if code:

@@ -29,11 +29,15 @@ _chrome() {
         # it was using before protractor 4.0
         # e2e tests are not working with "google-chrome-stable"
         # https://github.com/superdesk/superdesk-client-core/pull/1067/
+        apt-get -y remove google-chrome-stable
         apt-get install -y --no-install-recommends unzip xvfb libgconf-2-4 chromium-browser
-        cd /tmp
+        cd /var/tmp
         wget -N --no-verbose 'https://storage.googleapis.com/chromium-browser-continuous/Linux_x64/353893/chrome-linux.zip'
         unzip -qo chrome-linux.zip
-        export CHROME_BIN=$(pwd)/chrome-linux/chrome && $CHROME_BIN --version
+
+        export CHROME_BIN=$(pwd)/chrome-linux/chrome
+        $CHROME_BIN --version
+        echo "CHROME_BIN=$CHROME_BIN" >> $envfile
     fi
 }
 
@@ -50,6 +54,9 @@ do_checks() {
     echo SUPERDESK_TESTING=true  >> $envfile
     supervisorctl restart all
 
+    _activate
+    [ -z "$CHROME_BIN" ] || $CHROME_BIN --version
+
     cd $repo_core
     export PATH=./node_modules/.bin/:$PATH
 
@@ -60,7 +67,7 @@ do_checks() {
 }
 
 do_docs() {
-    [ "$(grep -c no-serve tasks/options/dgeni-alive.js)" = "0" ] || grunt docs --no-serve
+    [ -z "$(grep no-serve tasks/options/dgeni-alive.js)" ] || grunt docs --no-serve
 }
 
 eval $action

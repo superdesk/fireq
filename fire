@@ -293,8 +293,7 @@ def main():
     cmd('lxc-rm')\
         .arg('name', nargs='+')\
         .exe(lambda a: sh('; '.join(
-            'lxc-stop -n {name};'
-            'lxc-destroy -n {name}'
+            'lxc-destroy -f -n {name}'
             .format(name=name)
             for name in a.name if name
         )))

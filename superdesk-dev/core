@@ -32,14 +32,15 @@ do_backend() {
     _venv $env
     if [ "$0" = "superdesk-dev/client-core" ]; then
         cd $repo_core/test-server
-        pip install -r requirements.txt
+        time pip install -r requirements.txt
         return
     fi
     cd $repo_backend
-    pip install -r requirements.txt
+    time pip install -r requirements.txt
 
+    # here are some deployment dependencies: gunicorn, etc.
     cd $repo/server
-    pip install -r requirements.txt
+    time pip install -r requirements.txt
 }
 
 do_checks() {

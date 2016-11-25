@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -ex
 
 name=${name:-superdesk}
@@ -27,7 +27,7 @@ _supervisor_append() {
 do_backend() {
     _venv $env
     cd $repo/server
-    pip install -U -r requirements.txt
+    time pip install -U -r requirements.txt
 
     action=do_backend $root/superdesk/content-api
 }
@@ -38,8 +38,8 @@ do_frontend() {
     npm install -g grunt-cli
 
     cd $(_repo_client)
-    npm install
-    grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100'
+    time npm install
+    time grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100'
     echo "\033[0m"
 }
 

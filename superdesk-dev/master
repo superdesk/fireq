@@ -17,6 +17,8 @@ _es_wait() {
 }
 
 _es_init() {
+    echo "index.store.type: memory" >> /etc/elasticsearch/elasticsearch.yml
+
     use_snapshots=${use_snapshots-1}
     if [ -n "$use_snapshots" ]; then
         es_backups=/tmp/es-backups
@@ -30,7 +32,6 @@ _es_init() {
                 -d '{"type": "fs", "settings": {"location": "/tmp/es-backups"}}'
         fi
     else
-        echo "index.store.type: memory" >> /etc/elasticsearch/elasticsearch.yml
         systemctl restart elasticsearch
     fi
     _es_wait
@@ -47,23 +48,14 @@ _db_init() {
     _mongo_init
 }
 
-_chromium() {
-    apt-get install -y xvfb chromium-browser
-    export CHROME_BIN=$(which chromium-browser)
-    $CHROME_BIN --version
-}
-
 _chrome_stable() {
-    [ dpkg -l | grep google-chrome-stable ] && return 0
+    [ "$(dpkg -l | grep -c google-chrome-stable)" = "0" ] || return 0
 
     wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
     echo "deb http://dl.google.com/linux/chrome/deb/ stable main" \
         > /etc/apt/sources.list.d/google.list
     apt-get update
     apt-get install -y --no-install-recommends xvfb google-chrome-stable
-
-    export CHROME_BIN=`which google-chrome` && $CHROME_BIN --version
-
 }
 
 _chrome() {
@@ -96,7 +88,7 @@ do_finish() {
 
     _activate
     cd $repo/server
-    pip install -r dev-requirements.txt
+    time pip install -r dev-requirements.txt
 }
 
 do_checks() {
