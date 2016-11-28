@@ -483,11 +483,12 @@ async def build(ctx):
     await post_status(ctx, 'pending')
     if ctx['install']:
         code = await sh('''
-        time ./fire lxc-clean "^{name_uniq}-" || true;
-        time ./fire lxc-copy -s -b {sdbase} {clean} {name_uniq};
+        ./fire lxc-clean "^{name_uniq}-" || true;
+        ./fire lxc-copy -s --cpus={cpus} -b {sdbase} {clean} {name_uniq};
         time ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
         time lxc-stop -n {name_uniq};
-        ''', ctx)
+        sed -i '/lxc.cgroup.cpuset.cpus/,$d' /var/lib/lxc/{name_uniq}/config;
+        ''', dict(ctx, cpus=conf['install_cpus']))
 
         if code:
             await clean(code)

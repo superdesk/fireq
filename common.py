@@ -29,7 +29,7 @@ def get_conf():
         ('domain', 'localhost'),
         ('logurl', lambda c: 'http://%s/' % c['domain']),
         ('e2e_count', 4),
-        ('cpus_per_lxc', 3),
+        ('install_cpus', '1,2'),
         ('no_statuses', False),
         ('url_prefix', ''),
     ]

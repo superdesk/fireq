@@ -2,7 +2,6 @@
 import argparse
 import json
 import os
-import random
 import re
 import subprocess
 import sys
@@ -48,7 +47,7 @@ def build(short_name, ref, sha, pr=False):
     import web
 
     async def run():
-        ctx = await web.get_restart_ctx(short_name, ref, sha, pr)
+        ctx = await web.get_restart_ctx(short_name, ref, sha, pr, clean=True)
         return await web.build(ctx)
 
     loop = web.app.loop
@@ -177,16 +176,6 @@ def sd_containers(opts=''):
     return (n for n in names if re.match('^sd[a-z]*-[a-z0-9]+$', n))
 
 
-
-def cpus():
-    per_lxc = conf['cpus_per_lxc']
-    if not per_lxc or per_lxc < os.cpu_count():
-        return ''
-
-    cpus = [i + 1 for i in range(os.cpu_count())]
-    return ','.join(str(i) for i in random.sample(cpus, per_lxc))
-
-
 def main():
     global dry_run
 
@@ -295,7 +284,7 @@ def main():
             './fire lxc-init -n $tmp --rm -o {opts!r};'
             './fire i --lxc-name=$tmp -e superdesk-dev/master --services;'
             './fire lxc-ssh $tmp -c "rm -rf {path}";'
-            './fire lxc-copy --no-cpus -r -c -b $tmp {name};'
+            './fire lxc-copy -r -c -b $tmp {name};'
             .format(name=a.name, path=a.path, opts=a.opts)
         ))
 
@@ -314,10 +303,10 @@ def main():
     cmd('lxc-copy')\
         .arg('name')\
         .arg('-b', '--base', default=conf['sdbase'])\
+        .arg('--cpus', default='')\
         .arg('-c', '--clean', action='store_true')\
         .arg('-s', '--start', action='store_true')\
         .arg('-r', '--rename', action='store_true')\
-        .arg('--no-cpus', action='store_true')\
         .arg('--no-snapshot', action='store_true')\
         .exe(lambda a: sh(
             'name={name} '
@@ -331,10 +320,10 @@ def main():
             .format(
                 name=a.name,
                 base=a.base,
+                cpus=a.cpus,
                 start=a.start or '',
                 clean=a.clean or '',
                 rename=a.rename or '',
-                cpus='' if a.no_cpus else cpus(),
                 snapshot='' if a.no_snapshot else 1,
             )
         ))
