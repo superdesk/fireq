@@ -58,7 +58,7 @@ def gh_build(path, url, only_checks, only_web, **kw):
     import web
 
     headers, body = gh_request(path)
-    ctx = web.get_ctx(headers, body, **kw)
+    ctx = web.get_hook_ctx(headers, body, **kw)
 
     target = None
     if only_checks:
