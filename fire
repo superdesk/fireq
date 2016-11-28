@@ -6,10 +6,11 @@ import random
 import re
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
-from common import root, log, conf, sd_containers, gh_api
+from common import root, log, repos, conf
 
 dry_run = False
 ssh_opts='-o "StrictHostKeyChecking no"'
@@ -41,6 +42,20 @@ def sh(cmd, params=None, ssh=None, exit=True):
     if exit and code:
         raise SystemExit(code)
     return code
+
+
+def build(short_name, ref, sha, pr=False):
+    import web
+
+    async def run():
+        ctx = await web.get_restart_ctx(short_name, ref, sha, pr)
+        return await web.build(ctx)
+
+    loop = web.app.loop
+    code = loop.run_until_complete(run())
+    loop.close()
+    log.info(code)
+    raise SystemExit(code)
 
 
 def gh_request(path):
@@ -142,6 +157,27 @@ def update_nginx(path):
     )
 
 
+def gh_api(url, exc=True):
+    if not url.startswith('https://'):
+        url = 'https://api.github.com/repos/' + url
+    try:
+        req = urllib.request.Request(url, headers=gh_auth())
+        res = urllib.request.urlopen(req)
+        res = json.loads(res.read().decode())
+        return res
+    except urllib.error.URLError as e:
+        if exc:
+            raise
+    return None
+
+
+def sd_containers(opts=''):
+    names = subprocess.check_output('lxc-ls -1 %s' % opts, shell=True)
+    names = names.decode().split()
+    return (n for n in names if re.match('^sd[a-z]*-[a-z0-9]+$', n))
+
+
+
 def cpus():
     per_lxc = conf['cpus_per_lxc']
     if not per_lxc or per_lxc < os.cpu_count():
@@ -205,6 +241,13 @@ def main():
             .format(action=a.action, endpoint=a.endpoint, env=a.env or ''),
             ssh=ssh(a.ssh, a.lxc_name)
         ))
+
+    cmd('build')\
+        .arg('short_name', choices=repos.keys())\
+        .arg('ref')\
+        .arg('--sha')\
+        .arg('-p', '--pr', action='store_true')\
+        .exe(lambda a: build(a.short_name, a.ref, a.sha, a.pr))
 
     cmd('gh-build')\
         .arg('path')\

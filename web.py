@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import asyncio
-import collections
 import datetime as dt
 import hashlib
 import hmac
@@ -14,26 +13,36 @@ from asyncio.subprocess import PIPE
 from aiohttp import web, ClientSession
 from pystache import render
 
-from common import root, log, conf, gh_auth, pretty_json
-
-repos = collections.OrderedDict((
-    ('sd', 'superdesk/superdesk'),
-    ('sds', 'superdesk/superdesk-core'),
-    ('sdc', 'superdesk/superdesk-client-core'),
-))
+from common import root, log, conf, repos, gh_auth, pretty_json
 
 
 def get_app():
     app = web.Application()
     init_loop(app.loop)
-    r = app.router
-    r.add_static('/push', root / 'push', show_index=True)
-    r.add_get('/', index)
-    r.add_post('/hook/', hook)
+    app.router.add_static('/push', root / 'push', show_index=True)
+
+    def remove_ts(handler):
+        async def inner(request):
+            if request.match_info.get('trailing_slash'):
+                return web.HTTPFound(request.path[:-1])
+            return await handler(request)
+        return inner
+
+    def url(path, handler, **kw):
+        method = kw.pop('method', 'GET')
+        if not path.endswith('/'):
+            path = path + r'{trailing_slash:[/]?}'
+            handler = remove_ts(handler)
+
+        path = conf['url_prefix'] + path
+        return app.router.add_route(method, path, handler, **kw)
+
+    url('/', index)
+    url('/hook', hook, method='POST')
 
     prefix = '{prefix:(%s)}' % '|'.join(repos)
-    r.add_get(r'/%s/restart/{typ:(pr|br)}/{ref:.+}' % prefix, restart)
-    r.add_get(r'/%s/' % prefix, repo)
+    url(r'/%s' % prefix, repo)
+    url(r'/%s/restart/{typ:(pr|br)}/{ref:.+}' % prefix, restart)
     return app
 
 
@@ -58,15 +67,13 @@ async def hook(request):
 
 async def restart(request):
     prefix = request.match_info['prefix']
-    log.info(prefix)
     if prefix not in repos:
         return web.HTTPNotFound()
-    name = repos[prefix]
     typ = request.match_info['typ']
     ref = request.match_info['ref']
     sha = request.GET.get('sha')
 
-    ctx = get_ctx(name, ref, sha, typ == 'pr')
+    ctx = await get_restart_ctx(prefix, ref, sha, typ == 'pr')
     if not ctx:
         return web.HTTPBadRequest()
 
@@ -77,7 +84,7 @@ async def restart(request):
 index_tpl = '''
 <ul>
 {{#repo}}
-    <li><a href="{{prefix}}/">{{name}}</a></li>
+    <li><a href="{{prefix}}">{{name}}</a></li>
 {{/repo}}
 </ul>
 '''
@@ -122,10 +129,7 @@ async def repo(request):
             'name': i['number'],
             'url': 'http://%spr-%s.%s' % (prefix, i['number'], conf['domain']),
             'gh_url': i['html_url'],
-            'restart_url': (
-                'restart/pr/%s?sha=%s'
-                % (i['number'], i['head']['sha'])
-            ),
+            'restart_url': request.path + '/restart/pr/%s' % i['number'],
         })
 
     resp, body = await gh_api(name + '/branches')
@@ -135,10 +139,7 @@ async def repo(request):
             'name': i['name'],
             'url': 'http://%s-%s.%s' % (prefix, i['name'], conf['domain']),
             'gh_url': 'https://github.com/%s/tree/%s' % (name, i['name']),
-            'restart_url': (
-                'restart/br/%s?sha=%s'
-                % (i['name'], i['commit']['sha'])
-            ),
+            'restart_url': request.path + '/restart/br/%s' % i['name'],
         })
 
     ctx = {'pulls': pulls, 'branches': branches}
@@ -187,6 +188,18 @@ async def sh(cmd, ctx, *, logfile=None):
     return code
 
 
+async def get_restart_ctx(short_name, ref, sha=None, pr=False, **extend):
+        repo_name = repos[short_name]
+        if not sha and pr:
+            resp, body = await gh_api('%s/pulls/%s' % (repo_name, ref))
+            sha = body['head']['sha']
+        elif not sha:
+            resp, body = await gh_api('%s/branches/%s' % (repo_name, ref))
+            sha = body['commit']['sha']
+
+        return get_ctx(repo_name, ref, sha, pr, **extend)
+
+
 def get_hook_ctx(headers, body, **extend):
     event = headers.get('X-Github-Event')
     if event == 'pull_request':
@@ -210,7 +223,7 @@ def get_hook_ctx(headers, body, **extend):
     return get_ctx(repo_name, ref, sha, pr=pr, **extend)
 
 
-def get_ctx(repo_name, ref, sha=None, pr=False, **extend):
+def get_ctx(repo_name, ref, sha, pr=False, **extend):
     if repo_name.startswith('naspeh-sf'):
         # For testing purpose
         repo_name = repo_name.replace('naspeh-sf', 'superdesk')
@@ -319,11 +332,15 @@ async def post_status(ctx, state=None, extend=None, code=None):
     }
     if extend:
         data.update(extend)
-    resp, body = await gh_api(ctx['statuses_url'], data=data)
-    body = pretty_json(body)
-    log.info('Posted status: %s\n%s', resp.status, body)
-    if resp.status != 201:
-        log.warn(pretty_json(data))
+    if conf['no_statuses']:
+        body = pretty_json(data)
+        log.info('Local status:\n%s', body)
+    else:
+        resp, body = await gh_api(ctx['statuses_url'], data=data)
+        body = pretty_json(body)
+        log.info('Posted status: %s\n%s', resp.status, body)
+        if resp.status != 201:
+            log.warn(pretty_json(data))
     path = '{path}{target}-{state}.json'.format(
         path=ctx['logpath'],
         target=data['context'].rsplit('/', 1)[1],
@@ -333,7 +350,6 @@ async def post_status(ctx, state=None, extend=None, code=None):
         f.write(body)
     # async with async_open(path, 'w') as f:
     #     await f.write(body)
-    return resp
 
 
 def chunked_specs(l, n):
