@@ -142,6 +142,15 @@ def update_nginx(path):
     )
 
 
+def cpus():
+    per_lxc = conf['cpus_per_lxc']
+    if not per_lxc or per_lxc < os.cpu_count():
+        return ''
+
+    cpus = [i + 1 for i in range(os.cpu_count())]
+    return ','.join(str(i) for i in random.sample(cpus, per_lxc))
+
+
 def main():
     global dry_run
 
@@ -282,10 +291,7 @@ def main():
                 start=a.start or '',
                 clean=a.clean or '',
                 rename=a.rename or '',
-                cpus='' if a.no_cpus else (
-                    ','.join(str(i) for i in random.sample(*conf['cpus']))
-                    if conf['cpus'] else ''
-                ),
+                cpus='' if a.no_cpus else cpus(),
                 snapshot='' if a.no_snapshot else 1,
             )
         ))

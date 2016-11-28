@@ -83,6 +83,19 @@ _client_checks() {
     [ -z "$npmtest" ] || time npm test
 }
 
+eval "orig_$(declare -f do_install)"
+do_install() {
+    if [ -d $repo ]; then
+        # FIXME: clean lock files when installing new container
+        # started appears in base container after ZFS snaphsot usage
+        rm /var/lib/apt/lists/lock || true
+        rm /var/lib/dpkg/lock || true
+        rm /var/cache/apt/archives/lock || true
+    fi
+
+    orig_do_install
+}
+
 do_finish() {
     _chrome
 

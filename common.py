@@ -1,7 +1,6 @@
 import base64
 import json
 import logging
-import os
 import re
 import subprocess
 import urllib.request
@@ -28,7 +27,7 @@ def get_conf():
         ('domain', 'localhost'),
         ('logurl', lambda c: 'http://%s/' % c['domain']),
         ('e2e_count', 4),
-        ('cpus', ([i + 1 for i in range(os.cpu_count() - 2)], 2)),
+        ('cpus_per_lxc', 3),
     ]
     for key, value in defaults:
         if callable(value):
