@@ -128,17 +128,18 @@ do_web() {
     apt-get -y autoremove
 
     [ -n "$db_name" ] || exit 1
-    cat <<EOF >> $envfile
-# Persistent storage
-MONGO_URI="mongodb://data-sd/${db_name}"
-LEGAL_ARCHIVE_URI="mongodb://data-sd/${db_name}_la"
-ARCHIVED_URI="mongodb://data-sd/${db_name}_ar"
-CONTENTAPI_MONGO_URI="mongodb://data-sd/${db_name}_pa"
-PUBLICAPI_MONGO_URI="mongodb://data-sd/${db_name}_pa"
-ELASTICSEARCH_URL="http://data-sd:9200"
-ELASTICSEARCH_INDEX=${db_name}
-CONTENTAPI_ELASTICSEARCH_INDEX=${db_name}_capi
-EOF
+
+    MONGO_URI="mongodb://data-sd/${db_name}"
+    LEGAL_ARCHIVE_URI="${MONGO_URI}_la"
+    ARCHIVED_URI="${MONGO_URI}_ar"
+    CONTENTAPI_MONGO_URI="${MONGO_URI}_pa"
+    PUBLICAPI_MONGO_URI="${MONGO_URI}_pa"
+
+    ELASTICSEARCH_URL="http://data-sd:9200"
+    ELASTICSEARCH_INDEX="${db_name}"
+    CONTENTAPI_ELASTICSEARCH_INDEX="${db_name}_capi"
+
+    _envfile
     supervisorctl restart all
 
     sample_data=1 do_prepopulate

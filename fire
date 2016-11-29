@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from common import root, log, repos, conf
+from common import root, log, repos, conf, gh_auth
 
 dry_run = False
 ssh_opts='-o "StrictHostKeyChecking no"'
@@ -43,12 +43,21 @@ def sh(cmd, params=None, ssh=None, exit=True):
     return code
 
 
-def build(short_name, ref, sha, pr=False):
+def build(short_name, ref, sha, pr=False, only_checks=False, only_web=False, **opts):
     import web
 
     async def run():
-        ctx = await web.get_restart_ctx(short_name, ref, sha, pr, clean=True)
-        return await web.build(ctx)
+        ctx = await web.get_restart_ctx(short_name, ref, sha, pr, **opts)
+        target = None
+        if only_checks:
+            ctx['install'] = False
+            target = web.checks
+        elif only_web:
+            target = web.pubweb
+        else:
+            target = web.build
+
+        return await target(ctx)
 
     loop = web.app.loop
     code = loop.run_until_complete(run())
@@ -108,43 +117,29 @@ def gh_clean():
     - branch was removed
     otherwise keep container alive
     """
-    clean = []
-    for name in sd_containers():
-        path = root / 'push' / name
-        if not path.exists():
-            clean.append(name)
-            continue
-        path = next(path.glob('?' * 10))
-        headers, req = gh_request(path)
-        event = headers.get('X-Github-Event')
-        if event == 'pull_request':
-            url = req['pull_request']['_links']['self']['href']
-            res = gh_api(url)
-            if res['state'] == 'open':
-                log.info('Skip %s', name)
-                continue
-        elif event == 'push':
-            url = req['repository']['merges_url'].rsplit('/', 1)[0]
-            url = '%s/git/%s' % (url, req['ref'])
-            if gh_api(url, False):
-                log.info('Skip %s', name)
-                continue
-        else:
-            log.info('Skip %s', name)
-            continue
-        clean.append(name)
+    skips = []
+    def skip(prefix, ref, sha):
+        name = re.sub('[^a-z0-9]', '', str(ref))
+        name = '%s-%s' % (prefix, name)
+        skips.append(name)
+        skips.append('%s-%s' % (name, sha[:10]))
 
-    if not clean:
-        log.info('Nothing to clean')
-        return
+    for prefix, repo in repos.items():
+        for i in gh_api('%s/branches' % repo):
+            skip(prefix, i['name'], i['commit']['sha'])
+        for i in gh_api('%s/tags' % repo):
+            skip(prefix + 'tag', i['name'], i['commit']['sha'])
+        for i in gh_api('%s/pulls?state=open' % repo):
+            skip(prefix + 'pr', i['number'], i['head']['sha'])
 
+    clean = [n for n in lxc_ls() if n not in skips]
     cmd = ';\n'.join('./fire lxc-clean "^%s"' % n for n in clean)
     sh('\n%s;\n./fire nginx' % cmd)
 
 
 def update_nginx(path):
     cmd = ''
-    for name in sd_containers('--running'):
+    for name in lxc_ls(web=True):
         cmd += (
             '\nname={name} host={name}.{domain} . superdesk-dev/nginx.tpl;'
             .format(name=name, domain=conf['domain'])
@@ -162,18 +157,23 @@ def gh_api(url, exc=True):
     try:
         req = urllib.request.Request(url, headers=gh_auth())
         res = urllib.request.urlopen(req)
-        res = json.loads(res.read().decode())
-        return res
+        log.info('%s: %s', url, res.status)
+        return json.loads(res.read().decode())
     except urllib.error.URLError as e:
+        log.info('%s: %s', url, e)
         if exc:
             raise
     return None
 
 
-def sd_containers(opts=''):
+def lxc_ls(*, web=False):
+    opts = '--running' if web else ''
     names = subprocess.check_output('lxc-ls -1 %s' % opts, shell=True)
     names = names.decode().split()
-    return (n for n in names if re.match('^sd[a-z]*-[a-z0-9]+$', n))
+    pattern = '^sd[a-z]*-[a-z0-9]+'
+    if web:
+        pattern += '$'
+    return [n for n in names if re.match(pattern, n)]
 
 
 def main():
@@ -236,7 +236,13 @@ def main():
         .arg('ref')\
         .arg('--sha')\
         .arg('-p', '--pr', action='store_true')\
-        .exe(lambda a: build(a.short_name, a.ref, a.sha, a.pr))
+        .arg('-c', '--only-checks', action='store_true')\
+        .arg('-w', '--only-web', action='store_true')\
+        .arg('--clean', action='store_true')\
+        .exe(lambda a: build(
+            a.short_name, a.ref, a.sha, a.pr, a.only_checks, a.only_web,
+            clean=a.clean,
+        ))
 
     cmd('gh-build')\
         .arg('path')\
@@ -244,10 +250,9 @@ def main():
         .arg('-c', '--only-checks', action='store_true')\
         .arg('-w', '--only-web', action='store_true')\
         .arg('--clean', action='store_true')\
-        .arg('--clean-web', action='store_true')\
         .exe(lambda a: gh_build(
             a.path, a.url, a.only_checks, a.only_web,
-            clean=a.clean, clean_web=a.clean_web
+            clean=a.clean,
         ))
 
     cmd('gh-clean', help='remove unused containers')\
@@ -357,7 +362,7 @@ def main():
     cmd('lxc-clean')\
         .arg('pattern', default='^sd', nargs='?')\
         .exe(lambda a: sh(
-            'lxc-ls -1 | grep "{pattern}" | xargs -r ./fire lxc-rm'
+            'lxc-ls -1 | grep "{pattern}" | sort -r | xargs -r ./fire lxc-rm'
             .format(pattern=a.pattern)
         ))
 

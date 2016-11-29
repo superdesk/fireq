@@ -42,7 +42,8 @@ _repo() {
     git remote add origin $repo_remote
 
     if [ -n "$repo_pr" ]; then
-        git fetch origin pull/$repo_pr/head:$repo_pr
+        # git fetch origin pull/$repo_pr/head:$repo_pr
+        git fetch origin pull/$repo_pr/merge:$repo_pr
         git checkout ${repo_sha:-$repo_pr}
     else
         git fetch origin $repo_branch
@@ -182,6 +183,10 @@ network.bind_host: 0.0.0.0
 node.local: true
 #discovery.zen.ping.multicast: false
 #index.refresh_interval: 30s
+
+# Next settings brake behave tests
+#index.number_of_shards: 1
+#index.number_of_replicas: 0
 EOF
 
     # tune mongo

@@ -61,6 +61,12 @@ async def hook(request):
     log.info('%s\n\n%s', pretty_json(headers), pretty_json(body))
     ctx = get_hook_ctx(headers, body, clean=True)
     if ctx:
+        os.makedirs(ctx['logpath'], exist_ok=True)
+        with open(ctx['path'] + '/request.json', 'w') as f:
+            f.write(pretty_json([headers, body]))
+        # async with async_open(ctx['path'] + '/request.json', 'w') as f:
+        #     await f.write(pretty_json([headers, body]))
+
         request.app.loop.create_task(build(ctx))
     return web.json_response(ctx)
 
@@ -287,13 +293,13 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         ),
         'logfile': 'build.log',
         'env': env,
+        'no_statuses': conf['no_statuses'],
         'statuses_url': '%s/statuses/%s' % (repo_name, sha),
         'install': True
     }
     ctx.update(**extend)
     ctx.update(
         clean=ctx.get('clean') and '--clean' or '',
-        clean_web=ctx.get('clean_web') and '--clean-web' or '',
         logurl=conf['logurl'] + ctx['logpath']
     )
     os.makedirs(ctx['logpath'], exist_ok=True)
@@ -332,7 +338,8 @@ async def post_status(ctx, state=None, extend=None, code=None):
     }
     if extend:
         data.update(extend)
-    if conf['no_statuses']:
+    if ctx['no_statuses']:
+        data['no_statuses'] = True
         body = pretty_json(data)
         log.info('Local status:\n%s', body)
     else:
@@ -403,10 +410,12 @@ async def run_target(ctx, target):
     ./fire r --lxc-name=$lxc --env="{env}" -e {endpoint} -a "{p}=1 do_checks"
     '''
 
+    ctx = dict(ctx)
     if isinstance(target, dict):
         parent = target['parent']
         env = target['env']
         target = target['target']
+        ctx['no_statuses'] = ctx['no_statuses'] or conf['no_child_statuses']
     else:
         parent, env = target, ''
     env = ' '.join(i for i in (env, ctx['env']) if i)

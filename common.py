@@ -31,6 +31,7 @@ def get_conf():
         ('e2e_count', 4),
         ('install_cpus', '1,2'),
         ('no_statuses', False),
+        ('no_child_statuses', False),
         ('url_prefix', ''),
     ]
     for key, value in defaults:
