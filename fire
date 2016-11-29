@@ -21,9 +21,15 @@ def remote(cmd, host, opts=ssh_opts):
         'set -e;rsync -ahv --delete'
         ' -e \'ssh {opts}\''
         ' --exclude=.git --exclude=push --exclude=env'
-        ' {root}/ {host}:{tmp}/;'
-        'ssh {opts} {host} "cd {tmp}; {cmd}"'
-        .format(tmp='/tmp/deploy', root=root, host=host, opts=opts, cmd=cmd)
+        ' {root}/ {host}:{newroot}/;'
+        'ssh {opts} {host} "cd {newroot}; {cmd}"'
+        .format(
+            newroot='/opt/superdesk-fire',
+            root=root,
+            host=host,
+            opts=opts,
+            cmd=cmd
+        )
     )
 
 
@@ -304,8 +310,7 @@ def main():
             'set -ex;'
             'tmp={name}--tmp; '
             './fire lxc-init -n $tmp --rm -o {opts!r};'
-            './fire r --lxc-name=$tmp -e superdesk-dev/master'
-            '   -a "do_services; _db_init";'
+            './fire r --lxc-name=$tmp -e superdesk-dev/master -a do_services;'
             './fire lxc-copy -rcs --no-snapshot -b $tmp {name};'
             .format(name=a.name, opts=a.opts)
         ))

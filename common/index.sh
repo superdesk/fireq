@@ -189,28 +189,24 @@ do_services() {
 
     # tune elasticsearch
     config='/etc/elasticsearch/elasticsearch.yml'
-    pattern='# superdesk-deploy'
-    sed -i "/$pattern/,\$d" $config
-    cat << EOF >> $config
+    [ -f "${config}.bak" ] || mv $config $config.bak
+    cat << EOF > $config
 $pattern
 network.bind_host: 0.0.0.0
 node.local: true
-#discovery.zen.ping.multicast: false
-#index.refresh_interval: 30s
-
-# Next settings brake behave tests
-#index.number_of_shards: 1
-#index.number_of_replicas: 0
+discovery.zen.ping.multicast: false
 EOF
 
     # tune mongo
-    cat << EOF > /etc/mongod.conf
+    config=/etc/mongod.conf
+    [ -f "${config}.bak" ] || mv $config $config.bak
+    cat << EOF > $config
 storage:
   dbPath: /var/lib/mongodb
   journal:
     enabled: true
+  engine: wiredTiger
 
-# where to write logging data.
 systemLog:
   destination: file
   logAppend: true

@@ -17,34 +17,54 @@ _es_wait() {
 }
 
 _es_init() {
-    echo "index.store.type: memory" >> /etc/elasticsearch/elasticsearch.yml
-
-    use_snapshots=${use_snapshots-1}
-    if [ -n "$use_snapshots" ]; then
-        es_backups=/tmp/es-backups
-        if [ ! -d "$es_backups" ]; then
-            mkdir $es_backups
-            chown elasticsearch:elasticsearch $es_backups
-            echo "path.repo: $es_backups" >> /etc/elasticsearch/elasticsearch.yml
-            systemctl restart elasticsearch
-            _es_wait
-            curl -XPUT 'http://localhost:9200/_snapshot/backups' \
-                -d '{"type": "fs", "settings": {"location": "/tmp/es-backups"}}'
-        fi
-    else
-        systemctl restart elasticsearch
+    es_backups=/tmp/es-backups
+    if [ ! -d "$es_backups" ]; then
+        mkdir $es_backups
+        chown elasticsearch:elasticsearch $es_backups
     fi
+
+    echo 'log4j.rootLogger=OFF' > /etc/elasticsearch/logging.yml
+    config='/etc/elasticsearch/elasticsearch.yml'
+    cat << EOF > $config
+$pattern
+network.bind_host: 0.0.0.0
+node.local: true
+discovery.zen.ping.multicast: false
+index.refresh_interval: 30s
+index.store.type: memory
+path.repo: $es_backups
+
+# Next two settings break behave tests
+index.number_of_replicas: 0
+index.number_of_shards: 1
+EOF
+
+    systemctl restart elasticsearch
     _es_wait
+    curl -XPUT 'http://localhost:9200/_snapshot/backups' \
+        -d '{"type": "fs", "settings": {"location": "/tmp/es-backups"}}'
 }
 
 _mongo_init() {
-    # disable journal
-    sudo sed -i 's\enabled: true\enabled: false\' /etc/mongod.conf
+    path=/tmp/mongodb
+    [ -d $path ] || mkdir $path
+    chown mongodb:mongodb $path
+    cat << EOF > /etc/mongod.conf
+storage:
+  dbPath: $path
+  journal:
+    enabled: false
+  engine: wiredTiger
+
+net:
+  port: 27017
+  bindIp: 0.0.0.0
+EOF
     systemctl restart mongod
 }
 
-_db_external() {
-    [ -n "$lxc_data" ] || exit 1
+_db_uninstall() {
+    [ $(systemctl list-units | grep -c elasticsearch) = "0" ] && return 0
     systemctl stop elasticsearch mongod || true
     systemctl disable elasticsearch mongod || true
     apt-get -y remove \
@@ -52,7 +72,10 @@ _db_external() {
         elasticsearch \
         mongodb-org-server
     apt-get -y autoremove
+}
 
+_db_external() {
+    [ -n "$lxc_data" ] || exit 1
     db_name=${db_name:-$(hostname)}
     MONGO_URI="mongodb://$lxc_data/$db_name"
     ELASTICSEARCH_URL="http://$lxc_data:9200"
@@ -64,11 +87,27 @@ _db_external() {
 
 _db_init() {
     if [ -n "$lxc_data" ]; then
+        _db_uninstall
         _db_external
     else
         _es_init
         _mongo_init
+
+        # initialize directories in "/tmp", etc.
+        # TODO
+        # hook=/opt/lxc-hooks/start.sh
+        # hook_dir=$(dirname $hook)
+        # mkdir -p $hook_dir
+        # echo "mkdir /tmp/mongodb" > $hook
+        # chmod +x $hook
     fi
+}
+
+_checks_init() {
+    [ $(grep -c SUPERDESK_TESTING $envfile) = "0" ] || return 0
+    export SUPERDESK_TESTING=true
+    _db_init
+    supervisor_tpl=$root/superdesk-dev/supervisor.tpl _supervisor
 }
 
 _chrome_stable() {
@@ -87,8 +126,6 @@ _chrome() {
 
 _backend_checks() {
     cd $repo_backend
-
-    export SUPERDESK_TESTING=true
     _activate
 
     # run flake8 with on jobs, because it could lock the build for ever
@@ -134,7 +171,7 @@ do_checks() {
         flake8=1
         npmtest=1
     fi
-    _db_init
+    _checks_init
     _backend_checks
     _client_checks
 }

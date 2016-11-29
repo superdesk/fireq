@@ -54,7 +54,7 @@ do_checks() {
     _activate
     [ -z "$docs" ] || do_docs
 
-    _db_init
+    _checks_init
     _backend_checks
 }
 

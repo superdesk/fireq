@@ -50,8 +50,7 @@ do_specs() {
 }
 
 do_checks() {
-    export SUPERDESK_TESTING=true
-    _db_init
+    _checks_init
 
     _activate
     [ -z "$CHROME_BIN" ] || $CHROME_BIN --version

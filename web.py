@@ -288,6 +288,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         'sha': sha,
         'name': name,
         'name_uniq': name_uniq,
+        'name_uniq_orig': name_uniq,
         'host': '%s.%s' % (name, conf['domain']),
         'path': path,
         'lxc_base': conf['lxc_base'],
@@ -365,31 +366,36 @@ async def post_status(ctx, state=None, extend=None, code=None):
     #     await f.write(body)
 
 
-def chunked_specs(l, n):
-    l = dict(i.split() for i in l.split('\n') if i)
-    chunksize = sum(int(i) for i in l.values()) / n
-    names = sorted(l)
-    chunk, size = [], 0
-    for name in names:
-        size += int(l[name])
-        chunk.append(name)
-        if size > chunksize:
-            yield chunk
-            chunk, size = [], 0
-    if chunk:
-        yield chunk
+def chunked_specs(sizes, n, names=None):
+    def chunk(names, n):
+        chunk, size = [], 0
+        chunksize = sum(v for k, v in sizes.items() if k in names) / n
+        while size < chunksize:
+            name = names.pop()
+            size += int(sizes[name])
+            chunk.append(name)
+        log.info('size=%s; files=%s', size, chunk)
+        return chunk
+
+    sizes = {k: int(v) for k, v in sizes.items()}
+    names = sorted(sizes, reverse=True)
+    for i in range(n):
+        yield chunk(names, n - i)
 
 
 async def check_e2e(ctx):
-    ctx.update(name_e2e='%s-e2e' % ctx['name_uniq'])
-    code = await sh('./fire lxc-copy -sb {name_uniq} {name_e2e}', ctx)
+    ctx.update(name_uniq='%s-e2e' % ctx['name_uniq'])
+    code = await sh('''
+    ./fire lxc-copy -sb {name_uniq_orig} {name_uniq};
+    ./fire r -e {endpoint} --lxc-name {name_uniq} --env="{env}" -a _checks_init
+    ''', ctx)
     if code != 0:
         return code
 
     pattern = '*' * 30
     cmd = '''
     cd {r} &&
-    ./fire r -e {endpoint} --lxc-name={name_e2e} -a 'pattern="{p}" do_specs'
+    ./fire r -e {endpoint} --lxc-name={name_uniq} -a 'pattern="{p}" do_specs'
     '''.format(r=root, p=pattern, **ctx)
     proc = await asyncio.create_subprocess_shell(cmd, stdout=PIPE, stderr=PIPE)
     out, err = await proc.communicate()
@@ -397,6 +403,7 @@ async def check_e2e(ctx):
         log.error('ERROR: %s', err)
         return 1
     specs = out.decode().rsplit(pattern, 1)[-1]
+    specs = dict(i.split() for i in specs.split('\n') if i)
     targets = chunked_specs(specs, conf['e2e_count'])
     targets = [
         {
@@ -411,7 +418,7 @@ async def check_e2e(ctx):
 
 async def run_target(ctx, target):
     cmd = '''
-    lxc={name_uniq}-{t};
+    lxc={name_uniq_orig}-{t};
     ./fire lxc-copy {clean} -s -b {name_uniq} $lxc
     ./fire r --lxc-name=$lxc --env="{env}" -e {endpoint} -a "{p}=1 do_checks"
     '''
@@ -502,8 +509,8 @@ async def build(ctx):
         ./fire lxc-copy -s --cpus={cpus} -b {lxc_base} {clean} {name_uniq};
         time ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
         time lxc-stop -n {name_uniq};
-        sed -i '/lxc.cgroup.cpuset.cpus/,$d' /var/lib/lxc/{name_uniq}/config;
-        ''', dict(ctx, cpus=conf['install_cpus']))
+        # sed -i '/lxc.cgroup.cpuset.cpus/,$d' /var/lib/lxc/{name_uniq}/config;
+        ''', dict(ctx, cpus=conf['use_cpus']))
 
         if code:
             await clean(code)
