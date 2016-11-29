@@ -43,9 +43,32 @@ _mongo_init() {
     systemctl restart mongod
 }
 
+_db_external() {
+    [ -n "$lxc_data" ] || exit 1
+    systemctl stop elasticsearch mongod || true
+    systemctl disable elasticsearch mongod || true
+    apt-get -y remove \
+        openjdk-8-jre-headless \
+        elasticsearch \
+        mongodb-org-server
+    apt-get -y autoremove
+
+    db_name=${db_name:-$(hostname)}
+    MONGO_URI="mongodb://$lxc_data/$db_name"
+    ELASTICSEARCH_URL="http://$lxc_data:9200"
+    ELASTICSEARCH_INDEX="$db_name"
+
+    _envfile
+    supervisorctl restart all
+}
+
 _db_init() {
-    _es_init
-    _mongo_init
+    if [ -n "$lxc_data" ]; then
+        _db_external
+    else
+        _es_init
+        _mongo_init
+    fi
 }
 
 _chrome_stable() {
@@ -65,7 +88,7 @@ _chrome() {
 _backend_checks() {
     cd $repo_backend
 
-    export SUPERDESK_TESTING=True
+    export SUPERDESK_TESTING=true
     _activate
 
     # run flake8 with on jobs, because it could lock the build for ever
@@ -119,29 +142,7 @@ do_checks() {
 do_docs() { :; }
 
 do_web() {
-    # systemctl stop elasticsearch mongod
-    # systemctl disable elasticsearch mongodb
-    apt-get -y remove \
-        openjdk-8-jre-headless \
-        elasticsearch \
-        mongodb-org-server
-    apt-get -y autoremove
-
-    [ -n "$db_name" ] || exit 1
-
-    MONGO_URI="mongodb://data-sd/${db_name}"
-    LEGAL_ARCHIVE_URI="${MONGO_URI}_la"
-    ARCHIVED_URI="${MONGO_URI}_ar"
-    CONTENTAPI_MONGO_URI="${MONGO_URI}_pa"
-    PUBLICAPI_MONGO_URI="${MONGO_URI}_pa"
-
-    ELASTICSEARCH_URL="http://data-sd:9200"
-    ELASTICSEARCH_INDEX="${db_name}"
-    CONTENTAPI_ELASTICSEARCH_INDEX="${db_name}_capi"
-
-    _envfile
-    supervisorctl restart all
-
+    _db_init
     sample_data=1 do_prepopulate
 
     do_docs || true

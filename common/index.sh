@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-TERM=xterm
-DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive
+export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 root=$(dirname $(dirname $(realpath -s $0)))
 name=${name:-liveblog}
@@ -25,6 +25,16 @@ EOF
 }
 
 _envfile() {
+    MONGO_URI=${MONGO_URI:-"mongodb://localhost/${db_name}"}
+    LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"${MONGO_URI}_la"}
+    ARCHIVED_URI=${ARCHIVED_URI:-"${MONGO_URI}_ar"}
+    CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"${MONGO_URI}_pa"}
+    PUBLICAPI_MONGO_URI=${PUBLICAPI_MONGO_URI:-"${MONGO_URI}_pa"}
+
+    ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://localhost:9200"}
+    ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"${name}"}
+    CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${ELASTICSEARCH_INDEX}_capi"}
+
     set +x
     config=$root/etc/${name}.sh
     [ -f $config ] && . $config
@@ -32,6 +42,10 @@ _envfile() {
     envfile_append="$(_envfile_append)"
     . $root/common/envfile.tpl > $envfile
     set -x
+
+    if [ -n "$SUPERDESK_TESTING" ]; then
+        echo SUPERDESK_TESTING=true  >> $envfile
+    fi
 }
 
 _repo() {
@@ -42,8 +56,8 @@ _repo() {
     git remote add origin $repo_remote
 
     if [ -n "$repo_pr" ]; then
-        # git fetch origin pull/$repo_pr/head:$repo_pr
-        git fetch origin pull/$repo_pr/merge:$repo_pr
+        git fetch origin pull/$repo_pr/merge:$repo_pr \
+            || git fetch origin pull/$repo_pr/head:$repo_pr
         git checkout ${repo_sha:-$repo_pr}
     else
         git fetch origin $repo_branch

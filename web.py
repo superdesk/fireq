@@ -79,7 +79,7 @@ async def restart(request):
     ref = request.match_info['ref']
     sha = request.GET.get('sha')
 
-    ctx = await get_restart_ctx(prefix, ref, sha, typ == 'pr')
+    ctx = await get_restart_ctx(prefix, ref, sha, typ == 'pr', clean=True)
     if not ctx:
         return web.HTTPBadRequest()
 
@@ -240,7 +240,10 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
 
     if repo_name == 'superdesk/superdesk':
         endpoint = 'superdesk-dev/master'
-        checks = {'targets': ['flake8', 'npmtest']}
+        checks = {
+            'targets': ['flake8', 'npmtest'],
+            'env': 'lxc_data=data-sd--tests'
+        }
     elif repo_name == 'superdesk/superdesk-core':
         endpoint = 'superdesk-dev/core'
         checks = {
@@ -249,7 +252,10 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         }
     elif repo_name == 'superdesk/superdesk-client-core':
         endpoint = 'superdesk-dev/client-core'
-        checks = {'targets': ['e2e', 'npmtest', 'docs']}
+        checks = {
+            'targets': ['e2e', 'npmtest', 'docs'],
+            'env': 'lxc_data=data-sd--tests'
+        }
 
     prefix = list(repos.keys())[list(repos.values()).index(repo_name)]
     if pr:
@@ -284,7 +290,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         'name_uniq': name_uniq,
         'host': '%s.%s' % (name, conf['domain']),
         'path': path,
-        'sdbase': conf['sdbase'],
+        'lxc_base': conf['lxc_base'],
         'endpoint': endpoint,
         'checks': checks,
         'logpath': (
@@ -339,7 +345,7 @@ async def post_status(ctx, state=None, extend=None, code=None):
     if extend:
         data.update(extend)
     if ctx['no_statuses']:
-        data['no_statuses'] = True
+        data['_status'] = 'wasn\'t sent'
         body = pretty_json(data)
         log.info('Local status:\n%s', body)
     else:
@@ -467,7 +473,7 @@ async def pubweb(ctx):
 
     code = await sh('''
     lxc={name_uniq}-web;
-    env="{env} db_name={name}";
+    env="{env} lxc_data=data-sd db_name={name}";
     ./fire lxc-copy {clean} -s -b {name_uniq} $lxc;
     ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_web";
     ./fire lxc-copy --no-snapshot -rcs -b $lxc {name};
@@ -493,7 +499,7 @@ async def build(ctx):
     if ctx['install']:
         code = await sh('''
         ./fire lxc-clean "^{name_uniq}-" || true;
-        ./fire lxc-copy -s --cpus={cpus} -b {sdbase} {clean} {name_uniq};
+        ./fire lxc-copy -s --cpus={cpus} -b {lxc_base} {clean} {name_uniq};
         time ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
         time lxc-stop -n {name_uniq};
         sed -i '/lxc.cgroup.cpuset.cpus/,$d' /var/lib/lxc/{name_uniq}/config;

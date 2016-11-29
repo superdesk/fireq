@@ -16,7 +16,7 @@ _e2e_tests() {
     # specs="--specs spec/login_spec.js"
 
     webdriver-manager update
-    time xvfb-run protractor protractor.conf.js --stackTrace --verbose\
+    time xvfb-run -a protractor protractor.conf.js --stackTrace --verbose\
         --baseUrl 'http://localhost'\
         --params.baseBackendUrl 'http://localhost/api'\
         $specs
@@ -50,9 +50,8 @@ do_specs() {
 }
 
 do_checks() {
+    export SUPERDESK_TESTING=true
     _db_init
-    echo SUPERDESK_TESTING=true  >> $envfile
-    supervisorctl restart all
 
     _activate
     [ -z "$CHROME_BIN" ] || $CHROME_BIN --version
@@ -61,7 +60,7 @@ do_checks() {
     export PATH=./node_modules/.bin/:$PATH
 
     [ -z "$npmtest" ] && [ -z "$e2e" ] && [ -z "$docs" ] && npmtest=1 && e2e=1 && docs=1
-    [ -z "$npmtest" ] || time xvfb-run npm test
+    [ -z "$npmtest" ] || time xvfb-run -a npm test
     [ -z "$e2e" ] || _e2e_tests
     [ -z "$docs" ] || do_docs
 }
