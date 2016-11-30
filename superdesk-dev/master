@@ -32,11 +32,11 @@ node.local: true
 discovery.zen.ping.multicast: false
 index.refresh_interval: 30s
 index.store.type: memory
+index.number_of_replicas: 0
 path.repo: $es_backups
 
-# Next two settings break behave tests
-index.number_of_replicas: 0
-index.number_of_shards: 1
+# Next setting break behave tests
+# index.number_of_shards: 1
 EOF
 
     systemctl restart elasticsearch
@@ -104,7 +104,6 @@ _db_init() {
 }
 
 _checks_init() {
-    [ $(grep -c SUPERDESK_TESTING $envfile) = "0" ] || return 0
     export SUPERDESK_TESTING=true
     _db_init
     supervisor_tpl=$root/superdesk-dev/supervisor.tpl _supervisor
@@ -178,7 +177,7 @@ do_checks() {
 
 do_docs() { :; }
 
-do_web() {
+do_www() {
     _db_init
     sample_data=1 do_prepopulate
 

@@ -32,8 +32,8 @@ def get_conf():
         ('e2e_count', 4),
         ('use_cpus', ''),
         ('no_statuses', False),
-        ('no_child_statuses', False),
         ('url_prefix', ''),
+        ('status_prefix', 'naspeh-sf/deploy/'),
     ]
     for key, value in defaults:
         if callable(value):

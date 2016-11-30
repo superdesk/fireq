@@ -286,6 +286,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
     env += ' repo_remote=%s host=%s' % (clone_url, host)
     ctx = {
         'sha': sha,
+        'repo_name': repo_name,
         'name': name,
         'name_uniq': name_uniq,
         'name_uniq_orig': name_uniq,
@@ -341,7 +342,7 @@ async def post_status(ctx, state=None, extend=None, code=None):
         'state': state,
         'target_url': ctx['logurl'] + logfile,
         'description': 'Superdesk Deploy',
-        'context': 'naspeh-sf/deploy/build'
+        'context': conf['status_prefix'] + 'build'
     }
     if extend:
         data.update(extend)
@@ -428,7 +429,7 @@ async def run_target(ctx, target):
         parent = target['parent']
         env = target['env']
         target = target['target']
-        ctx['no_statuses'] = ctx['no_statuses'] or conf['no_child_statuses']
+        ctx['no_statuses'] = False
     else:
         parent, env = target, ''
     env = ' '.join(i for i in (env, ctx['env']) if i)
@@ -436,10 +437,11 @@ async def run_target(ctx, target):
     logfile = 'check-%s.log' % target
     status = {
         'target_url': ctx['logurl'] + logfile,
-        'context': 'naspeh-sf/deploy/check-%s' % target
+        'context': conf['status_prefix'] + 'check-%s' % target
     }
     await post_status(ctx, 'pending', extend=status)
     if target == 'e2e':
+        status['target_url'] = ctx['logurl']
         code = await check_e2e(dict(ctx, logfile=logfile))
     else:
         c = dict(ctx, p=parent, t=target, env=env)
@@ -470,19 +472,19 @@ async def checks(ctx):
     return code
 
 
-async def pubweb(ctx):
-    logfile = 'web.log'
+async def www(ctx):
+    logfile = 'www.log'
     status = {
         'target_url': ctx['logurl'] + logfile,
-        'context': 'naspeh-sf/deploy/web'
+        'context': conf['status_prefix'] + 'www',
     }
     await post_status(ctx, 'pending', extend=status)
 
     code = await sh('''
-    lxc={name_uniq}-web;
+    lxc={name_uniq}-www;
     env="{env} lxc_data=data-sd db_name={name}";
     ./fire lxc-copy {clean} -s -b {name_uniq} $lxc;
-    ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_web";
+    ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_www";
     ./fire lxc-copy --no-snapshot -rcs -b $lxc {name};
     ./fire nginx || true
     ''', ctx, logfile=logfile)
@@ -494,8 +496,34 @@ async def pubweb(ctx):
 
 
 async def build(ctx):
+    async def clean_statuses(code=None):
+        # Clean previous statuses
+        state = 'pending'
+        complete = code is not None
+        if complete:
+            state = 'success' if code == 0 else 'failure'
+        statuses = [conf['status_prefix'] + 'build']
+        resp, body = await gh_api(ctx['statuses_url'])
+        for s in body:
+            c = s['context']
+            if not c.startswith(conf['status_prefix']) or c in statuses:
+                continue
+            statuses.append(c)
+            if complete and s['state'] != 'pending':
+                continue
+            log.info('Previous status: %s', pretty_json(s))
+            status = {
+                'target_url': ctx['logurl'],
+                'context': c,
+                'description': (
+                    'Rewriting missed' if complete else 'Restarting'
+                )
+            }
+            await post_status(ctx, state, status)
+
     async def clean(code):
         await post_status(ctx, code=code)
+        await clean_statuses(code)
         await sh(
             './fire lxc-clean "^{name_uniq}-";'
             '[ -z "{clean}" ] || ./fire lxc-rm {name_uniq}',
@@ -503,6 +531,7 @@ async def build(ctx):
         )
 
     await post_status(ctx, 'pending')
+    await clean_statuses()
     if ctx['install']:
         code = await sh('''
         ./fire lxc-clean "^{name_uniq}-" || true;
@@ -516,7 +545,7 @@ async def build(ctx):
             await clean(code)
             return code
 
-    proces = [t(ctx) for t in (pubweb, checks)]
+    proces = [t(ctx) for t in (www, checks)]
     code = await wait_for(proces)
     await clean(code)
 
