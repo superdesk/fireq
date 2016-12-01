@@ -15,6 +15,8 @@ from pystache import render
 
 from common import root, log, conf, repos, gh_auth, pretty_json
 
+repos_reverse = {v: k for k, v in repos.items()}
+
 
 def get_app():
     app = web.Application()
@@ -257,7 +259,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
             'env': 'lxc_data=data-sd--tests'
         }
 
-    prefix = list(repos.keys())[list(repos.values()).index(repo_name)]
+    prefix = repos_reverse[repo_name]
     if pr:
         env = 'repo_pr=%s repo_sha=%s' % (ref, sha)
         name = ref
@@ -287,6 +289,8 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
     ctx = {
         'sha': sha,
         'repo_name': repo_name,
+        'prefix': prefix,
+        'ref': ref,
         'name': name,
         'name_uniq': name_uniq,
         'name_uniq_orig': name_uniq,
@@ -533,6 +537,22 @@ async def build(ctx):
 
     async def clean(code):
         await post_status(ctx, code=code)
+        if code != 0:
+            prefix = repos_reverse[ctx['repo_name']]
+            restart_url = (
+                'https://{domain}/{prefix}/restart/{typ}/{ref}'
+                .format(
+                    domain=conf['domain'],
+                    prefix=prefix,
+                    typ=re.sub('^' + prefix, '', ctx['prefix']) or 'br',
+                    ref=ctx['ref']
+                )
+            )
+            await post_status(ctx, 'failure', {
+                'target_url': restart_url,
+                'context': conf['status_prefix'] + '!restart',
+                'description': 'Click details to restart the build',
+            })
         await clean_statuses(code)
         await sh(
             './fire lxc-clean "^{name_uniq}-";'
