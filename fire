@@ -245,9 +245,10 @@ def main():
         .arg('-c', '--only-checks', action='store_true')\
         .arg('-w', '--only-web', action='store_true')\
         .arg('--clean', action='store_true')\
+        .arg('--no-statuses', action='store_true')\
         .exe(lambda a: build(
             a.short_name, a.ref, a.sha, a.pr, a.only_checks, a.only_web,
-            clean=a.clean,
+            clean=a.clean, no_statuses=a.no_statuses
         ))
 
     cmd('gh-build')\

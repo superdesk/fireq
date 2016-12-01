@@ -16,7 +16,8 @@ _e2e_tests() {
     # specs="--specs spec/login_spec.js"
 
     webdriver-manager update
-    time xvfb-run -a protractor protractor.conf.js --stackTrace --verbose\
+    time xvfb-run -a -s "-ac -screen 0 1920x1080x24"\
+        protractor protractor.conf.js --stackTrace --verbose\
         --baseUrl 'http://localhost'\
         --params.baseBackendUrl 'http://localhost/api'\
         $specs
@@ -37,7 +38,6 @@ _chrome() {
 
         export CHROME_BIN=$(pwd)/chrome-linux/chrome
         $CHROME_BIN --version
-        echo "CHROME_BIN=$CHROME_BIN" >> $envfile
     fi
 }
 
@@ -53,10 +53,11 @@ do_checks() {
     _checks_init
 
     _activate
-    [ -z "$CHROME_BIN" ] || $CHROME_BIN --version
+    which google-chrome
+    google-chrome --version
+    export CHROME_BIN=$(which google-chrome)
 
     cd $repo_core
-    export PATH=./node_modules/.bin/:$PATH
 
     [ -z "$npmtest" ] && [ -z "$e2e" ] && [ -z "$docs" ] && npmtest=1 && e2e=1 && docs=1
     [ -z "$npmtest" ] || time xvfb-run -a npm test
@@ -65,6 +66,7 @@ do_checks() {
 }
 
 do_docs() {
+    cd $repo_core
     [ -z "$(grep no-serve tasks/options/dgeni-alive.js)" ] || grunt docs --no-serve
 }
 

@@ -87,7 +87,7 @@ _db_external() {
 
 _db_init() {
     if [ -n "$lxc_data" ]; then
-        _db_uninstall
+        systemctl stop elasticsearch mongod
         _db_external
     else
         _es_init

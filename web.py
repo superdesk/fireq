@@ -356,9 +356,10 @@ async def post_status(ctx, state=None, extend=None, code=None):
         log.info('Posted status: %s\n%s', resp.status, body)
         if resp.status != 201:
             log.warn(pretty_json(data))
+    target = data['context'].replace(conf['status_prefix'], '')
     path = '{path}{target}-{state}.json'.format(
         path=ctx['logpath'],
-        target=data['context'].rsplit('/', 1)[1],
+        target=target,
         state=state
     )
     with open(path, 'w') as f:
@@ -378,7 +379,7 @@ def chunked_specs(sizes, n, names=None):
         log.info('size=%s; files=%s', size, chunk)
         return chunk
 
-    sizes = {k: int(v) for k, v in sizes.items()}
+    sizes = {k: int(v) for k, v in sizes}
     names = sorted(sizes, reverse=True)
     for i in range(n):
         yield chunk(names, n - i)
@@ -387,7 +388,7 @@ def chunked_specs(sizes, n, names=None):
 async def check_e2e(ctx):
     ctx.update(name_uniq='%s-e2e' % ctx['name_uniq'])
     code = await sh('''
-    ./fire lxc-copy -sb {name_uniq_orig} {name_uniq};
+    ./fire lxc-copy {clean} -sb {name_uniq_orig} {name_uniq};
     ./fire r -e {endpoint} --lxc-name {name_uniq} --env="{env}" -a _checks_init
     ''', ctx)
     if code != 0:
@@ -404,8 +405,8 @@ async def check_e2e(ctx):
         log.error('ERROR: %s', err)
         return 1
     specs = out.decode().rsplit(pattern, 1)[-1]
-    specs = dict(i.split() for i in specs.split('\n') if i)
-    targets = chunked_specs(specs, conf['e2e_count'])
+    specs = [i.split() for i in specs.split('\n') if i]
+    targets = chunked_specs(specs, conf['e2e_chunks'])
     targets = [
         {
             'target': 'e2e--part%s' % num,
@@ -413,6 +414,9 @@ async def check_e2e(ctx):
             'env': 'specs=%s' % ','.join(t)
         } for num, t in enumerate(targets, 1)
     ]
+    code = await sh('lxc-stop -n {name_uniq}', ctx)
+    if code != 0:
+        return code
     code = await run_targets(ctx, targets)
     return code
 
@@ -420,7 +424,7 @@ async def check_e2e(ctx):
 async def run_target(ctx, target):
     cmd = '''
     lxc={name_uniq_orig}-{t};
-    ./fire lxc-copy {clean} -s -b {name_uniq} $lxc
+    ./fire lxc-copy {clean} -sb {name_uniq} $lxc
     ./fire r --lxc-name=$lxc --env="{env}" -e {endpoint} -a "{p}=1 do_checks"
     '''
 
@@ -429,18 +433,21 @@ async def run_target(ctx, target):
         parent = target['parent']
         env = target['env']
         target = target['target']
-        ctx['no_statuses'] = False
+        ctx['no_statuses'] = True
     else:
         parent, env = target, ''
-    env = ' '.join(i for i in (env, ctx['env']) if i)
 
+    if target == 'e2e' and conf['e2e_chunks'] == 0:
+        return 0
+
+    env = ' '.join(i for i in (env, ctx['env']) if i)
     logfile = 'check-%s.log' % target
     status = {
         'target_url': ctx['logurl'] + logfile,
         'context': conf['status_prefix'] + 'check-%s' % target
     }
     await post_status(ctx, 'pending', extend=status)
-    if target == 'e2e':
+    if target == 'e2e' and conf['e2e_chunks'] > 1:
         status['target_url'] = ctx['logurl']
         code = await check_e2e(dict(ctx, logfile=logfile))
     else:
@@ -483,7 +490,7 @@ async def www(ctx):
     code = await sh('''
     lxc={name_uniq}-www;
     env="{env} lxc_data=data-sd db_name={name}";
-    ./fire lxc-copy {clean} -s -b {name_uniq} $lxc;
+    ./fire lxc-copy {clean} -sb {name_uniq} $lxc;
     ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_www";
     ./fire lxc-copy --no-snapshot -rcs -b $lxc {name};
     ./fire nginx || true
@@ -503,8 +510,9 @@ async def build(ctx):
         if complete:
             state = 'success' if code == 0 else 'failure'
         statuses = [conf['status_prefix'] + 'build']
-        resp, body = await gh_api(ctx['statuses_url'])
-        for s in body:
+        url = '{repo_name}/commits/{sha}/status'.format(**ctx)
+        resp, body = await gh_api(url)
+        for s in body['statuses']:
             c = s['context']
             if not c.startswith(conf['status_prefix']) or c in statuses:
                 continue
@@ -516,7 +524,9 @@ async def build(ctx):
                 'target_url': ctx['logurl'],
                 'context': c,
                 'description': (
-                    'Rewriting missed' if complete else 'Restarting'
+                    'Rewritten: the status is missing in new build'
+                    if complete else
+                    'Restarted'
                 )
             }
             await post_status(ctx, state, status)
@@ -535,7 +545,7 @@ async def build(ctx):
     if ctx['install']:
         code = await sh('''
         ./fire lxc-clean "^{name_uniq}-" || true;
-        ./fire lxc-copy -s --cpus={cpus} -b {lxc_base} {clean} {name_uniq};
+        ./fire lxc-copy --cpus={cpus} -sb {lxc_base} {clean} {name_uniq};
         time ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
         time lxc-stop -n {name_uniq};
         # sed -i '/lxc.cgroup.cpuset.cpus/,$d' /var/lib/lxc/{name_uniq}/config;

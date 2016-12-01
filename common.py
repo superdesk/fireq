@@ -29,11 +29,11 @@ def get_conf():
         ('lxc_data', 'data-sd'),
         ('domain', 'localhost'),
         ('logurl', lambda c: 'http://%s/' % c['domain']),
-        ('e2e_count', 4),
+        ('e2e_chunks', 1),
         ('use_cpus', ''),
         ('no_statuses', False),
         ('url_prefix', ''),
-        ('status_prefix', 'naspeh-sf/deploy/'),
+        ('status_prefix', 'fire:'),
     ]
     for key, value in defaults:
         if callable(value):

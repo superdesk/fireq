@@ -7,9 +7,8 @@ start=${start-1}
 [ -z "$rename" ] || rename='--rename'
 [ -z "${snapshot-1}" ] || snapshot='-s'
 
-if [ -n "$clean" ]; then
-    lxc-stop -n $name || true
-    lxc-destroy -n $name || true
+if [ -n "$clean" ] && lxc-info -n $name -sH; then
+    lxc-destroy -f -n $name || true
 fi
 
 exist=$(lxc-info -n $name -sH || echo '')

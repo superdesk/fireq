@@ -3,6 +3,7 @@ set -e
 
 export DEBIAN_FRONTEND=noninteractive
 export DBUS_SESSION_BUS_ADDRESS=/dev/null
+export PATH=./node_modules/.bin/:$PATH
 
 root=$(dirname $(dirname $(realpath -s $0)))
 name=${name:-liveblog}
@@ -28,12 +29,12 @@ _envfile() {
     MONGO_URI=${MONGO_URI:-"mongodb://localhost/${db_name}"}
     LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"${MONGO_URI}_la"}
     ARCHIVED_URI=${ARCHIVED_URI:-"${MONGO_URI}_ar"}
-    CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"${MONGO_URI}_pa"}
+    CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"${MONGO_URI}_ca"}
     PUBLICAPI_MONGO_URI=${PUBLICAPI_MONGO_URI:-"${MONGO_URI}_pa"}
 
     ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://localhost:9200"}
     ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"${name}"}
-    CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${ELASTICSEARCH_INDEX}_capi"}
+    CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${ELASTICSEARCH_INDEX}_ca"}
 
     set +x
     config=$root/etc/${name}.sh
@@ -44,7 +45,8 @@ _envfile() {
     set -x
 
     if [ -n "$SUPERDESK_TESTING" ]; then
-        echo SUPERDESK_TESTING=true  >> $envfile
+        echo SUPERDESK_TESTING=True  >> $envfile
+        echo CELERY_ALWAYS_EAGER=True  >> $envfile
     fi
 }
 
@@ -92,6 +94,7 @@ _supervisor() {
 
 _npm() {
     # node & npm
+    [ -f /usr/bin/npm ] && return 0
     curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
     apt-get install -y nodejs
     [ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
@@ -124,7 +127,7 @@ _nginx() {
 
 do_init() {
     apt-get -y install --no-install-recommends \
-    git python3 python3-dev python3-venv \
+    wget git python3 python3-dev python3-venv \
     build-essential libffi-dev \
     libtiff5-dev libjpeg8-dev zlib1g-dev \
     libfreetype6-dev liblcms2-dev libwebp-dev \
@@ -164,7 +167,7 @@ do_prepopulate() {
 do_finish() { :; }
 
 do_services() {
-    apt-get -y install wget software-properties-common
+    apt-get -y install software-properties-common
 
     #elasticsearch
     wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -

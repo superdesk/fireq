@@ -35,9 +35,9 @@ do_backend() {
 do_frontend() {
     _activate # env vars
     _npm
-    npm install -g grunt-cli
 
     cd $(_repo_client)
+    npm install grunt-cli
     time npm install
     time grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100'
     echo "\033[0m"
