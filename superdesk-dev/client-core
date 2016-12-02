@@ -51,11 +51,7 @@ do_specs() {
 
 do_checks() {
     _checks_init
-
     _activate
-    which google-chrome
-    google-chrome --version
-    export CHROME_BIN=$(which google-chrome)
 
     cd $repo_core
 

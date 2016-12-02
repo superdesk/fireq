@@ -49,8 +49,21 @@ def sh(cmd, params=None, ssh=None, exit=True):
     return code
 
 
-def build(short_name, ref, sha, pr=False, only_checks=False, only_web=False, **opts):
+def build(short_name, ref, sha, pr=False, by_url=None, **opts):
     import web
+
+    only_web = opts.pop('only_web', None)
+    only_checks = opts.pop('only_checks', None)
+
+    if by_url:
+        url = web.get_restart_url(short_name, ref, pr)
+        req = urllib.request.Request(url)
+        try:
+            resp = urllib.request.urlopen(req)
+            log.info('%s: %s', resp.status, resp.reason)
+        except Exception as e:
+            log.error(e)
+        return
 
     async def run():
         ctx = await web.get_restart_ctx(short_name, ref, sha, pr, **opts)
@@ -59,7 +72,7 @@ def build(short_name, ref, sha, pr=False, only_checks=False, only_web=False, **o
             ctx['install'] = False
             target = web.checks
         elif only_web:
-            target = web.pubweb
+            target = web.www
         else:
             target = web.build
 
@@ -83,24 +96,15 @@ def gh_request(path):
         return req
 
 
-def gh_build(path, url, only_checks, only_web, **kw):
+def gh_build(path, url):
     import web
 
     headers, body = gh_request(path)
     ctx = web.get_hook_ctx(headers, body, **kw)
 
-    target = None
-    if only_checks:
-        ctx['install'] = False
-        target = web.checks
-    elif only_web:
-        target = web.pubweb
-    elif not url:
-        target = web.build
-
-    if target:
+    if not url:
         loop = web.app.loop
-        code = loop.run_until_complete(target(ctx))
+        code = loop.run_until_complete(web.build(ctx))
         loop.close()
         log.info(code)
         raise SystemExit(code)
@@ -242,14 +246,19 @@ def main():
         .arg('ref')\
         .arg('--sha')\
         .arg('-p', '--pr', action='store_true')\
+        .arg('-u', '--by-url', action='store_true')\
         .arg('-c', '--only-checks', action='store_true')\
         .arg('-w', '--only-web', action='store_true')\
         .arg('--clean', action='store_true')\
-        .arg('--no-statuses', action='store_true')\
-        .arg('--no-install', action='store_true')\
+        .arg('--statuses', action='store_true')\
+        .arg('--e2e-chunks', type=int)\
         .exe(lambda a: build(
-            a.short_name, a.ref, a.sha, a.pr, a.only_checks, a.only_web,
-            clean=a.clean, no_statuses=a.no_statuses, install=not a.no_install
+            a.short_name, a.ref, a.sha, a.pr, a.by_url,
+            only_checks=a.only_checks,
+            only_web=a.only_web,
+            clean=a.clean,
+            e2e_chunks=a.e2e_chunks,
+            no_statuses=not a.statuses,
         ))
 
     cmd('gh-build')\
@@ -258,10 +267,7 @@ def main():
         .arg('-c', '--only-checks', action='store_true')\
         .arg('-w', '--only-web', action='store_true')\
         .arg('--clean', action='store_true')\
-        .exe(lambda a: gh_build(
-            a.path, a.url, a.only_checks, a.only_web,
-            clean=a.clean,
-        ))
+        .exe(lambda a: gh_build(a.path, a.url))\
 
     cmd('gh-clean', help='remove unused containers')\
         .exe(lambda a: gh_clean())

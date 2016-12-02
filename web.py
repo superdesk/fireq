@@ -80,8 +80,9 @@ async def restart(request):
     typ = request.match_info['typ']
     ref = request.match_info['ref']
     sha = request.GET.get('sha')
+    clean = request.GET.get('clean', False)
 
-    ctx = await get_restart_ctx(prefix, ref, sha, typ == 'pr', clean=True)
+    ctx = await get_restart_ctx(prefix, ref, sha, typ == 'pr', clean=clean)
     if not ctx:
         return web.HTTPBadRequest()
 
@@ -296,7 +297,6 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         'name_uniq_orig': name_uniq,
         'host': '%s.%s' % (name, conf['domain']),
         'path': path,
-        'lxc_base': conf['lxc_base'],
         'endpoint': endpoint,
         'checks': checks,
         'logpath': (
@@ -305,14 +305,15 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         ),
         'logfile': 'build.log',
         'env': env,
+        'lxc_base': conf['lxc_base'],
+        'e2e_chunks': conf['e2e_chunks'],
         'no_statuses': conf['no_statuses'],
         'statuses_url': '%s/statuses/%s' % (repo_name, sha),
-        'install': True
     }
     ctx.update(**extend)
     ctx.update(
-        clean=ctx.get('clean') and '--clean' or '',
-        logurl=conf['logurl'] + ctx['logpath']
+        logurl=conf['logurl'] + ctx['logpath'],
+        clean=ctx.get('clean') and '--clean' or ''
     )
     os.makedirs(ctx['logpath'], exist_ok=True)
     log.info(pretty_json(ctx))
@@ -373,6 +374,9 @@ async def post_status(ctx, state=None, extend=None, code=None):
 
 
 def chunked_specs(sizes, n, names=None):
+    names = list(reversed([k for k, v in sizes]))
+    sizes = {k: int(v) for k, v in sizes}
+
     def chunk(names, n):
         chunk, size = [], 0
         chunksize = sum(v for k, v in sizes.items() if k in names) / n
@@ -383,8 +387,6 @@ def chunked_specs(sizes, n, names=None):
         log.info('size=%s; files=%s', size, chunk)
         return chunk
 
-    sizes = {k: int(v) for k, v in sizes}
-    names = sorted(sizes, reverse=True)
     for i in range(n):
         yield chunk(names, n - i)
 
@@ -392,7 +394,7 @@ def chunked_specs(sizes, n, names=None):
 async def check_e2e(ctx):
     ctx.update(name_uniq='%s-e2e' % ctx['name_uniq'])
     code = await sh('''
-    ./fire lxc-copy {clean} -sb {name_uniq_orig} {name_uniq};
+    ./fire lxc-copy --clean -sb {name_uniq_orig} {name_uniq};
     ./fire r -e {endpoint} --lxc-name {name_uniq} --env="{env}" -a _checks_init
     ''', ctx)
     if code != 0:
@@ -410,7 +412,7 @@ async def check_e2e(ctx):
         return 1
     specs = out.decode().rsplit(pattern, 1)[-1]
     specs = [i.split() for i in specs.split('\n') if i]
-    targets = chunked_specs(specs, conf['e2e_chunks'])
+    targets = chunked_specs(specs, ctx['e2e_chunks'])
     targets = [
         {
             'target': 'e2e--part%s' % num,
@@ -428,7 +430,7 @@ async def check_e2e(ctx):
 async def run_target(ctx, target):
     cmd = '''
     lxc={name_uniq_orig}-{t};
-    ./fire lxc-copy {clean} -sb {name_uniq} $lxc
+    ./fire lxc-copy --clean -sb {name_uniq} $lxc
     ./fire r --lxc-name=$lxc --env="{env}" -e {endpoint} -a "{p}=1 do_checks"
     '''
 
@@ -441,7 +443,7 @@ async def run_target(ctx, target):
     else:
         parent, env = target, ''
 
-    if target == 'e2e' and conf['e2e_chunks'] == 0:
+    if target == 'e2e' and ctx['e2e_chunks'] == 0:
         return 0
 
     env = ' '.join(i for i in (env, ctx['env']) if i)
@@ -451,7 +453,7 @@ async def run_target(ctx, target):
         'context': conf['status_prefix'] + 'check-%s' % target
     }
     await post_status(ctx, 'pending', extend=status)
-    if target == 'e2e' and conf['e2e_chunks'] > 1:
+    if target == 'e2e' and ctx['e2e_chunks'] > 1:
         status['target_url'] = ctx['logurl']
         code = await check_e2e(dict(ctx, logfile=logfile))
     else:
@@ -494,7 +496,7 @@ async def www(ctx):
     code = await sh('''
     lxc={name_uniq}-www;
     env="{env} lxc_data=data-sd db_name={name}";
-    ./fire lxc-copy {clean} -sb {name_uniq} $lxc;
+    ./fire lxc-copy --clean -sb {name_uniq} $lxc;
     ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_www";
     ./fire lxc-copy --no-snapshot -rcs -b $lxc {name};
     ./fire nginx || true
@@ -538,46 +540,50 @@ async def build(ctx):
     async def clean(code):
         await post_status(ctx, code=code)
         if code != 0:
-            prefix = repos_reverse[ctx['repo_name']]
-            restart_url = (
-                'https://{domain}/{prefix}/restart/{typ}/{ref}'
-                .format(
-                    domain=conf['domain'],
-                    prefix=prefix,
-                    typ=re.sub('^' + prefix, '', ctx['prefix']) or 'br',
-                    ref=ctx['ref']
-                )
-            )
             await post_status(ctx, 'failure', {
-                'target_url': restart_url,
+                'target_url': get_restart_url(
+                    repos_reverse[ctx['repo_name']],
+                    ctx['ref'],
+                    ctx['prefix'].endswith('pr')
+                ),
                 'context': conf['status_prefix'] + '!restart',
                 'description': 'Click details to restart the build',
             })
         await clean_statuses(code)
-        await sh(
-            './fire lxc-clean "^{name_uniq}-";'
-            '[ -z "{clean}" ] || ./fire lxc-rm {name_uniq}',
-            ctx
-        )
+        await sh('./fire lxc-clean "^{name_uniq}-";', ctx)
 
     await post_status(ctx, 'pending')
     await clean_statuses()
-    if ctx['install']:
-        code = await sh('''
-        ./fire lxc-clean "^{name_uniq}-" || true;
-        ./fire lxc-copy --cpus={cpus} -sb {lxc_base} {clean} {name_uniq};
+    code = await sh('''
+    ./fire lxc-clean "^{name_uniq}-" || true;
+    [ -z "{clean}" ] && [ "$(lxc-info -n {name_uniq} -sH)" = 'STOPPED' ] || (
+        ./fire lxc-copy --cpus={cpus} -sb {lxc_base} --clean {name_uniq};
         time ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
         time lxc-stop -n {name_uniq};
-        # sed -i '/lxc.cgroup.cpuset.cpus/,$d' /var/lib/lxc/{name_uniq}/config;
-        ''', dict(ctx, cpus=conf['use_cpus']))
+    )
+    # sed -i '/lxc.cgroup.cpuset.cpus/,$d' /var/lib/lxc/{name_uniq}/config;
+    ''', dict(ctx, cpus=conf['use_cpus']))
 
-        if code:
-            await clean(code)
-            return code
+    if code:
+        await clean(code)
+        return code
 
     proces = [t(ctx) for t in (www, checks)]
     code = await wait_for(proces)
     await clean(code)
+
+
+def get_restart_url(prefix, ref, pr=False):
+    return (
+        'https://{domain}{base_url}/{prefix}/restart/{typ}/{ref}'
+        .format(
+            domain=conf['domain'],
+            base_url=conf['url_prefix'],
+            prefix=prefix,
+            typ='pr' if pr else 'br',
+            ref=ref
+        )
+    )
 
 
 def get_signature(body):
