@@ -361,6 +361,7 @@ async def post_status(ctx, state=None, extend=None, code=None, save_id=False):
         ]
         if not last_status or last_status[0]['id'] != ctx.get('build_id'):
             ctx['no_statuses'] = True
+            ctx['build_restarted'] = True
             ctx['build_status'] = 'build\'s been probably restarted'
 
     if ctx['no_statuses']:
@@ -552,7 +553,6 @@ async def build(ctx):
             await post_status(ctx, state, status)
 
     async def clean(code):
-        await post_status(ctx, code=code)
         if code != 0:
             await post_status(ctx, 'failure', {
                 'target_url': get_restart_url(
@@ -563,8 +563,10 @@ async def build(ctx):
                 'context': conf['status_prefix'] + '!restart',
                 'description': 'Click "Details" to restart the build',
             })
+        await post_status(ctx, code=code, save_id=True)
         await clean_statuses(code)
-        await sh('./fire lxc-clean "^{name_uniq}-";', ctx)
+        if not ctx.get('build_restarted'):
+            await sh('./fire lxc-clean "^{name_uniq}-";', ctx)
 
     await post_status(ctx, 'pending', save_id=True)
     await clean_statuses()
