@@ -131,8 +131,8 @@ def gh_clean():
     def skip(prefix, ref, sha):
         name = re.sub('[^a-z0-9]', '', str(ref))
         name = '%s-%s' % (prefix, name)
-        skips.append(name)
-        skips.append('%s-%s' % (name, sha[:10]))
+        skips.append('^%s$' % name)
+        skips.append('^%s-%s' % (name, sha[:10]))
 
     for prefix, repo in repos.items():
         for i in gh_api('%s/branches' % repo):
@@ -142,8 +142,9 @@ def gh_clean():
         for i in gh_api('%s/pulls?state=open' % repo):
             skip(prefix + 'pr', i['number'], i['head']['sha'])
 
-    clean = [n for n in lxc_ls() if n not in skips]
-    cmd = ';\n'.join('./fire lxc-clean "^%s"' % n for n in clean)
+    skips = '(%s)' % '|'.join(skips)
+    clean = [n for n in lxc_ls() if not re.match(skips, n)]
+    cmd = ';\n'.join('./fire lxc-rm %s' % n for n in clean)
     sh('\n%s;\n./fire nginx' % cmd)
 
 
