@@ -334,29 +334,43 @@ async def gh_api(url, data=None):
             return resp, await resp.json()
 
 
-async def post_status(ctx, state=None, extend=None, code=None):
+async def post_status(ctx, state=None, extend=None, code=None, save_id=False):
     assert state is not None or code is not None
     if code is not None:
         state = 'success' if code == 0 else 'failure'
 
-    logfile = ctx['logfile']
-    if state != 'pending':
-        logfile += '.htm'
-
     data = {
         'state': state,
-        'target_url': ctx['logurl'] + logfile,
-        'description': 'Superdesk Deploy',
+        'target_url': ctx['logurl'],
+        'description': '',
         'context': conf['status_prefix'] + 'build'
     }
     if extend:
         data.update(extend)
+
+    target_url = data['target_url']
+    if target_url.endswith('.log') and state != 'pending':
+        data['target_url'] = target_url + '.htm'
+
+    if not ctx['no_statuses'] and not save_id:
+        url = '{repo_name}/commits/{sha}/status'.format(**ctx)
+        resp, body = await gh_api(url)
+        last_status = [
+            s for s in body['statuses']
+            if s['context'] == (conf['status_prefix'] + 'build')
+        ]
+        if not last_status or last_status[0]['id'] != ctx.get('build_id'):
+            ctx['no_statuses'] = True
+            ctx['build_status'] = 'build\'s been probably restarted'
+
     if ctx['no_statuses']:
-        data['_status'] = 'wasn\'t sent'
+        data['!'] = 'wasn\'t sent: %s' % ctx.get('build_status', 'skipped')
         body = pretty_json(data)
         log.info('Local status:\n%s', body)
     else:
         resp, body = await gh_api(ctx['statuses_url'], data=data)
+        if save_id:
+            ctx['build_id'] = body.get('id')
         body = pretty_json(body)
         log.info('Posted status: %s\n%s', resp.status, body)
         if resp.status != 201:
@@ -547,15 +561,19 @@ async def build(ctx):
                     ctx['prefix'].endswith('pr')
                 ),
                 'context': conf['status_prefix'] + '!restart',
-                'description': 'Click details to restart the build',
+                'description': 'Click "Details" to restart the build',
             })
         await clean_statuses(code)
         await sh('./fire lxc-clean "^{name_uniq}-";', ctx)
 
-    await post_status(ctx, 'pending')
+    await post_status(ctx, 'pending', save_id=True)
     await clean_statuses()
     code = await sh('''
-    ./fire lxc-clean "^{name_uniq}-" || true;
+    (lxc-ls -1\
+        | grep "^{name}-"\
+        | grep -v "^{name_uniq}$"\
+        | sort -r\
+        | xargs -r ./fire lxc-rm) || true;
     [ -z "{clean}" ] && [ "$(lxc-info -n {name_uniq} -sH)" = 'STOPPED' ] || (
         ./fire lxc-copy --cpus={cpus} -sb {lxc_base} --clean {name_uniq};
         time ./fire i --lxc-name={name_uniq} --env="{env}" -e {endpoint};
