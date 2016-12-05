@@ -34,6 +34,12 @@ def get_conf():
         ('no_statuses', False),
         ('url_prefix', ''),
         ('status_prefix', 'fire:'),
+
+        ('github_auth', None),
+        ('github_id', None),
+        ('github_secret', None),
+        ('github_orgs', ['superdesk']),
+        ('github_callback', '/oauth_callback/github'),
     ]
     for key, value in defaults:
         if callable(value):

@@ -6,11 +6,15 @@ import hmac
 import json
 import os
 import re
+import uuid
 import warnings
 from asyncio.subprocess import PIPE
 
 # from aiofiles import open as async_open
 from aiohttp import web, ClientSession
+from aioauth_client import GithubClient
+from aiohttp_session import get_session, session_middleware
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from pystache import render
 
 from common import root, log, conf, repos, gh_auth, pretty_json
@@ -19,9 +23,12 @@ repos_reverse = {v: k for k, v in repos.items()}
 
 
 def get_app():
-    app = web.Application()
+    middlewares = [
+        session_middleware(EncryptedCookieStorage(conf['secret'].encode())),
+        auth_middleware
+    ]
+    app = web.Application(middlewares=middlewares)
     init_loop(app.loop)
-    app.router.add_static('/push', root / 'push', show_index=True)
 
     def remove_ts(handler):
         async def inner(request):
@@ -40,12 +47,73 @@ def get_app():
         return app.router.add_route(method, path, handler, **kw)
 
     url('/', index)
+    url('/push/{path:.*}', logs)
     url('/hook', hook, method='POST')
 
     prefix = '{prefix:(%s)}' % '|'.join(repos)
     url(r'/%s' % prefix, repo)
     url(r'/%s/restart/{typ:(pr|br)}/{ref:.+}' % prefix, restart)
     return app
+
+
+async def auth_middleware(app, handler):
+    """ Login via Github """
+    def gh_client(**kw):
+        return GithubClient(conf['github_id'], conf['github_secret'], **kw)
+
+    async def callback(request):
+        session = await get_session(request)
+        if session.get('github_state') != request.GET.get('state'):
+            return web.HTTPBadRequest()
+        gh = gh_client()
+        code = request.GET.get('code')
+        if not code:
+            return web.HTTPBadRequest()
+
+        token, _ = await gh.get_access_token(code)
+        gh = gh_client(access_token=token)
+        req = await gh.request('GET', 'user')
+        user = await req.json()
+        req.close()
+        req = await gh.request('GET', 'user/orgs')
+        orgs = await req.json()
+        req.close()
+        for org in orgs:
+            if org.get('login') not in conf['github_orgs']:
+                continue
+
+            session['login'] = user.get('login')
+            session.pop('github_state', None)
+            location = session.pop('location')
+            return web.HTTPFound(location)
+        return web.HTTPForbidden()
+
+    async def check_auth(request):
+        session = await get_session(request)
+        login = session.get('login')
+        if login:
+            request['login'] = login
+        else:
+            gh = gh_client()
+            state = str(uuid.uuid4())
+            url = gh.get_authorize_url(scope='read:org user', state=state)
+            session['github_state'] = state
+            session['location'] = request.path
+            return web.HTTPFound(url)
+        return await handler(request)
+
+    async def inner(request):
+        if request.path == (conf['url_prefix'] + conf['github_callback']):
+            return await callback(request)
+        else:
+            return await check_auth(request)
+
+    return inner
+
+
+async def logs(request):
+    path = '/.logs/%s' % request.match_info['path']
+    return web.HTTPOk(headers=[('X-Accel-Redirect', path)])
 
 
 async def hook(request):
@@ -55,7 +123,7 @@ async def hook(request):
         request.headers.get('X-Hub-Signature', '')
     )
     if not check_signature:
-        return web.Response(status=400)
+        return web.HTTPBadRequest()
 
     body = await request.json()
     headers = dict(request.headers.items())
@@ -90,6 +158,9 @@ async def restart(request):
     return web.HTTPFound(ctx['logurl'])
 
 
+async def index(request):
+    ctx = {'repo': [{'prefix': k, 'name': v} for k, v in repos.items()]}
+    return render_tpl(index_tpl, ctx)
 index_tpl = '''
 <ul>
 {{#repo}}
@@ -97,34 +168,8 @@ index_tpl = '''
 {{/repo}}
 </ul>
 '''
-async def index(request):
-    ctx = {'repo': [{'prefix': k, 'name': v} for k, v in repos.items()]}
-    return render_tpl(index_tpl, ctx)
 
 
-repo_tpl = '''
-<b>Pull requests</b>
-<ul>
-{{#pulls}}
-    <li>
-        <a href="{{url}}">{{name}}</a>
-        <a href="{{gh_url}}" title="Github">[gh]</a>
-        <a href="{{restart_url}}" style="color:red" title="Restart">[r]</a>
-    </li>
-{{/pulls}}
-</ul>
-
-<b>Branches</b>
-<ul>
-{{#branches}}
-    <li>
-        <a href="{{url}}">{{name}}</a>
-        <a href="{{gh_url}}" title="Github">[gh]</a>
-        <a href="{{restart_url}}" style="color:red" title="Restart">[r]</a>
-    </li>
-{{/branches}}
-</ul>
-'''
 async def repo(request):
     prefix = request.match_info['prefix']
     if prefix not in repos:
@@ -153,6 +198,29 @@ async def repo(request):
 
     ctx = {'pulls': pulls, 'branches': branches}
     return render_tpl(repo_tpl, ctx)
+repo_tpl = '''
+<b>Pull requests</b>
+<ul>
+{{#pulls}}
+    <li>
+        <a href="{{url}}">{{name}}</a>
+        <a href="{{gh_url}}" title="Github">[gh]</a>
+        <a href="{{restart_url}}" style="color:red" title="Restart">[r]</a>
+    </li>
+{{/pulls}}
+</ul>
+
+<b>Branches</b>
+<ul>
+{{#branches}}
+    <li>
+        <a href="{{url}}">{{name}}</a>
+        <a href="{{gh_url}}" title="Github">[gh]</a>
+        <a href="{{restart_url}}" style="color:red" title="Restart">[r]</a>
+    </li>
+{{/branches}}
+</ul>
+'''
 
 
 def init_loop(loop=None):

@@ -1,4 +1,7 @@
+aioauth_client
 aiofiles
 aiohttp
+aiohttp_session
+cryptography
 gunicorn
 pystache
