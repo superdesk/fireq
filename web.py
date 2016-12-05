@@ -591,6 +591,18 @@ async def www(ctx):
     return code
 
 
+async def post_restart_status(ctx, **kw):
+    return await post_status(ctx, extend={
+        'target_url': get_restart_url(
+            repos_reverse[ctx['repo_name']],
+            ctx['ref'],
+            ctx['prefix'].endswith('pr')
+        ),
+        'context': conf['status_prefix'] + '!restart',
+        'description': 'Click "Details" to restart the build',
+    }, **kw)
+
+
 async def build(ctx):
     async def clean_statuses(code=None):
         # Clean previous statuses
@@ -598,7 +610,7 @@ async def build(ctx):
         complete = code is not None
         if complete:
             state = 'success' if code == 0 else 'failure'
-        statuses = [conf['status_prefix'] + 'build']
+        statuses = [conf['status_prefix'] + s for s in ('build', '!restart')]
         url = '{repo_name}/commits/{sha}/status'.format(**ctx)
         resp, body = await gh_api(url)
         for s in body['statuses']:
@@ -621,22 +633,14 @@ async def build(ctx):
             await post_status(ctx, state, status)
 
     async def clean(code):
-        if code != 0:
-            await post_status(ctx, 'failure', {
-                'target_url': get_restart_url(
-                    repos_reverse[ctx['repo_name']],
-                    ctx['ref'],
-                    ctx['prefix'].endswith('pr')
-                ),
-                'context': conf['status_prefix'] + '!restart',
-                'description': 'Click "Details" to restart the build',
-            })
+        await post_restart_status(ctx, code=code)
         await post_status(ctx, code=code, save_id=True)
         await clean_statuses(code)
         if not ctx.get('build_restarted'):
             await sh('./fire lxc-clean "^{name_uniq}-";', ctx)
 
     await post_status(ctx, 'pending', save_id=True)
+    await post_restart_status(ctx, state='pending')
     await clean_statuses()
     code = await sh('''
     (lxc-ls -1\
