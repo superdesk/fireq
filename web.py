@@ -115,7 +115,10 @@ async def auth_middleware(app, handler):
 
 async def logs(request):
     path = '/.logs/%s' % request.match_info['path']
-    return web.HTTPOk(headers=[('X-Accel-Redirect', path)])
+    return web.HTTPOk(
+        headers=[('X-Accel-Redirect', path)],
+        content_type='text/html' if path.endswith('.htm') else 'text/plain',
+    )
 
 
 async def hook(request):
