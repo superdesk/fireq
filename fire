@@ -12,7 +12,7 @@ from pathlib import Path
 from common import root, log, repos, conf, gh_auth
 
 dry_run = False
-ssh_opts='-o "StrictHostKeyChecking no"'
+ssh_opts = '-o "StrictHostKeyChecking no"'
 
 
 def remote(cmd, host, opts=ssh_opts):
@@ -100,7 +100,7 @@ def gh_build(path, url):
     import web
 
     headers, body = gh_request(path)
-    ctx = web.get_hook_ctx(headers, body)
+    ctx = web.get_hook_ctx(headers, body, clean=True)
 
     if not url:
         loop = web.app.loop
@@ -127,13 +127,13 @@ def gh_clean():
     - branch was removed
     otherwise keep container alive
     """
-    skips = []
     def skip(prefix, ref, sha):
         name = re.sub('[^a-z0-9]', '', str(ref))
         name = '%s-%s' % (prefix, name)
         skips.append('^%s$' % name)
         skips.append('^%s-%s' % (name, sha[:10]))
 
+    skips = []
     for prefix, repo in repos.items():
         for i in gh_api('%s/branches' % repo):
             skip(prefix, i['name'], i['commit']['sha'])

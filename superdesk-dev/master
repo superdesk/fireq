@@ -5,6 +5,26 @@ action=true . $root/superdesk/master
 
 repo_backend=${repo_backend:-"$repo/server"}
 
+_nginx_locations() {
+    cat <<EOF
+    location /mail/ {
+        proxy_pass http://localhost:5060/;
+        expires epoch;
+    }
+EOF
+}
+_supervisor_append() {
+     cat <<EOF
+[program:mail]
+command=$(_repo_client)/node_modules/.bin/maildev -s 25 -w 5060
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/supervisor/maildev.log
+redirect_stderr=true
+directory=$repo
+EOF
+}
+
 _es_wait() {
     elastic=0
     while [ $elastic -eq 0 ]
@@ -182,6 +202,12 @@ do_www() {
     sample_data=1 do_prepopulate
 
     do_docs || true
+
+    cd $(_repo_client)
+    npm install maildev
+
+    _supervisor
+    _nginx
 }
 
 eval $action
