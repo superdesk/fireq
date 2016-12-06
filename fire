@@ -100,7 +100,7 @@ def gh_build(path, url):
     import web
 
     headers, body = gh_request(path)
-    ctx = web.get_hook_ctx(headers, body, **kw)
+    ctx = web.get_hook_ctx(headers, body)
 
     if not url:
         loop = web.app.loop
@@ -265,9 +265,6 @@ def main():
     cmd('gh-build')\
         .arg('path')\
         .arg('-u', '--url')\
-        .arg('-c', '--only-checks', action='store_true')\
-        .arg('-w', '--only-web', action='store_true')\
-        .arg('--clean', action='store_true')\
         .exe(lambda a: gh_build(a.path, a.url))\
 
     cmd('gh-clean', help='remove unused containers')\
