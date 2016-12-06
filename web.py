@@ -105,6 +105,8 @@ async def auth_middleware(app, handler):
     async def inner(request):
         if request.path == (conf['url_prefix'] + conf['github_callback']):
             return await callback(request)
+        elif request.path == (conf['url_prefix'] + '/hook'):
+            return await handler(request)
         else:
             return await check_auth(request)
 
