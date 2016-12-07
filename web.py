@@ -34,7 +34,9 @@ def get_app():
         async def inner(request):
             if request.match_info.get('trailing_slash'):
                 return web.HTTPFound(request.path[:-1])
-            return await handler(request)
+            if asyncio.iscoroutinefunction(handler):
+                return await handler(request)
+            return handler(request)
         return inner
 
     def url(path, handler, **kw):
@@ -47,12 +49,15 @@ def get_app():
         return app.router.add_route(method, path, handler, **kw)
 
     url('/', index)
-    url('/push/{path:.*}', logs)
+    url('/logs/{path:.*}', logs)
     url('/hook', hook, method='POST')
 
     prefix = '{prefix:(%s)}' % '|'.join(repos)
     url(r'/%s' % prefix, repo)
     url(r'/%s/restart/{typ:(pr|br)}/{ref:.+}' % prefix, restart)
+
+    # TODO: keep it for a while
+    url('/push/{p:.*}', lambda r: web.HTTPFound('/logs/' + r.match_info['p']))
     return app
 
 
@@ -186,7 +191,7 @@ async def repo(request):
     for i in sorted(body, key=lambda i: i['number']):
         pulls.append({
             'name': i['number'],
-            'url': 'http://%spr-%s.%s' % (prefix, i['number'], conf['domain']),
+            'url': 'https://%spr-%s.%s' % (prefix, i['number'], conf['domain']),
             'gh_url': i['html_url'],
             'restart_url': request.path + '/restart/pr/%s' % i['number'],
         })
@@ -194,9 +199,10 @@ async def repo(request):
     resp, body = await gh_api(name + '/branches')
     branches = []
     for i in sorted(body, key=lambda i: i['name']):
+        name_cleaned = re.sub('[^a-z0-9]', '', i['name'])
         branches.append({
             'name': i['name'],
-            'url': 'http://%s-%s.%s' % (prefix, i['name'], conf['domain']),
+            'url': 'https://%s-%s.%s' % (prefix, name_cleaned, conf['domain']),
             'gh_url': 'https://github.com/%s/tree/%s' % (name, i['name']),
             'restart_url': request.path + '/restart/br/%s' % i['name'],
         })
@@ -358,7 +364,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
     uniq = (name, sha[:10])
     name_uniq = '%s-%s' % uniq
     host = '%s.%s' % (name, conf['domain'])
-    path = 'push/%s/%s' % uniq
+    path = 'logs/%s/%s' % uniq
     env += ' repo_remote=%s host=%s' % (clone_url, host)
     ctx = {
         'sha': sha,
@@ -583,15 +589,15 @@ async def www(ctx):
 
     code = await sh('''
     lxc={name_uniq}-www;
-    env="{env} lxc_data=data-sd db_name={name}";
+    env="{env} lxc_data=data-sd db_name={name} nginx_ssl=1";
     ./fire lxc-copy --clean -sb {name_uniq} $lxc;
     ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_www";
     ./fire lxc-copy --no-snapshot -rcs -b $lxc {name};
-    ./fire nginx || true
+    ./fire nginx --ssl || true
     ''', ctx, logfile=logfile)
 
     if code == 0:
-        status['target_url'] = 'http://%s.%s' % (ctx['name'], conf['domain'])
+        status['target_url'] = 'https://%s.%s' % (ctx['name'], conf['domain'])
     await post_status(ctx, code=code, extend=status)
     return code
 

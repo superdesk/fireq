@@ -108,6 +108,7 @@ _nginx_locations() { :; }
 _nginx() {
     nginx_tpl=${nginx_tpl:-"$root/common/nginx.tpl"}
     nginx_locations="$(_nginx_locations)"
+    nginx_ssl=$([ -n "$nginx_ssl" ] && echo 's' || echo '')
     repo_client="$(_repo_client)"
 
     wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -

@@ -20,7 +20,7 @@ def remote(cmd, host, opts=ssh_opts):
     return (
         'set -e;rsync -ahv --delete'
         ' -e \'ssh {opts}\''
-        ' --exclude=.git --exclude=push --exclude=env'
+        ' --exclude=.git --exclude=logs --exclude=env'
         ' {root}/ {host}:{newroot}/;'
         'ssh {opts} {host} "cd {newroot}; {cmd}"'
         .format(
@@ -148,13 +148,27 @@ def gh_clean():
     sh('\n%s;\n./fire nginx' % cmd)
 
 
-def update_nginx(path):
+def update_nginx(path, ssl=False):
     cmd = ''
-    for name in lxc_ls(web=True):
-        cmd += (
-            '\nname={name} host={name}.{domain} . superdesk-dev/nginx.tpl;'
-            .format(name=name, domain=conf['domain'])
+    names = [name for name in lxc_ls(www=True)]
+
+    if ssl:
+        # move sd-master, the first name uses for cert filename
+        names.insert(0, names.pop(names.index('sd-master')))
+        sh(
+            'su - -c "'
+            '  /opt/scripts/certbot-auto certonly '
+            '   --agree-tos --non-interactive --expand'
+            '   --email=support@sourcefabric.org'
+            '   --webroot -w /var/tmp -d %s'
+            '"' % ','.join('%s.%s' % (n, conf['domain']) for n in names)
         )
+
+    cmd = '\n'.join(
+        'name={name} host={name}.{domain} . superdesk-dev/nginx.tpl;'
+        .format(name=name, domain=conf['domain'])
+        for name in names
+    )
     sh(
         '({cmd}) > {path};'
         'nginx -s reload'
@@ -177,12 +191,12 @@ def gh_api(url, exc=True):
     return None
 
 
-def lxc_ls(*, web=False):
-    opts = '--running' if web else ''
+def lxc_ls(*, www=False):
+    opts = '--running' if www else ''
     names = subprocess.check_output('lxc-ls -1 %s' % opts, shell=True)
     names = names.decode().split()
     pattern = '^sd[a-z]*-[a-z0-9]+'
-    if web:
+    if www:
         pattern += '$'
     return [n for n in names if re.match(pattern, n)]
 
@@ -272,7 +286,8 @@ def main():
 
     cmd('nginx', help='update nginx config')\
         .arg('-p', '--path', default='/etc/nginx/sites-enabled/sd')\
-        .exe(lambda a: update_nginx(a.path))
+        .arg('--ssl', action='store_true')\
+        .exe(lambda a: update_nginx(a.path, a.ssl))
 
     cmd('gen-files')\
         .exe(lambda a: sh('bin/gen-files.sh'))

@@ -206,6 +206,7 @@ do_www() {
     cd $(_repo_client)
     npm install maildev
 
+    _envfile
     _supervisor
     _nginx
 }

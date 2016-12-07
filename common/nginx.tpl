@@ -20,7 +20,7 @@ $nginx_locations
 
         sub_filter_types application/json;
         sub_filter_once off;
-        sub_filter 'http://localhost' 'http://\$host';
+        sub_filter 'http://localhost' 'http${nginx_ssl}://\$host';
     }
 
     location /.well-known {
@@ -32,9 +32,8 @@ $nginx_locations
 
         sub_filter_once off;
         sub_filter_types application/javascript;
-        sub_filter 'http://localhost:9000' 'http://\$host:9000';
-        sub_filter 'http://localhost:5000' 'http://\$host';
-        sub_filter 'ws://localhost:5100' 'ws://\$host/ws';
+        sub_filter 'http://localhost:5000' 'http${nginx_ssl}://\$host';
+        sub_filter 'ws://localhost:5100' 'ws${nginx_ssl}://\$host/ws';
     }
 }
 EOF

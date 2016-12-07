@@ -3,9 +3,17 @@ server {
     listen  80;
     listen [::]:80;
 
-    server_name ${host};
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    ssl_certificate /etc/letsencrypt/live/sd-master.test.superdesk.org/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/sd-master.test.superdesk.org/privkey.pem;
 
+    server_name ${host};
     access_log /var/log/nginx/${name}.access.log;
+
+    if (\$scheme = "http") {
+       rewrite ^/(.*) https://\$host/\$1 permanent;
+    }
 
     location / {
         proxy_pass "http://${name}:80";
@@ -25,6 +33,10 @@ server {
     location /robots.txt {
         root /var/www/html;
         expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
     }
 }
 EOF
