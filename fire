@@ -43,7 +43,7 @@ def sh(cmd, params=None, ssh=None, exit=True):
         log.info('Dry run!')
         return 0
 
-    code = subprocess.call(cmd, shell=True)
+    code = subprocess.call(cmd, executable='/bin/bash', shell=True)
     if exit and code:
         raise SystemExit(code)
     return code
@@ -156,7 +156,7 @@ def update_nginx(path, ssl=False):
         # move sd-master, the first name uses for cert filename
         names.insert(0, names.pop(names.index('sd-master')))
         sh(
-            'su - -c "'
+            'time su - -c "'
             '  /opt/scripts/certbot-auto certonly '
             '   --agree-tos --non-interactive --expand'
             '   --email=support@sourcefabric.org'

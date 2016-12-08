@@ -185,27 +185,30 @@ async def repo(request):
     if prefix not in repos:
         return web.HTTPNotFound()
 
-    name = repos[prefix]
-    resp, body = await gh_api(name + '/pulls')
-    pulls = []
-    for i in sorted(body, key=lambda i: i['number']):
-        pulls.append({
-            'name': i['number'],
-            'url': 'https://%spr-%s.%s' % (prefix, i['number'], conf['domain']),
-            'gh_url': i['html_url'],
-            'restart_url': request.path + '/restart/pr/%s' % i['number'],
-        })
+    repo_name = repos[prefix]
 
-    resp, body = await gh_api(name + '/branches')
-    branches = []
-    for i in sorted(body, key=lambda i: i['name']):
-        name_cleaned = re.sub('[^a-z0-9]', '', i['name'])
-        branches.append({
-            'name': i['name'],
-            'url': 'https://%s-%s.%s' % (prefix, name_cleaned, conf['domain']),
-            'gh_url': 'https://github.com/%s/tree/%s' % (name, i['name']),
-            'restart_url': request.path + '/restart/br/%s' % i['name'],
-        })
+    def info(ctx, pr=False):
+        if pr:
+            name = ctx['number']
+            subdomain = '%spr-%s' % (prefix, name)
+            gh_url = ctx['html_url']
+        else:
+            name = ctx['name']
+            name_cleaned = re.sub('[^a-z0-9]', '', name)
+            subdomain = '%s-%s' % (prefix, name_cleaned)
+            gh_url = 'https://github.com/%s/tree/%s' % (repo_name, name)
+        return {
+            'name': name,
+            'url': 'https://%s.%s' % (subdomain, conf['domain']),
+            'gh_url': gh_url,
+            'restart_url': get_restart_url(prefix, name, pr),
+        }
+
+    resp, body = await gh_api(repo_name + '/pulls')
+    pulls = [info(i, True) for i in sorted(body, key=lambda i: i['number'])]
+
+    resp, body = await gh_api(repo_name + '/branches')
+    branches = [info(i) for i in sorted(body, key=lambda i: i['name'])]
 
     ctx = {'pulls': pulls, 'branches': branches}
     return render_tpl(repo_tpl, ctx)
@@ -326,6 +329,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
             'targets': ['flake8', 'npmtest'],
             'env': 'lxc_data=data-sd--tests'
         }
+        env = ''
     elif repo_name == 'superdesk/superdesk-core':
         endpoint = 'superdesk-dev/core'
         checks = {
@@ -341,7 +345,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
 
     prefix = repos_reverse[repo_name]
     if pr:
-        env = 'repo_pr=%s repo_sha=%s' % (ref, sha)
+        env = ' repo_pr=%s repo_sha=%s' % (ref, sha)
         name = ref
         prefix += 'pr'
     else:
@@ -358,6 +362,10 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
 
         name = re.sub('[^a-z0-9]', '', ref)
         env = 'repo_sha=%s repo_branch=%s' % (sha, ref)
+
+        rel = re.match('^v?(1\.[01234])(\..*)?', ref)
+        if rel:
+            env += ' repo_main_branch=1.0 repo_pair_branch=%s' % rel.group()
 
     clone_url = 'https://github.com/%s.git' % repo_name
     name = '%s-%s' % (prefix, name)
