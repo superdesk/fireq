@@ -160,6 +160,9 @@ async def restart(request):
     sha = request.GET.get('sha')
     clean = request.GET.get('clean', False)
 
+    if typ == 'br':
+        ref = 'refs/heads/' + ref
+
     ctx = await get_restart_ctx(prefix, ref, sha, typ == 'pr', clean=clean)
     if not ctx:
         return web.HTTPBadRequest()
@@ -348,24 +351,18 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         env = ' repo_pr=%s repo_sha=%s' % (ref, sha)
         name = ref
         prefix += 'pr'
-    else:
-        refs = (
-            ('refs/heads/', ''),
-            ('refs/tags/', 'tag'),
-        )
-        for b, p in refs:
-            if not ref.startswith(b):
-                continue
-            ref = ref.replace(b, '')
-            prefix += p
-            break
-
+    elif ref.startswith('refs/heads/'):
+        ref = ref.replace('refs/heads/', '')
+        prefix += ''
         name = re.sub('[^a-z0-9]', '', ref)
         env = 'repo_sha=%s repo_branch=%s' % (sha, ref)
 
         rel = re.match('^v?(1\.[01234])(\..*)?', ref)
         if rel:
             env += ' repo_main_branch=1.0 repo_pair_branch=%s' % rel.group()
+    else:
+        log.info('Skip repo_name=%s ref=%s', repo_name, ref)
+        return {}
 
     clone_url = 'https://github.com/%s.git' % repo_name
     name = '%s-%s' % (prefix, name)
@@ -657,6 +654,9 @@ async def build(ctx):
         await clean_statuses(code)
         if not ctx.get('build_restarted'):
             await sh('./fire lxc-clean "^{name_uniq}-";', ctx)
+
+    if not ctx:
+        return 1
 
     await post_status(ctx, 'pending', save_id=True)
     await post_restart_status(ctx, state='pending')
