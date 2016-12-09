@@ -161,7 +161,8 @@ def update_nginx(path, ssl=False):
             '   --agree-tos --non-interactive --expand'
             '   --email=support@sourcefabric.org'
             '   --webroot -w /var/tmp -d %s'
-            '"' % ','.join('%s.%s' % (n, conf['domain']) for n in names)
+            '"' % ','.join('%s.%s' % (n, conf['domain']) for n in names),
+            exit=False
         )
 
     cmd = '\n'.join(
