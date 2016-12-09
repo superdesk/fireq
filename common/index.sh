@@ -60,7 +60,11 @@ _repo() {
     if [ -n "$repo_pr" ]; then
         git fetch origin pull/$repo_pr/merge:$repo_pr \
             || git fetch origin pull/$repo_pr/head:$repo_pr
-        git checkout ${repo_sha:-$repo_pr}
+        # TODO: $repo_sha is head commit form PR,
+        # but we need usualy merge commit here,
+        # so checkout last commit for now
+        # git checkout ${repo_sha:-$repo_pr}
+        git checkout $repo_pr
     else
         git fetch origin $repo_branch
         git checkout ${repo_sha:-$repo_branch}
