@@ -30,7 +30,6 @@ _envfile() {
     LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"${MONGO_URI}_la"}
     ARCHIVED_URI=${ARCHIVED_URI:-"${MONGO_URI}_ar"}
     CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"${MONGO_URI}_ca"}
-    PUBLICAPI_MONGO_URI=${PUBLICAPI_MONGO_URI:-"${MONGO_URI}_pa"}
 
     ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://localhost:9200"}
     ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"${name}"}
@@ -87,11 +86,12 @@ _activate() {
 _supervisor_append() { :; }
 _supervisor() {
     supervisor_tpl=${supervisor_tpl:-"$root/common/supervisor.tpl"}
-    supervisor_append="$(_supervisor_append)"
 
     apt-get -y install supervisor
 
-    . $supervisor_tpl > /etc/supervisor/conf.d/${name}.conf
+    path=/etc/supervisor/conf.d/${name}.conf
+    . $supervisor_tpl > $path
+    echo "$(_supervisor_append)" >> $path
     systemctl enable supervisor
     systemctl restart supervisor
 }
@@ -111,9 +111,8 @@ _repo_client() {
 _nginx_locations() { :; }
 _nginx() {
     nginx_tpl=${nginx_tpl:-"$root/common/nginx.tpl"}
-    nginx_locations="$(_nginx_locations)"
     nginx_ssl=$([ -n "$nginx_ssl" ] && echo 's' || echo '')
-    repo_client="$(_repo_client)"
+    nginx_static="$(_repo_client)/dist"
 
     wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
     echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
@@ -124,6 +123,7 @@ _nginx() {
 
     path=/etc/nginx/conf.d
     cp $root/common/nginx-params.conf $path/params.conf
+    echo "$(_nginx_locations)" > $path/locations
     . $nginx_tpl > $path/default.conf
 
     systemctl enable nginx

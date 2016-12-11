@@ -594,11 +594,11 @@ async def www(ctx):
 
     code = await sh('''
     lxc={name_uniq}-www;
-    env="{env} lxc_data=data-sd db_name={name} nginx_ssl=1";
+    env="{env} lxc_data=data-sd db_name={name}";
     ./fire lxc-copy --clean -sb {name_uniq} $lxc;
     ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_www";
     ./fire lxc-copy --no-snapshot -rcs -b $lxc {name};
-    ./fire nginx --ssl || true
+    ./fire nginx || true
     ''', ctx, logfile=logfile)
 
     if code == 0:

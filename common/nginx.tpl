@@ -2,7 +2,7 @@ cat <<EOF
 server {
     listen 80 default;
 
-$nginx_locations
+    include $path/locations;
 
     location /ws {
         proxy_pass http://localhost:5100;
@@ -28,7 +28,7 @@ $nginx_locations
     }
 
     location / {
-        root ${repo_client}/dist;
+        root ${nginx_static};
 
         sub_filter_once off;
         sub_filter_types application/javascript;

@@ -9,7 +9,6 @@ MONGO_URI=${MONGO_URI:-"mongodb://localhost/${name}"}
 LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://localhost/${name}_la"}
 ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://localhost/${name}_ar"}
 CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"mongodb://localhost/${name}_pa"}
-PUBLICAPI_MONGO_URI=${PUBLICAPI_MONGO_URI:-"mongodb://localhost/${name}_pa"}
 ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://localhost:9200"}
 ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"$name"}
 CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${name}_capi"}
@@ -35,7 +34,8 @@ SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-"http://$host"}
 # - the same "{{host}}" for next two settings
 # TODO: try to fix at backend side, it should accept any host
 SUPERDESK_URL=${SUPERDESK_URL:-"http://$host/api"}
-PUBLICAPI_URL=${PUBLICAPI_URL:-"http://$host/pubapi"}
+CONTENTAPI_URL=${CONTENTAPI_URL:-"http://$host/contentapi"}
+
 
 $envfile_append
 EOF

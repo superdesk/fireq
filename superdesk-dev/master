@@ -5,26 +5,6 @@ action=true . $root/superdesk/master
 
 repo_backend=${repo_backend:-"$repo/server"}
 
-_nginx_locations() {
-    cat <<EOF
-    location /mail/ {
-        proxy_pass http://localhost:5060/;
-        expires epoch;
-    }
-EOF
-}
-_supervisor_append() {
-     cat <<EOF
-[program:mail]
-command=$(_repo_client)/node_modules/.bin/maildev -s 25 -w 5060
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/supervisor/maildev.log
-redirect_stderr=true
-directory=$repo
-EOF
-}
-
 _es_wait() {
     elastic=0
     while [ $elastic -eq 0 ]
@@ -162,6 +142,31 @@ _client_checks() {
     [ -z "$npmtest" ] || time npm test
 }
 
+_maildev() {
+    cd $(_repo_client)
+    npm install maildev
+
+    cat <<EOF >> /etc/nginx/conf.d/locations
+location /mail/ {
+    proxy_pass http://localhost:5060/;
+    expires epoch;
+}
+EOF
+
+    cat <<EOF >> /etc/supervisor/conf.d/mail.conf
+[program:mail]
+command=$(_repo_client)/node_modules/.bin/maildev -s 25 -w 5060
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/supervisor/maildev.log
+redirect_stderr=true
+directory=$repo
+EOF
+
+    supervisorctl update
+    nginx -s reload
+}
+
 eval "orig_$(declare -f do_install)"
 do_install() {
     if [ ! -d $repo ]; then
@@ -201,14 +206,10 @@ do_www() {
     _db_init
     sample_data=1 do_prepopulate
 
+    nginx_ssl=1 _nginx
+
+    _maildev
     do_docs || true
-
-    cd $(_repo_client)
-    npm install maildev
-
-    _envfile
-    _supervisor
-    _nginx
 }
 
 eval $action

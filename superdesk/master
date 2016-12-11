@@ -10,26 +10,32 @@ root=$(dirname $(dirname $(realpath -s $0)))
 _envfile_append() {
     cat <<EOF
 # Superdesk custom
-DEFAULT_SOURCE_VALUE_FOR_MANUAL_ARTICLES=
+SECRET_KEY=${SECRET_KEY-"$(python -c 'import uuid; print(uuid.uuid4())')"}
 REUTERS_USERNAME=${REUTERS_USERNAME-''}
 REUTERS_PASSWORD=${REUTERS_PASSWORD-''}
 EOF
 }
 
 _nginx_locations() {
-    action=_nginx_locations $root/superdesk/content-api
+    cat <<EOF
+location /contentapi {
+    proxy_pass http://localhost:5050;
+    proxy_set_header Host $host;
+    expires epoch;
+}
+EOF
 }
 
 _supervisor_append() {
-    action=_supervisor_append $root/superdesk/content-api
-}
-
-do_backend() {
-    _venv $env
-    cd $repo/server
-    time pip install -U -r requirements.txt
-
-    action=do_backend $root/superdesk/content-api
+     cat <<EOF
+[program:capi]
+command=/bin/sh -c '. $env/bin/activate && exec gunicorn -b 0.0.0.0:5050 content_api.wsgi'
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/supervisor/capi.log
+redirect_stderr=true
+directory=$repo/server
+EOF
 }
 
 do_frontend() {
@@ -52,8 +58,6 @@ do_prepopulate() {
 
     python manage.py app:initialize_data $sample_data
     python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
-
-    action=do_prepopulate $root/superdesk/content-api
 }
 
 eval $action
