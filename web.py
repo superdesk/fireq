@@ -270,7 +270,7 @@ async def sh(cmd, ctx, *, logfile=None):
             '(time ({cmd})) 2>&1'
             '  | tee -a {path}'
             '  | aha -w --black >> {path}.htm;'
-            'exit ${{PIPESTATUS[0]}}'
+            '[ "0" = "${{PIPESTATUS[0]}}" ] && true'
             .format(cmd=cmd, path=ctx['logpath'] + logfile)
         )
     log.info(cmd)
@@ -470,21 +470,30 @@ async def post_status(ctx, state=None, extend=None, code=None, save_id=False):
 
 
 def chunked_specs(sizes, n, names=None):
-    names = list(reversed([k for k, v in sizes]))
+    names = sorted((k for k, v in sizes), reverse=True)
     sizes = {k: int(v) for k, v in sizes}
 
     def chunk(names, n):
+        if n == 1:
+            size = sum(v for k, v in sizes.items() if k in names)
+            log.info('size=%s; files=%s', size, names)
+            return names
+
         chunk, size = [], 0
         chunksize = sum(v for k, v in sizes.items() if k in names) / n
         while size < chunksize:
-            name = names.pop()
-            size += int(sizes[name])
-            chunk.append(name)
+            new_size = size + int(sizes[names[-1]])
+            if new_size > chunksize:
+                break
+            size = new_size
+            chunk.append(names.pop())
         log.info('size=%s; files=%s', size, chunk)
         return chunk
 
     for i in range(n):
-        yield chunk(names, n - i)
+        res = chunk(names, n - i)
+        if res:
+            yield res
 
 
 async def check_e2e(ctx):

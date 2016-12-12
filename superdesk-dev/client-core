@@ -15,9 +15,12 @@ _e2e_tests() {
     specs=$([ -z "$specs" ] || echo "--specs $specs")
     # specs="--specs spec/login_spec.js"
 
+    npm i protractor-flake
     webdriver-manager update
+
     time xvfb-run -a -s "-ac -screen 0 1920x1080x24"\
-        protractor protractor.conf.js --stackTrace --verbose\
+        protractor-flake --max-attempts=2 --\
+        protractor.conf.js --stackTrace --verbose\
         --baseUrl 'http://localhost'\
         --params.baseBackendUrl 'http://localhost/api'\
         $specs
@@ -39,6 +42,13 @@ _chrome() {
         export CHROME_BIN=$(pwd)/chrome-linux/chrome
         $CHROME_BIN --version
     fi
+}
+
+do_backend() {
+    _venv
+    cd $repo_core/test-server
+    time pip install -r requirements.txt
+    pip install gunicorn
 }
 
 do_specs() {

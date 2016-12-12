@@ -78,6 +78,7 @@ def build(short_name, ref, sha, pr=False, by_url=None, **opts):
 
         return await target(ctx)
 
+    ref = ref if pr else 'refs/heads/' + ref
     loop = web.app.loop
     code = loop.run_until_complete(run())
     loop.close()
@@ -267,7 +268,7 @@ def main():
         .arg('-w', '--only-web', action='store_true')\
         .arg('--clean', action='store_true')\
         .arg('--statuses', action='store_true')\
-        .arg('--e2e-chunks', type=int)\
+        .arg('--e2e-chunks', type=int, default=conf['e2e_chunks'])\
         .exe(lambda a: build(
             a.short_name, a.ref, a.sha, a.pr, a.by_url,
             only_checks=a.only_checks,
@@ -310,8 +311,8 @@ def main():
     cmd('lxc-base')\
         .arg('-n', '--name', default=conf['lxc_base'])\
         .arg('-p', '--path', default='/opt/superdesk')\
-        .arg('-o', '--opts', default='')\
-        .arg('-s', '--services', action='store_true')\
+        .arg('-o', '--opts', default='-B zfs')\
+        .arg('--no-services', action='store_true')\
         .exe(lambda a: sh(
             'set -ex;'
             'tmp={name}--tmp; '
@@ -321,7 +322,7 @@ def main():
             './fire lxc-copy -rc --no-snapshot -b $tmp {name};'
             .format(
                 name=a.name, path=a.path, opts=a.opts,
-                services='--services' if a.services else ''
+                services='' if a.no_services else '--services'
             )
         ))
 

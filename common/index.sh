@@ -59,9 +59,9 @@ _repo() {
     if [ -n "$repo_pr" ]; then
         git fetch origin pull/$repo_pr/merge:$repo_pr \
             || git fetch origin pull/$repo_pr/head:$repo_pr
-        # TODO: $repo_sha is head commit form PR,
+        # TODO: $repo_sha is head commit from PR,
         # but we need usualy merge commit here,
-        # so checkout last commit for now
+        # so checkout the last commit for now
         # git checkout ${repo_sha:-$repo_pr}
         git checkout $repo_pr
     else
@@ -71,9 +71,8 @@ _repo() {
 }
 
 _venv() {
-    path=$1
-    python3 -m venv $path
-    echo "set -a +x; . $envfile; set +a" >> $path/bin/activate
+    python3 -m venv $env
+    echo "set -a +x; . $envfile; set +a" >> $env/bin/activate
     _activate
     pip install -U pip wheel
 }
@@ -98,10 +97,12 @@ _supervisor() {
 
 _npm() {
     # node & npm
-    [ -f /usr/bin/npm ] && return 0
-    curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+    curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
     apt-get install -y nodejs
     [ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
+
+    npm --version
+    node --version
 }
 
 _repo_client() {
@@ -145,7 +146,7 @@ do_init() {
 }
 
 do_backend() {
-    _venv $env
+    _venv
     cd $repo/server
     pip install -U -r requirements.txt
 }

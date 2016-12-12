@@ -106,17 +106,20 @@ _db_init() {
 _checks_init() {
     export SUPERDESK_TESTING=true
     _db_init
-    supervisor_tpl=$root/superdesk-dev/supervisor.tpl _supervisor
+
+    path=/etc/supervisor/conf.d/${name}.conf
+    . $root/superdesk-dev/supervisor.tpl > $path
+    systemctl restart supervisor
 }
 
 _chrome_stable() {
-    [ "$(dpkg -l | grep -c google-chrome-stable)" = "0" ] || return 0
-
     wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
     echo "deb http://dl.google.com/linux/chrome/deb/ stable main" \
         > /etc/apt/sources.list.d/google.list
     apt-get update
     apt-get install -y --no-install-recommends xvfb google-chrome-stable
+
+    google-chrome --version
 }
 
 _chrome() {
@@ -180,12 +183,14 @@ do_install() {
     orig_do_install
 }
 
-do_finish() {
-    _chrome
-
-    _activate
+do_backend() {
+    _venv
     cd $repo/server
     time pip install -r dev-requirements.txt
+}
+
+do_finish() {
+    _chrome
 }
 
 do_checks() {

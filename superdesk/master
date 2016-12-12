@@ -45,7 +45,9 @@ do_frontend() {
     cd $(_repo_client)
     npm install grunt-cli
     time npm install
-    time grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100'
+
+    #TODO: remove --force later
+    time grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100' --force
     echo "\033[0m"
 }
 
