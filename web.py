@@ -80,13 +80,11 @@ async def auth_middleware(app, handler):
         req = await gh.request('GET', 'user')
         user = await req.json()
         req.close()
-        req = await gh.request('GET', 'user/orgs')
-        orgs = await req.json()
-        req.close()
-        for org in orgs:
-            if org.get('login') not in conf['github_orgs']:
-                continue
-
+        users = []
+        for org in conf['github_orgs']:
+            _, resp = await gh_api('orgs/%s/members' % org)
+            users.extend(u['login'] for u in resp)
+        if user.get('login') in users:
             session['login'] = user.get('login')
             session.pop('github_state', None)
             location = session.pop('location')
@@ -101,7 +99,7 @@ async def auth_middleware(app, handler):
         else:
             gh = gh_client()
             state = str(uuid.uuid4())
-            url = gh.get_authorize_url(scope='read:org user', state=state)
+            url = gh.get_authorize_url(scope='', state=state)
             session['github_state'] = state
             session['location'] = request.path
             return web.HTTPFound(url)
@@ -207,10 +205,10 @@ async def repo(request):
             'restart_url': get_restart_url(prefix, name, pr),
         }
 
-    resp, body = await gh_api(repo_name + '/pulls')
+    resp, body = await gh_api('repos/%s/pulls' % repo_name)
     pulls = [info(i, True) for i in sorted(body, key=lambda i: i['number'])]
 
-    resp, body = await gh_api(repo_name + '/branches')
+    resp, body = await gh_api('repos/%s/branches' % repo_name)
     branches = [info(i) for i in sorted(body, key=lambda i: i['name'])]
 
     ctx = {'pulls': pulls, 'branches': branches}
@@ -283,15 +281,14 @@ async def sh(cmd, ctx, *, logfile=None):
 
 
 async def get_restart_ctx(short_name, ref, sha=None, pr=False, **extend):
-        repo_name = repos[short_name]
+        name = repos[short_name]
         if not sha and pr:
-            resp, body = await gh_api('%s/pulls/%s' % (repo_name, ref))
+            resp, body = await gh_api('repos/%s/pulls/%s' % (name, ref))
             sha = body['head']['sha']
         elif not sha:
-            resp, body = await gh_api('%s/branches/%s' % (repo_name, ref))
+            resp, body = await gh_api('repos/%s/branches/%s' % (name, ref))
             sha = body['commit']['sha']
-
-        return get_ctx(repo_name, ref, sha, pr, **extend)
+        return get_ctx(name, ref, sha, pr, **extend)
 
 
 def get_hook_ctx(headers, body, **extend):
@@ -392,7 +389,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         'lxc_base': conf['lxc_base'],
         'e2e_chunks': conf['e2e_chunks'],
         'no_statuses': conf['no_statuses'],
-        'statuses_url': '%s/statuses/%s' % (repo_name, sha),
+        'statuses_url': 'repos/%s/statuses/%s' % (repo_name, sha),
     }
     ctx.update(**extend)
     ctx.update(
@@ -406,7 +403,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
 
 async def gh_api(url, data=None):
     if not url.startswith('https://'):
-        url = 'https://api.github.com/repos/' + url
+        url = 'https://api.github.com/' + url
 
     async with ClientSession(headers=gh_auth()) as s:
         if data is None:
@@ -437,7 +434,7 @@ async def post_status(ctx, state=None, extend=None, code=None, save_id=False):
         data['target_url'] = target_url + '.htm'
 
     if not ctx['no_statuses'] and not save_id:
-        url = '{repo_name}/commits/{sha}/status'.format(**ctx)
+        url = 'repos/{repo_name}/commits/{sha}/status'.format(**ctx)
         resp, body = await gh_api(url)
         last_status = [
             s for s in body['statuses']
@@ -627,7 +624,7 @@ async def build(ctx):
         if complete:
             state = 'success' if code == 0 else 'failure'
         statuses = [conf['status_prefix'] + s for s in ('build', '!restart')]
-        url = '{repo_name}/commits/{sha}/status'.format(**ctx)
+        url = 'repos/{repo_name}/commits/{sha}/status'.format(**ctx)
         resp, body = await gh_api(url)
         for s in body['statuses']:
             c = s['context']
