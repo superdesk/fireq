@@ -3,6 +3,17 @@ server {
     listen  80;
     listen [::]:80;
 
+    server_name ${host};
+    access_log /var/log/nginx/${name}.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+server {
     listen  443 ssl http2;
     listen [::]:443 ssl http2;
     ssl_certificate /etc/letsencrypt/live/sd-master.test.superdesk.org/fullchain.pem;
@@ -10,10 +21,6 @@ server {
 
     server_name ${host};
     access_log /var/log/nginx/${name}.access.log;
-
-    if (\$scheme = "http") {
-       rewrite ^/(.*) https://\$host/\$1 permanent;
-    }
 
     location / {
         proxy_pass "http://${name}:80";

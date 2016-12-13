@@ -149,20 +149,26 @@ def gh_clean():
     sh('\n%s;\n./fire nginx' % cmd)
 
 
-def update_nginx(path, ssl=False):
+def update_nginx(path, ssl=False, live=False):
     cmd = ''
     names = [name for name in lxc_ls(www=True)]
 
     if ssl:
         # move sd-master, the first name uses for cert filename
         names.insert(0, names.pop(names.index('sd-master')))
+        domains = ','.join('%s.%s' % (n, conf['domain']) for n in names)
+        staging = (
+            '' if live
+            else '--server https://acme-staging.api.letsencrypt.org/directory'
+        )
         sh(
             'time su - -c "'
             '  /opt/scripts/certbot-auto certonly '
-            '   --agree-tos --non-interactive --expand'
+            '   --agree-tos --non-interactive --reinstall'
             '   --email=support@sourcefabric.org'
-            '   --webroot -w /var/tmp -d %s'
-            '"' % ','.join('%s.%s' % (n, conf['domain']) for n in names),
+            '   --webroot -w /var/tmp -d {domains}'
+            '   {staging}'
+            '"'.format(domains=domains, staging=staging),
             exit=False
         )
 
@@ -289,7 +295,8 @@ def main():
     cmd('nginx', help='update nginx config')\
         .arg('-p', '--path', default='/etc/nginx/sites-enabled/sd')\
         .arg('--ssl', action='store_true')\
-        .exe(lambda a: update_nginx(a.path, a.ssl))
+        .arg('--live', action='store_true')\
+        .exe(lambda a: update_nginx(a.path, a.ssl, a.live))
 
     cmd('gen-files')\
         .exe(lambda a: sh('bin/gen-files.sh'))
@@ -407,7 +414,10 @@ def main():
     cmd('lxc-clean')\
         .arg('pattern', default='^sd', nargs='?')\
         .exe(lambda a: sh(
-            'lxc-ls -1 | grep -e "{pattern}" | sort -r | xargs -r ./fire lxc-rm'
+            'lxc-ls -1'
+            '   | grep -e "{pattern}"'
+            '   | sort -r'
+            '   | xargs -r ./fire lxc-rm'
             .format(pattern=a.pattern)
         ))
 
