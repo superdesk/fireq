@@ -119,6 +119,9 @@ _chrome_stable() {
     apt-get update
     apt-get install -y --no-install-recommends xvfb google-chrome-stable
 
+    # probably it locks dpkg after container starts, so remove it
+    rm -f /etc/cron.daily/google-chrome
+
     google-chrome --version
 }
 
@@ -168,19 +171,6 @@ EOF
 
     supervisorctl update
     nginx -s reload
-}
-
-eval "orig_$(declare -f do_install)"
-do_install() {
-    if [ ! -d $repo ]; then
-        # FIXME: clean lock files when installing new container
-        # started appears in base container after ZFS snaphsot usage
-        rm /var/lib/apt/lists/lock || true
-        rm /var/lib/dpkg/lock || true
-        rm /var/cache/apt/archives/lock || true
-    fi
-
-    orig_do_install
 }
 
 do_backend() {
