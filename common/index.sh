@@ -26,6 +26,8 @@ EOF
 }
 
 _envfile() {
+    db_name=${db_name:-$name}
+
     MONGO_URI=${MONGO_URI:-"mongodb://localhost/${db_name}"}
     LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"${MONGO_URI}_la"}
     ARCHIVED_URI=${ARCHIVED_URI:-"${MONGO_URI}_ar"}

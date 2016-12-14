@@ -19,8 +19,12 @@ repos = collections.OrderedDict((
 
 
 def get_conf():
-    conf = (root / 'config.json').read_text()
-    conf = json.loads(conf)
+    path = root / 'config.json'
+    if path.exists():
+        conf = (root / 'config.json').read_text()
+        conf = json.loads(conf)
+    else:
+        conf = {}
 
     defaults = [
         ('debug', False),
@@ -46,6 +50,7 @@ def get_conf():
             value = value(conf)
         conf.setdefault(key, value)
     return conf
+
 
 conf = get_conf()
 
