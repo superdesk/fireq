@@ -234,6 +234,10 @@ EOF
 }
 
 do_install() {
+    # Try to disable cron, don't need unexpected apt-get running, etc.
+    systemctl stop cron
+    systemctl disable cron
+
     apt-get -y autoremove --purge ntpdate
     apt-get -y update
 
