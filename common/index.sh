@@ -234,9 +234,8 @@ EOF
 }
 
 do_install() {
-    # Try to disable cron, don't need unexpected apt-get running, etc.
-    systemctl stop cron
-    systemctl disable cron
+    # don't need unexpected apt-get running
+    echo 'APT::Periodic::Enable "0";' > /etc/apt/apt.conf.d/10periodic
 
     apt-get -y autoremove --purge ntpdate
     apt-get -y update

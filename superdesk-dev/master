@@ -119,7 +119,7 @@ _chrome_stable() {
     apt-get update
     apt-get install -y --no-install-recommends xvfb google-chrome-stable
 
-    # probably it locks dpkg after container starts, so remove it
+    # don't need unexpected apt-get running
     rm -f /etc/cron.daily/google-chrome
 
     google-chrome --version
