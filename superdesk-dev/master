@@ -153,6 +153,9 @@ _maildev() {
     npm install maildev
 
     cat <<EOF >> /etc/nginx/conf.d/locations
+location /mail {
+    return 301 https://\$host\$request_uri/;
+}
 location /mail/ {
     proxy_pass http://localhost:5060/;
     expires epoch;
