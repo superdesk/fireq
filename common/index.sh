@@ -21,7 +21,6 @@ _envfile_append() {
     cat <<EOF
 # Liveblog custom
 S3_THEMES_PREFIX=
-AMAZON_S3_SUBFOLDER=
 EOF
 }
 
@@ -41,8 +40,8 @@ _envfile() {
     config=$root/etc/${name}.sh
     [ -f $config ] && . $config
 
-    envfile_append="$(_envfile_append)"
     . $root/common/envfile.tpl > $envfile
+    echo "$(_envfile_append)" >> $envfile
     set -x
 
     if [ -n "$SUPERDESK_TESTING" ]; then

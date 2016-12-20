@@ -81,6 +81,8 @@ _db_external() {
     ELASTICSEARCH_URL="http://$lxc_data:9200"
     ELASTICSEARCH_INDEX="$db_name"
 
+    AMAZON_S3_SUBFOLDER="$db_name"
+
     _envfile
     supervisorctl restart all
 }
@@ -204,6 +206,8 @@ do_www() {
     _db_init
     sample_data=1 do_prepopulate
 
+    _envfile
+    _supervisor
     nginx_ssl=1 _nginx
 
     _maildev

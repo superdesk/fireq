@@ -385,7 +385,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
             .format(path=path, time=dt.datetime.now())
         ),
         'logfile': 'build.log',
-        'env': env,
+        'env': ' '.join(i for i in (env, extend.pop('env', None)) if i),
         'lxc_base': conf['lxc_base'],
         'e2e_chunks': conf['e2e_chunks'],
         'no_statuses': conf['no_statuses'],

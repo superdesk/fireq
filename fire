@@ -257,10 +257,10 @@ def main():
         .arg('--ssh')\
         .arg('-e', '--endpoint', default='superdesk/master')\
         .arg('-a', '--action', default='')\
-        .arg('--env')\
+        .arg('--env', default='')\
         .exe(lambda a: sh(
             'action={action!r} {env} {endpoint}'
-            .format(action=a.action, endpoint=a.endpoint, env=a.env or ''),
+            .format(action=a.action, endpoint=a.endpoint, env=a.env),
             ssh=ssh(a.ssh, a.lxc_name)
         ))
 
@@ -272,6 +272,7 @@ def main():
         .arg('-u', '--by-url', action='store_true')\
         .arg('-c', '--only-checks', action='store_true')\
         .arg('-w', '--only-web', action='store_true')\
+        .arg('--env', default='')\
         .arg('--clean', action='store_true')\
         .arg('--statuses', action='store_true')\
         .arg('--e2e-chunks', type=int, default=conf['e2e_chunks'])\
@@ -282,6 +283,7 @@ def main():
             clean=a.clean,
             e2e_chunks=a.e2e_chunks,
             no_statuses=not a.statuses,
+            env=a.env,
         ))
 
     cmd('gh-build')\
