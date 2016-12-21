@@ -134,7 +134,7 @@ _nginx() {
 
 do_init() {
     apt-get -y install --no-install-recommends \
-    wget git python3 python3-dev python3-venv \
+    git python3 python3-dev python3-venv \
     build-essential libffi-dev \
     libtiff5-dev libjpeg8-dev zlib1g-dev \
     libfreetype6-dev liblcms2-dev libwebp-dev \
@@ -153,13 +153,14 @@ do_backend() {
 }
 
 do_frontend() {
+    _activate
     _npm
-    npm install -g grunt-cli bower
 
     cd $(_repo_client)
-    npm install
-    bower --allow-root install
-    grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100' --force
+    npm install grunt-cli bower
+    time npm install
+    time bower --allow-root install
+    time grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100' --force
     echo "\033[0m"
 }
 
