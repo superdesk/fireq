@@ -164,7 +164,7 @@ def update_nginx(path, ssl=False, live=False):
         sh(
             'time su - -c "'
             '  /opt/scripts/certbot-auto certonly '
-            '   --agree-tos --non-interactive --reinstall'
+            '   --agree-tos --non-interactive --expand'
             '   --email=support@sourcefabric.org'
             '   --webroot -w /var/tmp -d {domains}'
             '   {staging}'

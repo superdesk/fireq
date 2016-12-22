@@ -156,7 +156,7 @@ _maildev() {
 
     cat <<EOF >> /etc/nginx/conf.d/locations
 location /mail {
-    return 301 https://\$host\$request_uri/;
+    return 302 https://\$host\$request_uri/;
 }
 location /mail/ {
     proxy_pass http://localhost:5060/;
@@ -204,7 +204,7 @@ do_docs() { :; }
 
 do_www() {
     _db_init
-    sample_data=1 do_prepopulate
+    test_data=1 sample_data=1 do_prepopulate
 
     _envfile
     _supervisor

@@ -10,7 +10,7 @@ server {
         root /var/tmp;
     }
     location / {
-        return 301 https://$host$request_uri;
+        return 302 https://\$host\$request_uri;
     }
 }
 server {
