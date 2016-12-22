@@ -46,6 +46,13 @@ do_frontend() {
     npm install grunt-cli
     time npm install
 
+    # update translations if "client/po" directory exists
+    po_dir=$repo/client/po
+    if [ -d $po_dir ] && [ "$po_dir" = "$(pwd)/po" ]; then
+        grunt nggettext_extract
+        grunt nggettext_compile
+    fi
+
     #TODO: remove --force later
     time grunt build --server='http://localhost:5000/api' --ws='ws://localhost:5100' --force
     echo "\033[0m"
