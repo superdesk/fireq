@@ -15,6 +15,7 @@ repo_pr=${repo_pr:-''}
 repo_sha=${repo_sha:-''}
 env=$repo/env
 envfile=$repo/envfile
+db_name=${db_name:-$name}
 action=${action:-do_install}
 
 _envfile_append() {
@@ -25,8 +26,6 @@ EOF
 }
 
 _envfile() {
-    db_name=${db_name:-$name}
-
     MONGO_URI=${MONGO_URI:-"mongodb://localhost/${db_name}"}
     LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"${MONGO_URI}_la"}
     ARCHIVED_URI=${ARCHIVED_URI:-"${MONGO_URI}_ar"}
@@ -144,6 +143,13 @@ do_init() {
 
     _repo
     _envfile
+
+    # activate virtualenv by default
+    # fix $PATH with local node modules
+    cat <<EOF > /etc/profile.d/env.sh
+. /opt/superdesk/env/bin/activate
+PATH=./node_modules/.bin/:$PATH
+EOF
 }
 
 do_backend() {

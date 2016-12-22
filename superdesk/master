@@ -58,16 +58,8 @@ do_prepopulate() {
     [ -z "$sample_data" ] || sample_data='--sample-data'
     [ "$(python manage.py app:initialize_data --help | grep -c -- --sample-data)" = "0" ] && sample_data=
 
-    if [ -n "$clean_data" ] && [ -n "$db_name" ]; then
-        curl -XDELETE  http://data-sd:9200/$db_name*
-
-        apt install -y mongodb-clients
-        mongo --host data-sd --eval "db.getMongo().getDBNames().forEach(function(v){\
-            if(v.indexOf(\"$db_name\") === 0){db.getSiblingDB(v).dropDatabase()}\
-        })"
-    fi
-
-    if [ -n "$test_data" ] && curl -sI data-sd:9200/$db_name | grep 404; then
+    if [ -n "$test_data" ] && [ -n "$lxc_data" ]; then
+        curl -sI $lxc_data/$db_name | grep 404 || return 0
         # add default vocabularies
         ./manage.py app:initialize_data --entity-name vocabularies
         # add Forbes ingest source

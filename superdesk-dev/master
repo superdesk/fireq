@@ -85,6 +85,15 @@ _db_external() {
 
     _envfile
     supervisorctl restart all
+
+    if [ -n "$clean_data" ]; then
+        curl -XDELETE  http://$lxc_data:9200/$db_name*
+
+        apt install -y mongodb-clients
+        mongo --host $lxc_data --eval "db.getMongo().getDBNames().forEach(function(v){\
+            if(v.indexOf(\"$db_name\") === 0){db.getSiblingDB(v).dropDatabase()}\
+        })"
+    fi
 }
 
 _db_init() {
