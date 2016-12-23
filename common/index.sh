@@ -15,7 +15,6 @@ repo_pr=${repo_pr:-''}
 repo_sha=${repo_sha:-''}
 env=$repo/env
 envfile=$repo/envfile
-db_name=${db_name:-$name}
 action=${action:-do_install}
 
 _envfile_append() {
