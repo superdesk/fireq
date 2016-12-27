@@ -193,6 +193,23 @@ do_backend() {
     time pip install -r dev-requirements.txt
 }
 
+do_prepopulate() {
+    [ -z "$lxc_data" ] && return 0
+    curl -sI $lxc_data/$db_name | grep 404 || return 0
+
+    cd $repo/server
+
+    _activate
+    _sample_data
+
+    # add default vocabularies
+    ./manage.py app:initialize_data --entity-name vocabularies
+    # add Forbes ingest source
+    ./manage.py app:initialize_data --entity-name ingest_providers $sample_data
+    # Use data from e2e tests
+    ./manage.py app:prepopulate
+}
+
 do_finish() {
     _chrome
 }
@@ -213,7 +230,7 @@ do_docs() { :; }
 
 do_www() {
     _db_init
-    test_data=1 sample_data=1 do_prepopulate
+    sample_data=1 do_prepopulate
 
     _envfile
     _supervisor
