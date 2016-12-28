@@ -17,7 +17,7 @@ from aiohttp_session import get_session, session_middleware
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from pystache import render
 
-from common import root, log, conf, repos, gh_auth, pretty_json
+from . import root, log, conf, repos, gh_auth, pretty_json
 
 repos_reverse = {v: k for k, v in repos.items()}
 
@@ -500,7 +500,7 @@ async def check_e2e(ctx):
     ctx.update(name_uniq='%s-e2e' % ctx['name_uniq'])
     code = await sh('''
     ./fire lxc-copy --clean -sb {name_uniq_orig} {name_uniq};
-    ./fire r -e {endpoint} --lxc-name {name_uniq} --env="{env}" -a _checks_init
+    ./fire r -e {endpoint} --lxc-name={name_uniq} --env="{env}" -a _checks_init
     ''', ctx)
     if code != 0:
         return code

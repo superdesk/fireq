@@ -10,7 +10,7 @@ logging.basicConfig(
     datefmt='%H:%M:%S',
     format='%(asctime)s %(message)s'
 )
-root = Path(__file__).resolve().parent
+root = Path(__file__).resolve().parent.parent
 repos = collections.OrderedDict((
     ('sd', 'superdesk/superdesk'),
     ('sds', 'superdesk/superdesk-core'),
