@@ -61,5 +61,18 @@ def gh_auth():
     return headers
 
 
+def get_restart_url(prefix, ref, pr=False):
+    return (
+        'https://{domain}{base_url}/{prefix}/restart/{typ}/{ref}'
+        .format(
+            domain=conf['domain'],
+            base_url=conf['url_prefix'],
+            prefix=prefix,
+            typ='pr' if pr else 'br',
+            ref=ref
+        )
+    )
+
+
 def pretty_json(obj):
     return json.dumps(obj, indent=2, sort_keys=True)

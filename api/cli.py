@@ -138,8 +138,6 @@ def gh_clean():
     for prefix, repo in repos.items():
         for i in gh_api('%s/branches' % repo):
             skip(prefix, i['name'], i['commit']['sha'])
-        for i in gh_api('%s/tags' % repo):
-            skip(prefix + 'tag', i['name'], i['commit']['sha'])
         for i in gh_api('%s/pulls?state=open' % repo):
             skip(prefix + 'pr', i['number'], i['head']['sha'])
 
