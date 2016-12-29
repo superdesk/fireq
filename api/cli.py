@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
 import argparse
 import json
-import os
 import re
 import subprocess
-import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -434,13 +431,3 @@ def main():
         parser.print_usage()
     else:
         args.exe(args)
-
-
-if __name__ == '__main__':
-    try:
-        if os.geteuid() != 0:
-            subprocess.call(['sudo', sys.executable] + sys.argv)
-        else:
-            main()
-    except KeyboardInterrupt:
-        raise SystemExit(1)
