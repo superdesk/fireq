@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-root=$(dirname $(dirname $(realpath -s $0)))
-action=true . $root/superdesk-dev/core
+action=true . superdesk-dev/core
 
 repo_core=$repo/client-core
 repo_remote=${repo_remote:-$repo_remote_client}

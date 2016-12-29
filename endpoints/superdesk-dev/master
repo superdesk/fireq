@@ -1,7 +1,6 @@
 #!/bin/bash
 
-root=$(dirname $(dirname $(realpath -s $0)))
-action=true . $root/superdesk/master
+action=true . superdesk/master
 
 repo_backend=${repo_backend:-"$repo/server"}
 
@@ -119,7 +118,7 @@ _checks_init() {
     _db_init
 
     path=/etc/supervisor/conf.d/${name}.conf
-    . $root/superdesk-dev/supervisor.tpl > $path
+    . superdesk-dev/supervisor.tpl > $path
     systemctl restart supervisor
 }
 

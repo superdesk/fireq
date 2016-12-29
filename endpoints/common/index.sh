@@ -5,7 +5,6 @@ export DEBIAN_FRONTEND=noninteractive
 export DBUS_SESSION_BUS_ADDRESS=/dev/null
 export PATH=./node_modules/.bin/:$PATH
 
-root=$(dirname $(dirname $(realpath -s $0)))
 name=${name:-liveblog}
 host=${host:-localhost}
 repo=/opt/$name
@@ -35,10 +34,10 @@ _envfile() {
     CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${ELASTICSEARCH_INDEX}_ca"}
 
     set +x
-    config=$root/etc/${name}.sh
+    config=../etc/${name}.sh
     [ -f $config ] && . $config
 
-    . $root/common/envfile.tpl > $envfile
+    . common/envfile.tpl > $envfile
     echo "$(_envfile_append)" >> $envfile
     set -x
 
@@ -83,7 +82,7 @@ _activate() {
 
 _supervisor_append() { :; }
 _supervisor() {
-    supervisor_tpl=${supervisor_tpl:-"$root/common/supervisor.tpl"}
+    supervisor_tpl=${supervisor_tpl:-"common/supervisor.tpl"}
 
     apt-get -y install supervisor
 
@@ -110,7 +109,7 @@ _repo_client() {
 
 _nginx_locations() { :; }
 _nginx() {
-    nginx_tpl=${nginx_tpl:-"$root/common/nginx.tpl"}
+    nginx_tpl=${nginx_tpl:-"common/nginx.tpl"}
     nginx_ssl=$([ -n "$nginx_ssl" ] && echo 's' || echo '')
     nginx_static="$(_repo_client)/dist"
 
@@ -122,7 +121,7 @@ _nginx() {
     apt-get -y install nginx
 
     path=/etc/nginx/conf.d
-    cp $root/common/nginx-params.conf $path/params.conf
+    cp common/nginx-params.conf $path/params.conf
     echo "$(_nginx_locations)" > $path/locations
     . $nginx_tpl > $path/default.conf
 

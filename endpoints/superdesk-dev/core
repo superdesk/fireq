@@ -1,8 +1,7 @@
 #!/bin/bash
 set -e
 
-root=$(dirname $(dirname $(realpath -s $0)))
-action=true . $root/superdesk-dev/master
+action=true . superdesk-dev/master
 
 repo_remote_server=https://github.com/superdesk/superdesk-core.git
 repo_remote_client=https://github.com/superdesk/superdesk-client-core.git

@@ -3,5 +3,4 @@ set -ex
 
 repo_branch=1.0
 
-root=$(dirname $(dirname $(realpath -s $0)))
-. $root/superdesk/master
+. superdesk/master

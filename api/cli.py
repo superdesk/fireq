@@ -239,11 +239,12 @@ def main():
         .arg('--services', action='store_true')\
         .arg('--env', default='')\
         .exe(lambda a: sh(
+            'cd endpoints;'
             'services={services} '
             'prepopulate={prepopulate} '
             'action=do_install '
             '{env} '
-            'endpoints/{endpoint}'
+            '{endpoint}'
             .format(
                 services=a.services or '',
                 prepopulate=a.prepopulate or '',
@@ -260,7 +261,8 @@ def main():
         .arg('-a', '--action', default='')\
         .arg('--env', default='')\
         .exe(lambda a: sh(
-            'action={action!r} {env} endpoints/{endpoint}'
+            'cd endpoints;'
+            'action={action!r} {env} {endpoint}'
             .format(
                 action=a.action,
                 endpoint=a.endpoint,

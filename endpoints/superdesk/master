@@ -4,8 +4,7 @@ set -ex
 name=${name:-superdesk}
 repo_remote=${repo_remote:-https://github.com/superdesk/superdesk.git}
 
-root=$(dirname $(dirname $(realpath -s $0)))
-. $root/common/index.sh
+. common/index.sh
 
 _envfile_append() {
     cat <<EOF
