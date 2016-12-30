@@ -7,9 +7,7 @@ from asyncio.subprocess import PIPE
 
 from aiohttp import ClientSession
 
-from . import root, log, conf, repos, pretty_json, gh_auth, get_restart_url
-
-repos_reverse = {v: k for k, v in repos.items()}
+from . import root, log, conf, Repo, pretty_json, gh_auth, get_restart_url
 
 
 async def sh(cmd, ctx, *, logfile=None):
@@ -31,7 +29,7 @@ async def sh(cmd, ctx, *, logfile=None):
 
 
 async def get_restart_ctx(short_name, ref, sha=None, pr=False, **extend):
-        name = repos[short_name]
+        name = Repo[short_name].value
         if not sha and pr:
             resp, body = await gh_api('repos/%s/pulls/%s' % (name, ref))
             sha = body['head']['sha']
@@ -56,7 +54,7 @@ def get_hook_ctx(headers, body, **extend):
     else:
         return {}
 
-    # mean it has been delated
+    # mean it has been deleted
     if sha == '0000000000000000000000000000000000000000':
         return {}
 
@@ -69,7 +67,9 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         # For testing purpose
         repo_name = repo_name.replace('naspeh-sf', 'superdesk')
 
-    if repo_name not in repos.values():
+    try:
+        prefix = Repo(repo_name).name
+    except ValueError:
         log.warn('Repository %r is not supported', repo_name)
         return {}
 
@@ -93,7 +93,6 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
             'env': 'lxc_data=data-sd--tests'
         }
 
-    prefix = repos_reverse[repo_name]
     if pr:
         env = ' repo_pr=%s repo_sha=%s' % (ref, sha)
         name = ref
@@ -374,7 +373,7 @@ async def www(ctx):
 async def post_restart_status(ctx, **kw):
     return await post_status(ctx, extend={
         'target_url': get_restart_url(
-            repos_reverse[ctx['repo_name']],
+            Repo(ctx['repo_name']),
             ctx['ref'],
             ctx['prefix'].endswith('pr')
         ),

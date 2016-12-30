@@ -14,7 +14,7 @@ from aiohttp_session import get_session, session_middleware
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from pystache import render
 
-from . import log, conf, repos, pretty_json, get_restart_url
+from . import log, conf, Repo, pretty_json, get_restart_url
 from .build import gh_api, get_restart_ctx, get_hook_ctx, build
 
 
@@ -48,7 +48,7 @@ def get_app():
     url('/logs/{path:.*}', logs)
     url('/hook', hook, method='POST')
 
-    prefix = '{prefix:(%s)}' % '|'.join(repos)
+    prefix = '{prefix:(%s)}' % '|'.join(i.name for i in Repo)
     url(r'/%s' % prefix, repo)
     url(r'/%s/restart/{typ:(pr|br)}/{ref:.+}' % prefix, restart)
 
@@ -147,8 +147,11 @@ async def hook(request):
 
 async def restart(request):
     prefix = request.match_info['prefix']
-    if prefix not in repos:
+    try:
+        Repo[prefix]
+    except KeyError:
         return web.HTTPNotFound()
+
     typ = request.match_info['typ']
     ref = request.match_info['ref']
     sha = request.GET.get('sha')
@@ -166,7 +169,7 @@ async def restart(request):
 
 
 async def index(request):
-    ctx = {'repo': [{'prefix': k, 'name': v} for k, v in repos.items()]}
+    ctx = {'repo': [{'prefix': i.name, 'name': i.value} for i in Repo]}
     return render_tpl(index_tpl, ctx)
 index_tpl = '''
 <ul>
@@ -179,10 +182,10 @@ index_tpl = '''
 
 async def repo(request):
     prefix = request.match_info['prefix']
-    if prefix not in repos:
+    try:
+        repo_name = Repo[prefix]
+    except KeyError:
         return web.HTTPNotFound()
-
-    repo_name = repos[prefix]
 
     def info(ctx, pr=False):
         if pr:

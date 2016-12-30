@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from . import root, log, repos, conf, gh_auth
+from . import root, log, Repo, conf, gh_auth
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
@@ -132,11 +132,11 @@ def gh_clean():
         skips.append('^%s-%s' % (name, sha[:10]))
 
     skips = []
-    for prefix, repo in repos.items():
-        for i in gh_api('%s/branches' % repo):
-            skip(prefix, i['name'], i['commit']['sha'])
-        for i in gh_api('%s/pulls?state=open' % repo):
-            skip(prefix + 'pr', i['number'], i['head']['sha'])
+    for repo in Repo:
+        for i in gh_api('%s/branches' % repo.value):
+            skip(repo.name, i['name'], i['commit']['sha'])
+        for i in gh_api('%s/pulls?state=open' % repo.value):
+            skip(repo.name + 'pr', i['number'], i['head']['sha'])
 
     skips = '(%s)' % '|'.join(skips)
     clean = [n for n in lxc_ls() if not re.match(skips, n)]
@@ -267,7 +267,7 @@ def main():
         ))
 
     cmd('build')\
-        .arg('short_name', choices=repos.keys())\
+        .arg('short_name', choices=[i.name for i in Repo])\
         .arg('ref')\
         .arg('--sha')\
         .arg('-p', '--pr', action='store_true')\

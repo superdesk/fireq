@@ -162,9 +162,6 @@ _log_mails() {
     cat <<EOF >> /etc/nginx/conf.d/locations
 location /mail {
     return 302 $mails/;
-    #alias /var/log/$name/mail;
-    #default_type text/plain;
-    #autoindex on;
 }
 EOF
 

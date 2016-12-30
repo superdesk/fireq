@@ -1,7 +1,7 @@
 import base64
-import collections
 import json
 import logging
+from enum import Enum
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -11,11 +11,12 @@ logging.basicConfig(
     format='%(asctime)s %(message)s'
 )
 root = Path(__file__).resolve().parent.parent
-repos = collections.OrderedDict((
-    ('sd', 'superdesk/superdesk'),
-    ('sds', 'superdesk/superdesk-core'),
-    ('sdc', 'superdesk/superdesk-client-core'),
-))
+
+
+class Repo(Enum):
+    sd = 'superdesk/superdesk'
+    sds = 'superdesk/superdesk-core'
+    sdc = 'superdesk/superdesk-client-core'
 
 
 def get_conf():
