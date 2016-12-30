@@ -158,28 +158,24 @@ _client_checks() {
     [ -z "$npmtest" ] || time npm test
 }
 
-_maildev() {
-    cd $(_repo_client)
-    npm install maildev
-
+_log_mails() {
     cat <<EOF >> /etc/nginx/conf.d/locations
 location /mail {
-    return 302 https://\$host\$request_uri/;
-}
-location /mail/ {
-    proxy_pass http://localhost:5060/;
-    expires epoch;
+    return 302 $mails/;
+    #alias /var/log/$name/mail;
+    #default_type text/plain;
+    #autoindex on;
 }
 EOF
 
     cat <<EOF >> /etc/supervisor/conf.d/mail.conf
 [program:mail]
-command=$(_repo_client)/node_modules/.bin/maildev -s 25 -w 5060
+command=python3 -m api.smtp localhost 25 /var/log/$name/mail
 autostart=true
 autorestart=true
-stdout_logfile=/var/log/supervisor/maildev.log
+stdout_logfile=/var/log/$name/mail.log
 redirect_stderr=true
-directory=$repo
+directory=/opt/superdesk-fire
 EOF
 
     supervisorctl update
@@ -211,6 +207,13 @@ do_prepopulate() {
 
 do_finish() {
     _chrome
+
+    # activate virtualenv by default
+    # fix $PATH with local node modules
+    cat <<EOF > /etc/profile.d/env.sh
+. $env/bin/activate
+PATH=./node_modules/.bin/:$PATH
+EOF
 }
 
 do_checks() {
@@ -235,7 +238,7 @@ do_www() {
     _supervisor
     nginx_ssl=1 _nginx
 
-    _maildev
+    _log_mails
     do_docs || true
 }
 

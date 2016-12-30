@@ -47,13 +47,13 @@ def sh(cmd, params=None, ssh=None, exit=True):
 
 
 def build(short_name, ref, sha, pr=False, by_url=None, **opts):
-    from . import web
+    from . import web, build
 
     only_web = opts.pop('only_web', None)
     only_checks = opts.pop('only_checks', None)
 
     if by_url:
-        url = web.get_restart_url(short_name, ref, pr)
+        url = build.get_restart_url(short_name, ref, pr)
         req = urllib.request.Request(url)
         try:
             resp = urllib.request.urlopen(req)
@@ -63,15 +63,15 @@ def build(short_name, ref, sha, pr=False, by_url=None, **opts):
         return
 
     async def run():
-        ctx = await web.get_restart_ctx(short_name, ref, sha, pr, **opts)
+        ctx = await build.get_restart_ctx(short_name, ref, sha, pr, **opts)
         target = None
         if only_checks:
             ctx['install'] = False
-            target = web.checks
+            target = build.checks
         elif only_web:
-            target = web.www
+            target = build.www
         else:
-            target = web.build
+            target = build.build
 
         return await target(ctx)
 

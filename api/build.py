@@ -348,14 +348,22 @@ async def www(ctx):
     }
     await post_status(ctx, 'pending', extend=status)
 
+    logs = 'logs/{name}/logs'.format(**ctx)
+    logsurl = conf['logurl'] + logs
+    logs = '%s/%s' % (root, logs)
+
     code = await sh('''
     lxc={name_uniq}-www;
-    env="{env} lxc_data=data-sd db_name={name}";
+    env="{env} lxc_data=data-sd db_name={name} mails={logsurl}/mail";
     ./fire lxc-copy --clean -sb {name_uniq} $lxc;
     ./fire r --lxc-name=$lxc --env="$env" -e {endpoint} -a "do_www";
-    ./fire lxc-copy --no-snapshot -rcs -b $lxc {name};
+    ./fire lxc-copy --no-snapshot -rc -b $lxc {name};
+    echo "lxc.mount.entry = {logs} var/log/superdesk none bind,create=dir" >>\
+        /var/lib/lxc/{name}/config;
+    mkdir -p {logs};
+    lxc-start -n {name};
     ./fire nginx || true
-    ''', ctx, logfile=logfile)
+    ''', dict(ctx, logs=logs, logsurl=logsurl), logfile=logfile)
 
     if code == 0:
         status['target_url'] = 'https://%s.%s' % (ctx['name'], conf['domain'])

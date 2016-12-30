@@ -86,6 +86,9 @@ _supervisor() {
 
     apt-get -y install supervisor
 
+    logs=/var/log/$name
+    [ -d $logs ] || mkdir $logs
+
     path=/etc/supervisor/conf.d/${name}.conf
     . $supervisor_tpl > $path
     echo "$(_supervisor_append)" >> $path
@@ -141,13 +144,6 @@ do_init() {
 
     _repo
     _envfile
-
-    # activate virtualenv by default
-    # fix $PATH with local node modules
-    cat <<EOF > /etc/profile.d/env.sh
-. /opt/superdesk/env/bin/activate
-PATH=./node_modules/.bin/:$PATH
-EOF
 }
 
 do_backend() {
