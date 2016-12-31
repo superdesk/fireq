@@ -7,7 +7,7 @@ from asyncio.subprocess import PIPE
 
 from aiohttp import ClientSession
 
-from . import root, log, conf, Repo, pretty_json, gh_auth, get_restart_url
+from . import root, log, conf, Repo, utils
 
 
 async def sh(cmd, ctx, *, logfile=None):
@@ -28,41 +28,7 @@ async def sh(cmd, ctx, *, logfile=None):
     return code
 
 
-async def get_restart_ctx(short_name, ref, sha=None, pr=False, **extend):
-        name = Repo[short_name].value
-        if not sha and pr:
-            resp, body = await gh_api('repos/%s/pulls/%s' % (name, ref))
-            sha = body['head']['sha']
-        elif not sha:
-            resp, body = await gh_api('repos/%s/branches/%s' % (name, ref))
-            sha = body['commit']['sha']
-        return get_ctx(name, ref, sha, pr, **extend)
-
-
-def get_hook_ctx(headers, body, **extend):
-    event = headers.get('X-Github-Event')
-    if event == 'pull_request':
-        if body['action'] not in ('opened', 'reopened', 'synchronize'):
-            return {}
-        sha = body['pull_request']['head']['sha']
-        ref = body['number']
-        pr = True
-    elif event == 'push':
-        sha = body['after']
-        ref = body['ref']
-        pr = False
-    else:
-        return {}
-
-    # mean it has been deleted
-    if sha == '0000000000000000000000000000000000000000':
-        return {}
-
-    repo_name = body['repository']['full_name']
-    return get_ctx(repo_name, ref, sha, pr=pr, **extend)
-
-
-def get_ctx(repo_name, ref, sha, pr=False, **extend):
+async def get_ctx(repo_name, ref, sha, **extend):
     if repo_name.startswith('naspeh-sf'):
         # For testing purpose
         repo_name = repo_name.replace('naspeh-sf', 'superdesk')
@@ -93,17 +59,29 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
             'env': 'lxc_data=data-sd--tests'
         }
 
-    if pr:
-        env = ' repo_pr=%s repo_sha=%s' % (ref, sha)
-        name = ref
-        prefix += 'pr'
-    elif ref.startswith('refs/heads/'):
-        ref = ref.replace('refs/heads/', '')
-        prefix += ''
-        name = re.sub('[^a-z0-9]', '', ref)
-        env = 'repo_sha=%s repo_branch=%s' % (sha, ref)
+    if not sha:
+        resp, body = await gh_api('repos/%s/git/refs/%s' % (repo_name, ref))
+        if resp.status != 200:
+            log.warn('Wrong ref: %s', ref)
+            return {}
+        if isinstance(body, list):
+            # for PRs we can get two items "head" and "merge",
+            # "merge" goes last
+            body = body[-1]
+        sha = body['object']['sha']
+        # save 'ref' and strip 'refs/'
+        ref = body['ref'].split('/', 1)[-1]
 
-        rel = re.match('^v?(1\.[01234])(\..*)?', ref)
+    env = 'repo_ref=%s repo_sha=%s' % (ref, sha)
+    if ref.startswith('pull/'):
+        name = re.sub('[^0-9]', '', ref)
+        prefix += 'pr'
+    elif ref.startswith('heads/'):
+        prefix += ''
+        name = re.sub('^heads/', '', ref)
+        name = re.sub('[^a-z0-9]', '', name)
+
+        rel = re.match('^heads/v?(1\.[01234])(\..*)?', ref)
         if rel:
             env += ' repo_main_branch=1.0 repo_pair_branch=%s' % rel.group()
     else:
@@ -146,7 +124,7 @@ def get_ctx(repo_name, ref, sha, pr=False, **extend):
         clean=ctx.get('clean') and '--clean' or ''
     )
     os.makedirs(ctx['logpath'], exist_ok=True)
-    log.info(pretty_json(ctx))
+    log.info(utils.pretty_json(ctx))
     return ctx
 
 
@@ -154,7 +132,7 @@ async def gh_api(url, data=None):
     if not url.startswith('https://'):
         url = 'https://api.github.com/' + url
 
-    async with ClientSession(headers=gh_auth()) as s:
+    async with ClientSession(headers=utils.gh_auth()) as s:
         if data is None:
             method = 'GET'
         else:
@@ -196,16 +174,16 @@ async def post_status(ctx, state=None, extend=None, code=None, save_id=False):
 
     if ctx['no_statuses']:
         data['!'] = 'wasn\'t sent: %s' % ctx.get('build_status', 'skipped')
-        body = pretty_json(data)
+        body = utils.pretty_json(data)
         log.info('Local status:\n%s', body)
     else:
         resp, body = await gh_api(ctx['statuses_url'], data=data)
         if save_id:
             ctx['build_id'] = body.get('id')
-        body = pretty_json(body)
+        body = utils.pretty_json(body)
         log.info('Posted status: %s\n%s', resp.status, body)
         if resp.status != 201:
-            log.warn(pretty_json(data))
+            log.warn(utils.pretty_json(data))
     target = data['context'].replace(conf['status_prefix'], '')
     path = '{path}{target}-{state}.json'.format(
         path=ctx['logpath'],
@@ -372,10 +350,9 @@ async def www(ctx):
 
 async def post_restart_status(ctx, **kw):
     return await post_status(ctx, extend={
-        'target_url': get_restart_url(
-            Repo(ctx['repo_name']),
+        'target_url': utils.get_restart_url(
+            Repo(ctx['repo_name']).name,
             ctx['ref'],
-            ctx['prefix'].endswith('pr')
         ),
         'context': conf['status_prefix'] + '!restart',
         'description': 'Click "Details" to restart the build',
@@ -399,7 +376,7 @@ async def build(ctx):
             statuses.append(c)
             if complete and s['state'] != 'pending':
                 continue
-            log.info('Previous status: %s', pretty_json(s))
+            log.info('Previous status: %s', utils.pretty_json(s))
             status = {
                 'target_url': ctx['logurl'],
                 'context': c,

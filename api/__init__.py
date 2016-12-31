@@ -1,4 +1,3 @@
-import base64
 import json
 import logging
 from enum import Enum
@@ -54,26 +53,3 @@ def get_conf():
 
 
 conf = get_conf()
-
-
-def gh_auth():
-    b64auth = base64.b64encode(conf['github_auth'].encode()).decode()
-    headers = {'Authorization': 'Basic %s' % b64auth}
-    return headers
-
-
-def get_restart_url(prefix, ref, pr=False):
-    return (
-        'https://{domain}{base_url}/{prefix}/restart/{typ}/{ref}'
-        .format(
-            domain=conf['domain'],
-            base_url=conf['url_prefix'],
-            prefix=prefix,
-            typ='pr' if pr else 'br',
-            ref=ref
-        )
-    )
-
-
-def pretty_json(obj):
-    return json.dumps(obj, indent=2, sort_keys=True)

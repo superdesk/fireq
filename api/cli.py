@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import json
 import re
 import subprocess
@@ -6,7 +7,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from . import root, log, Repo, conf, gh_auth
+from . import root, log, Repo, conf, utils
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
@@ -46,14 +47,19 @@ def sh(cmd, params=None, ssh=None, exit=True):
     return code
 
 
-def build(short_name, ref, sha, pr=False, by_url=None, **opts):
-    from . import web, build
+def run_async(fn, *a, **kw):
+    loop = asyncio.get_event_loop()
+    result = loop.run_until_complete(fn(*a, **kw))
+    loop.close()
+    return result
 
+
+def build(short_name, ref, sha, by_url=None, **opts):
     only_web = opts.pop('only_web', None)
     only_checks = opts.pop('only_checks', None)
 
     if by_url:
-        url = build.get_restart_url(short_name, ref, pr)
+        url = utils.get_restart_url(short_name, ref)
         req = urllib.request.Request(url)
         try:
             resp = urllib.request.urlopen(req)
@@ -63,7 +69,12 @@ def build(short_name, ref, sha, pr=False, by_url=None, **opts):
         return
 
     async def run():
-        ctx = await build.get_restart_ctx(short_name, ref, sha, pr, **opts)
+        from . import build
+
+        ctx = await build.get_ctx(Repo[short_name].value, ref, sha, **opts)
+        if not ctx:
+            return 1
+
         target = None
         if only_checks:
             ctx['install'] = False
@@ -75,10 +86,7 @@ def build(short_name, ref, sha, pr=False, by_url=None, **opts):
 
         return await target(ctx)
 
-    ref = ref if pr else 'refs/heads/' + ref
-    loop = web.app.loop
-    code = loop.run_until_complete(run())
-    loop.close()
+    code = run_async(run)
     log.info(code)
     raise SystemExit(code)
 
@@ -89,33 +97,34 @@ def gh_request(path):
 
     if isinstance(req, dict):
         # TODO: remove it later
+        # this format was used at the begining
         return req['headers'], req['json']
     else:
         return req
 
 
 def gh_build(path, url):
-    from . import web
-
     headers, body = gh_request(path)
-    ctx = web.get_hook_ctx(headers, body, clean=True)
+    if url:
+        data = json.dumps(body, indent=2, sort_keys=True).encode()
+        headers['X-Hub-Signature'] = utils.get_signature(data)
+        headers['Content-Length'] = len(data)
+        req = urllib.request.Request(url, data, headers)
+        try:
+            resp = urllib.request.urlopen(req)
+            log.info('%s: %s', resp.status, resp.reason)
+        except Exception as e:
+            log.error(e)
 
-    if not url:
-        loop = web.app.loop
-        code = loop.run_until_complete(web.build(ctx))
-        loop.close()
-        log.info(code)
-        raise SystemExit(code)
+    async def run():
+        from . import web
 
-    data = json.dumps(body, indent=2, sort_keys=True).encode()
-    headers['X-Hub-Signature'] = web.get_signature(data)
-    headers['Content-Length'] = len(data)
-    req = urllib.request.Request(url, data, headers)
-    try:
-        resp = urllib.request.urlopen(req)
-        log.info('%s: %s', resp.status, resp.reason)
-    except Exception as e:
-        log.error(e)
+        ctx = await web.get_hook_ctx(headers, body, clean=True)
+        return await web.build(ctx)
+
+    code = run_async()
+    log.info(code)
+    raise SystemExit(code)
 
 
 def gh_clean():
@@ -184,7 +193,7 @@ def gh_api(url, exc=True):
     if not url.startswith('https://'):
         url = 'https://api.github.com/repos/' + url
     try:
-        req = urllib.request.Request(url, headers=gh_auth())
+        req = urllib.request.Request(url, headers=utils.gh_auth())
         res = urllib.request.urlopen(req)
         log.info('%s: %s', url, res.status)
         return json.loads(res.read().decode())
@@ -270,7 +279,6 @@ def main():
         .arg('short_name', choices=[i.name for i in Repo])\
         .arg('ref')\
         .arg('--sha')\
-        .arg('-p', '--pr', action='store_true')\
         .arg('-u', '--by-url', action='store_true')\
         .arg('-c', '--only-checks', action='store_true')\
         .arg('-w', '--only-web', action='store_true')\
@@ -279,7 +287,7 @@ def main():
         .arg('--statuses', action='store_true')\
         .arg('--e2e-chunks', type=int, default=conf['e2e_chunks'])\
         .exe(lambda a: build(
-            a.short_name, a.ref, a.sha, a.pr, a.by_url,
+            a.short_name, a.ref, a.sha, a.by_url,
             only_checks=a.only_checks,
             only_web=a.only_web,
             clean=a.clean,

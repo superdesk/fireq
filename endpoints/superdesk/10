@@ -1,6 +1,6 @@
 #!/bin/sh
 set -ex
 
-repo_branch=1.0
+repo_ref=heads/1.0
 
 . superdesk/master

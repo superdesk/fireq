@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import asyncio
-import hashlib
 import hmac
 import os
 import re
@@ -14,8 +13,8 @@ from aiohttp_session import get_session, session_middleware
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from pystache import render
 
-from . import log, conf, Repo, pretty_json, get_restart_url
-from .build import gh_api, get_restart_ctx, get_hook_ctx, build
+from . import log, conf, Repo, utils
+from .build import get_ctx, build, gh_api
 
 
 def get_app():
@@ -50,9 +49,17 @@ def get_app():
 
     prefix = '{prefix:(%s)}' % '|'.join(i.name for i in Repo)
     url(r'/%s' % prefix, repo)
-    url(r'/%s/restart/{typ:(pr|br)}/{ref:.+}' % prefix, restart)
+    url(r'/%s/{ref:.+}/restart' % prefix, restart)
 
     # TODO: keep it for a while
+    refs_prefix = {'pr': 'pull/', 'br': 'heads/'}
+    url(
+        r'/%s/restart/{typ:(pr|br)}/{ref:.+}' % prefix,
+        lambda r: web.HTTPFound(utils.get_restart_url(
+            r.match_info['prefix'],
+            refs_prefix[r.match_info['typ']] + r.match_info['ref']
+        ))
+    )
     url('/push/{p:.*}', lambda r: web.HTTPFound('/logs/' + r.match_info['p']))
     return app
 
@@ -120,10 +127,30 @@ async def logs(request):
     )
 
 
+async def get_hook_ctx(headers, body, **extend):
+    event = headers.get('X-Github-Event')
+    if event == 'pull_request':
+        if body['action'] not in ('opened', 'reopened', 'synchronize'):
+            return {}
+        ref = 'pull/' + body['number']
+    elif event == 'push':
+        sha = body['after']
+        ref = re.sub('^refs/', '', body['ref'])
+    else:
+        return {}
+
+    # mean it has been deleted
+    if sha == '0000000000000000000000000000000000000000':
+        return {}
+
+    repo_name = body['repository']['full_name']
+    return await get_ctx(repo_name, ref, sha, **extend)
+
+
 async def hook(request):
     body = await request.read()
     check_signature = hmac.compare_digest(
-        get_signature(body),
+        utils.get_signature(body),
         request.headers.get('X-Hub-Signature', '')
     )
     if not check_signature:
@@ -132,12 +159,12 @@ async def hook(request):
     body = await request.json()
     headers = dict(request.headers.items())
     del headers['X-Hub-Signature']
-    log.info('%s\n\n%s', pretty_json(headers), pretty_json(body))
-    ctx = get_hook_ctx(headers, body, clean=True)
+    log.info('%s\n\n%s', utils.pretty_json(headers), utils.pretty_json(body))
+    ctx = await get_hook_ctx(headers, body, clean=True)
     if ctx:
         os.makedirs(ctx['logpath'], exist_ok=True)
         with open(ctx['path'] + '/request.json', 'w') as f:
-            f.write(pretty_json([headers, body]))
+            f.write(utils.pretty_json([headers, body]))
         # async with async_open(ctx['path'] + '/request.json', 'w') as f:
         #     await f.write(pretty_json([headers, body]))
 
@@ -148,19 +175,15 @@ async def hook(request):
 async def restart(request):
     prefix = request.match_info['prefix']
     try:
-        Repo[prefix]
+        repo_name = Repo[prefix].value
     except KeyError:
         return web.HTTPNotFound()
 
-    typ = request.match_info['typ']
     ref = request.match_info['ref']
     sha = request.GET.get('sha')
     clean = request.GET.get('clean', False)
 
-    if typ == 'br':
-        ref = 'refs/heads/' + ref
-
-    ctx = await get_restart_ctx(prefix, ref, sha, typ == 'pr', clean=clean)
+    ctx = await get_ctx(repo_name, ref, sha, clean=clean)
     if not ctx:
         return web.HTTPBadRequest()
 
@@ -183,32 +206,30 @@ index_tpl = '''
 async def repo(request):
     prefix = request.match_info['prefix']
     try:
-        repo_name = Repo[prefix]
+        repo_name = Repo[prefix].value
     except KeyError:
         return web.HTTPNotFound()
 
-    def info(ctx, pr=False):
+    def info(name, pr=False):
+        ref = '%s/%s' % ('pull' if pr else 'heads', name)
         if pr:
-            name = ctx['number']
             subdomain = '%spr-%s' % (prefix, name)
-            gh_url = ctx['html_url']
         else:
-            name = ctx['name']
             name_cleaned = re.sub('[^a-z0-9]', '', name)
             subdomain = '%s-%s' % (prefix, name_cleaned)
-            gh_url = 'https://github.com/%s/tree/%s' % (repo_name, name)
+
         return {
             'name': name,
             'url': 'https://%s.%s' % (subdomain, conf['domain']),
-            'gh_url': gh_url,
-            'restart_url': get_restart_url(prefix, name, pr),
+            'gh_url': 'https://github.com/%s/tree/%s' % (repo_name, ref),
+            'restart_url': utils.get_restart_url(prefix, ref),
         }
 
     resp, body = await gh_api('repos/%s/pulls' % repo_name)
-    pulls = [info(i, True) for i in sorted(body, key=lambda i: i['number'])]
+    pulls = [info(i['number'], True) for i in body]
 
     resp, body = await gh_api('repos/%s/branches' % repo_name)
-    branches = [info(i) for i in sorted(body, key=lambda i: i['name'])]
+    branches = [info(i['name']) for i in body]
 
     ctx = {'pulls': pulls, 'branches': branches}
     return render_tpl(repo_tpl, ctx)
@@ -259,11 +280,6 @@ def render_tpl(tpl, ctx, status=200, content_type='text/html'):
     resp.content_type = content_type
     resp.set_status(status)
     return resp
-
-
-def get_signature(body):
-    sha1 = hmac.new(conf['secret'].encode(), body, hashlib.sha1).hexdigest()
-    return 'sha1=' + sha1
 
 
 app = get_app()

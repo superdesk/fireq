@@ -5,11 +5,12 @@ export DEBIAN_FRONTEND=noninteractive
 export DBUS_SESSION_BUS_ADDRESS=/dev/null
 export PATH=./node_modules/.bin/:$PATH
 
+root=$(pwd)
 name=${name:-liveblog}
 host=${host:-localhost}
 repo=/opt/$name
 repo_remote=${repo_remote:-'https://github.com/liveblog/liveblog.git'}
-repo_branch=${repo_branch:-'master'}
+repo_ref=${repo_ref:-'heads/master'}
 repo_pr=${repo_pr:-''}
 repo_sha=${repo_sha:-''}
 env=$repo/env
@@ -37,7 +38,7 @@ _envfile() {
     config=../etc/${name}.sh
     [ -f $config ] && . $config
 
-    . common/envfile.tpl > $envfile
+    . $root/common/envfile.tpl > $envfile
     echo "$(_envfile_append)" >> $envfile
     set -x
 
@@ -54,18 +55,8 @@ _repo() {
     git init
     git remote add origin $repo_remote
 
-    if [ -n "$repo_pr" ]; then
-        git fetch origin pull/$repo_pr/merge:$repo_pr \
-            || git fetch origin pull/$repo_pr/head:$repo_pr
-        # TODO: $repo_sha is head commit from PR,
-        # but we need usualy merge commit here,
-        # so checkout the last commit for now
-        # git checkout ${repo_sha:-$repo_pr}
-        git checkout $repo_pr
-    else
-        git fetch origin $repo_branch
-        git checkout ${repo_sha:-$repo_branch}
-    fi
+    git fetch origin $repo_ref:
+    git checkout ${repo_sha:-FETCH_HEAD}
 }
 
 _venv() {
@@ -82,7 +73,7 @@ _activate() {
 
 _supervisor_append() { :; }
 _supervisor() {
-    supervisor_tpl=${supervisor_tpl:-"common/supervisor.tpl"}
+    supervisor_tpl=${supervisor_tpl:-"$root/common/supervisor.tpl"}
 
     apt-get -y install supervisor
 
@@ -112,7 +103,7 @@ _repo_client() {
 
 _nginx_locations() { :; }
 _nginx() {
-    nginx_tpl=${nginx_tpl:-"common/nginx.tpl"}
+    nginx_tpl=${nginx_tpl:-"$root/common/nginx.tpl"}
     nginx_ssl=$([ -n "$nginx_ssl" ] && echo 's' || echo '')
     nginx_static="$(_repo_client)/dist"
 
@@ -124,7 +115,7 @@ _nginx() {
     apt-get -y install nginx
 
     path=/etc/nginx/conf.d
-    cp common/nginx-params.conf $path/params.conf
+    cp $root/common/nginx-params.conf $path/params.conf
     echo "$(_nginx_locations)" > $path/locations
     . $nginx_tpl > $path/default.conf
 

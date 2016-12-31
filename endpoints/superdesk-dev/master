@@ -1,7 +1,7 @@
 #!/bin/bash
-
 action=true . superdesk/master
 
+root=$(pwd)
 repo_backend=${repo_backend:-"$repo/server"}
 
 _es_wait() {
@@ -118,7 +118,7 @@ _checks_init() {
     _db_init
 
     path=/etc/supervisor/conf.d/${name}.conf
-    . superdesk-dev/supervisor.tpl > $path
+    . $root/superdesk-dev/supervisor.tpl > $path
     systemctl restart supervisor
 }
 
