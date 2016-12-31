@@ -1,7 +1,8 @@
 import argparse
 import asyncore
+import datetime as dt
+import random
 import smtpd
-import time
 from email.parser import Parser
 from pathlib import Path
 
@@ -20,9 +21,13 @@ class Server(smtpd.SMTPServer, object):
     def process_message(self, peer, mailfrom, rcpttos, data):
         msg = Parser().parsestr(data)
         subject = msg['subject']
-        msgid = msg['message-id'].strip('<>')
-        name = '%s:%s:%s:%s.log' % (time.time(), rcpttos[0], subject, msgid)
+        name = (
+            '{0:%Y%V/%H%M%S}:{1}:{2}.log'.
+            format(dt.datetime.now(), random.randint(0, 9), rcpttos[0])
+        )
+        log.info('filename=%r to=%r subject=%r', name, rcpttos, subject)
         email = self._path / name
+        email.parent.mkdir(exist_ok=True)
         email.write_text(data)
 
 
