@@ -187,7 +187,7 @@ do_backend() {
 
 do_prepopulate() {
     [ -z "$lxc_data" ] && return 0
-    curl -sI $lxc_data/$db_name | grep 404 || return 0
+    curl -sI $lxc_data:9200/$db_name | grep 404 || return 0
 
     cd $repo/server
 

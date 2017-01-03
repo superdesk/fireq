@@ -65,17 +65,16 @@ async def get_ctx(repo_name, ref, sha, **extend):
             log.warn('Wrong ref: %s', ref)
             return {}
         if isinstance(body, list):
-            # for PRs we can get two items "head" and "merge",
-            # "merge" goes last
-            body = body[-1]
-        sha = body['object']['sha']
-        # save 'ref' and strip 'refs/'
-        ref = body['ref'].split('/', 1)[-1]
+            sha = body[0]['object']['sha']
+        else:
+            sha = body['object']['sha']
 
     env = 'repo_ref=%s repo_sha=%s' % (ref, sha)
     if ref.startswith('pull/'):
         name = re.sub('[^0-9]', '', ref)
         prefix += 'pr'
+        env += ' repo_pr=1'
+
     elif ref.startswith('heads/'):
         prefix += ''
         name = re.sub('^heads/', '', ref)

@@ -11,8 +11,8 @@ host=${host:-localhost}
 repo=/opt/$name
 repo_remote=${repo_remote:-'https://github.com/liveblog/liveblog.git'}
 repo_ref=${repo_ref:-'heads/master'}
-repo_pr=${repo_pr:-''}
 repo_sha=${repo_sha:-''}
+repo_pr=${repo_pr:-''}
 env=$repo/env
 envfile=$repo/envfile
 action=${action:-do_install}
@@ -55,8 +55,14 @@ _repo() {
     git init
     git remote add origin $repo_remote
 
-    git fetch origin $repo_ref:
-    git checkout ${repo_sha:-FETCH_HEAD}
+    if [ -n "$repo_pr" ]; then
+        git fetch origin $repo_ref/merge: || git fetch origin $repo_ref/head:
+        # TODO: use latest sha for now
+        git checkout FETCH_HEAD
+    else
+        git fetch origin $repo_ref:
+        git checkout ${repo_sha:-FETCH_HEAD}
+    fi
 }
 
 _venv() {

@@ -132,7 +132,8 @@ async def get_hook_ctx(headers, body, **extend):
     if event == 'pull_request':
         if body['action'] not in ('opened', 'reopened', 'synchronize'):
             return {}
-        ref = 'pull/' + body['number']
+        ref = 'pull/%s' % body['number']
+        sha = body['pull_request']['head']['sha']
     elif event == 'push':
         sha = body['after']
         ref = re.sub('^refs/', '', body['ref'])
