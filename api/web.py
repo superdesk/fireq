@@ -85,7 +85,7 @@ async def auth_middleware(app, handler):
         req.close()
         users = []
         for org in conf['github_orgs']:
-            _, resp = await gh_api('orgs/%s/members' % org)
+            _, resp = await gh_api('orgs/%s/members?per_page=100' % org)
             users.extend(u['login'] for u in resp)
         if user.get('login') in users:
             session['login'] = user.get('login')
