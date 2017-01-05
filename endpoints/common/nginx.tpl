@@ -29,7 +29,11 @@ server {
 
     location / {
         root ${nginx_static};
-        expires max;
+
+        sub_filter_once off;
+        sub_filter_types application/javascript;
+        sub_filter 'http://localhost:5000' 'http${nginx_ssl}://\$host';
+        sub_filter 'ws://localhost:5100' 'ws${nginx_ssl}://\$host/ws';
     }
 }
 EOF

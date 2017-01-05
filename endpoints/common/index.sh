@@ -128,8 +128,6 @@ _nginx() {
 
     cd $nginx_static
     sed -i \
-        -e "s|http://localhost:5000|https://$host|" \
-        -e "s|ws://localhost:5100|wss://$host/ws|" \
         -e 's|iframely:{key:""}|iframely:{key:"'$IFRAMELY_KEY'"}|' \
         -e 's|raven:{dsn:""}|raven:{dsn:"'$SENTRY_DSN_PUBLIC'"}|' \
         app.bundle.*.js

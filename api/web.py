@@ -242,6 +242,7 @@ repo_tpl = '''
         <a href="{{url}}">{{name}}</a>
         <a href="{{gh_url}}" title="Github">[gh]</a>
         <a href="{{restart_url}}" style="color:red" title="Restart">[r]</a>
+        <a href="{{restart_url}}?clean=1" title="Clean and Restart">[cr]</a>
     </li>
 {{/pulls}}
 </ul>
@@ -253,6 +254,7 @@ repo_tpl = '''
         <a href="{{url}}">{{name}}</a>
         <a href="{{gh_url}}" title="Github">[gh]</a>
         <a href="{{restart_url}}" style="color:red" title="Restart">[r]</a>
+        <a href="{{restart_url}}?clean=1" title="Clean and Restart">[cr]</a>
     </li>
 {{/branches}}
 </ul>
