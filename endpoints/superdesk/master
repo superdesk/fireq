@@ -9,7 +9,7 @@ repo_remote=${repo_remote:-https://github.com/superdesk/superdesk.git}
 _envfile_append() {
     cat <<EOF
 # Superdesk custom
-SECRET_KEY=${SECRET_KEY-"$(python -c 'import uuid; print(uuid.uuid4())')"}
+SECRET_KEY=${SECRET_KEY-"$(python3 -c 'import uuid; print(uuid.uuid4())')"}
 REUTERS_USERNAME=${REUTERS_USERNAME-''}
 REUTERS_PASSWORD=${REUTERS_PASSWORD-''}
 EOF
