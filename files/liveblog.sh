@@ -1,5 +1,5 @@
-#!/bin/sh -e
-
+#!/bin/sh
+set -e
 repo=/opt/superdesk-deploy
 
 apt-get update
