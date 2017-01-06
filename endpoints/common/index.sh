@@ -130,7 +130,7 @@ _nginx() {
     sed -i \
         -e 's|iframely:{key:""}|iframely:{key:"'$IFRAMELY_KEY'"}|' \
         -e 's|raven:{dsn:""}|raven:{dsn:"'$SENTRY_DSN_PUBLIC'"}|' \
-        app.bundle.*.js
+        app.bundle.*
 
     systemctl enable nginx
     systemctl restart nginx

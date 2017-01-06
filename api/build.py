@@ -82,7 +82,7 @@ async def get_ctx(repo_name, ref, sha, **extend):
 
         rel = re.match('^heads/v?(1\.[01234])(\..*)?', ref)
         if rel:
-            env += ' repo_main_branch=1.0 repo_pair_branch=%s' % rel.group()
+            env += ' repo_main_branch=1.0 repo_pair_branch=%s' % rel.group(1)
     else:
         log.info('Skip repo_name=%s ref=%s', repo_name, ref)
         return {}
