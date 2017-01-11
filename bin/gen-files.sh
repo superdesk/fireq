@@ -16,4 +16,7 @@ endpoint=superdesk/10
 endpoint=liveblog/master
 . bin/install.tpl > $path/liveblog.sh
 
+endpoint=liveblog/devel
+. bin/install.tpl > $path/liveblog-devel.sh
+
 chmod +x $path/*

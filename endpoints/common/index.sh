@@ -20,7 +20,8 @@ action=${action:-do_install}
 _envfile_append() {
     cat <<EOF
 # Liveblog custom
-S3_THEMES_PREFIX=
+S3_THEMES_PREFIX=${S3_THEMES_PREFIX:-"/$(hostname)/"}
+EMBEDLY_KEY=${EMBEDLY_KEY:-}
 EOF
 }
 
@@ -35,8 +36,8 @@ _envfile() {
     ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"${db_name}"}
     CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${ELASTICSEARCH_INDEX}_ca"}
 
+    config=$root/../etc/${name}.sh
     set +x
-    config=../etc/${name}.sh
     [ -f $config ] && . $config
 
     . $root/common/envfile.tpl > $envfile
@@ -126,12 +127,6 @@ _nginx() {
     echo "$(_nginx_locations)" > $path/locations
     . $nginx_tpl > $path/default.conf
 
-    cd $nginx_static
-    sed -i \
-        -e 's|iframely:{key:""}|iframely:{key:"'$IFRAMELY_KEY'"}|' \
-        -e 's|raven:{dsn:""}|raven:{dsn:"'$SENTRY_DSN_PUBLIC'"}|' \
-        app.bundle.*
-
     systemctl enable nginx
     systemctl restart nginx
 }
@@ -154,6 +149,8 @@ do_backend() {
     _venv
     cd $repo/server
     pip install -U -r requirements.txt
+    # fix celery
+    # pip install 'celery[redis]>=3.1.18,<4'
 }
 
 do_frontend() {
@@ -172,7 +169,11 @@ do_prepopulate() {
     _activate
     cd $repo/server
     python manage.py app:initialize_data
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin true
+
+    # for master it should be '--admin=true' for devel just '--admin'
+    python manage.py users:create --help | grep -- '-a ADMIN' && admin='--admin=true' || admin='--admin'
+    python manage.py users:create -u admin -p admin -e 'admin@example.com' $admin
+
     python manage.py register_local_themes
 }
 

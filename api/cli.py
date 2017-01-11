@@ -153,13 +153,14 @@ def gh_clean():
     sh('\n%s;\n./fire nginx' % cmd)
 
 
-def update_nginx(path, ssl=False, live=False):
+def update_nginx(path, names=None, ssl=False, live=False):
     cmd = ''
-    names = [name for name in lxc_ls(www=True)]
-
-    if ssl:
+    if not names:
+        names = [name for name in lxc_ls(www=True)]
         # move sd-master, the first name uses for cert filename
         names.insert(0, names.pop(names.index('sd-master')))
+
+    if ssl:
         domains = ','.join('%s.%s' % (n, conf['domain']) for n in names)
         staging = (
             '' if live
@@ -306,9 +307,10 @@ def main():
 
     cmd('nginx', help='update nginx config')\
         .arg('-p', '--path', default='/etc/nginx/sites-enabled/sd')\
+        .arg('-n', '--name', action='append')\
         .arg('--ssl', action='store_true')\
         .arg('--live', action='store_true')\
-        .exe(lambda a: update_nginx(a.path, a.ssl, a.live))
+        .exe(lambda a: update_nginx(a.path, a.name, a.ssl, a.live))
 
     cmd('gen-files')\
         .exe(lambda a: sh('bin/gen-files.sh'))
