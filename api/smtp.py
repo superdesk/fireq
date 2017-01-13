@@ -21,14 +21,16 @@ class Server(smtpd.SMTPServer, object):
     def process_message(self, peer, mailfrom, rcpttos, data):
         msg = Parser().parsestr(data)
         subject = msg['subject']
-        name = (
-            '{0:%Y%V/%H%M%S}:{1}:{2}.log'.
-            format(dt.datetime.now(), random.randint(0, 9), rcpttos[0])
-        )
-        log.info('filename=%r to=%r subject=%r', name, rcpttos, subject)
-        email = self._path / name
-        email.parent.mkdir(exist_ok=True)
-        email.write_text(data)
+        log.info('to=%r subject=%r', rcpttos, subject)
+        for addr in rcpttos:
+            name = (
+                '{0:%Y%V/%w-%H%M%S}-{1:03d}-{2}.log'
+                .format(dt.datetime.now(), random.randint(0, 999), addr)
+            )
+            log.info('filename=%r to=%r subject=%r', name, addr, subject)
+            email = self._path / name
+            email.parent.mkdir(exist_ok=True)
+            email.write_text(data)
 
 
 if __name__ == '__main__':

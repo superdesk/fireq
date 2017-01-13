@@ -270,7 +270,7 @@ async def run_target(ctx, target):
         parent = target['parent']
         env = target['env']
         target = target['target']
-        ctx['no_statuses'] = True
+        # ctx['no_statuses'] = True
     else:
         parent, env = target, ''
 
@@ -343,7 +343,9 @@ async def www(ctx):
 
     if code == 0:
         status['target_url'] = 'https://%s.%s' % (ctx['name'], conf['domain'])
-    await post_status(ctx, code=code, extend=status)
+    await post_status(ctx, code=code, extend=dict(
+        status, description='Click "Details" to see the test instance'
+    ))
     return code
 
 
