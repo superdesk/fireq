@@ -215,14 +215,16 @@ async def repo(request):
         ref = '%s/%s' % ('pull' if pr else 'heads', name)
         if pr:
             subdomain = '%spr-%s' % (prefix, name)
+            gh_url = 'https://github.com/%s/pull/%s' % (repo_name, name)
         else:
             name_cleaned = re.sub('[^a-z0-9]', '', name)
             subdomain = '%s-%s' % (prefix, name_cleaned)
+            gh_url = 'https://github.com/%s/tree/%s' % (repo_name, ref)
 
         return {
             'name': name,
+            'gh_url': gh_url,
             'url': 'https://%s.%s' % (subdomain, conf['domain']),
-            'gh_url': 'https://github.com/%s/tree/%s' % (repo_name, ref),
             'restart_url': utils.get_restart_url(prefix, ref),
         }
 
