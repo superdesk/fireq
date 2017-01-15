@@ -12,6 +12,10 @@ _activate() {
     . /opt/superdesk/env/bin/activate
     set -ux
 }
+
+_skip_install() {
+    dpkg -l $1 && [ -z "" ] && true
+}
 locale-gen en_US.UTF-8
 
 apt-get -y install --no-install-recommends \
@@ -55,9 +59,14 @@ time pip install -U -r requirements.txt
 
 
 ### Client part
-# node & npm
-curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
-apt-get install -y nodejs
+### node & npm
+add() {
+    _skip_install nodejs && return 0
+    curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
+    apt-get install -y nodejs
+}
+add
+
 [ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
 npm --version
 node --version
@@ -79,12 +88,19 @@ grunt build --force
 
 
 ### mongod
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
-echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" \
-    > /etc/apt/sources.list.d/mongodb-org-3.2.list
+add() {
+    _skip_install mongodb-org-server && return 0
 
-apt-get -y update
-apt-get -y install --no-install-recommends mongodb-org-server
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
+    echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" \
+        > /etc/apt/sources.list.d/mongodb-org-3.2.list
+
+    apt-get -y update
+    apt-get -y install --no-install-recommends mongodb-org-server
+
+    systemctl enable mongod
+}
+add
 
 # tune mongo
 config=/etc/mongod.conf
@@ -105,20 +121,34 @@ net:
   port: 27017
   bindIp: 0.0.0.0
 EOF
-
-systemctl enable mongod
 systemctl restart mongod
 
 
 ### elasticsearch
-wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-echo "deb http://packages.elastic.co/elasticsearch/1.7/debian stable main" \
-    > /etc/apt/sources.list.d/elastic.list
+wait_elastic() {
+    elastic=0
+    while [ $elastic -eq 0 ]
+    do
+        curl -s "http://localhost:9200" 2>&1 > /dev/null \
+            && elastic=1 \
+            || echo "waiting for elastic..."
+        sleep 1
+    done
+}
+add() {
+    _skip_install elasticsearch && return 0
+    wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+    echo "deb http://packages.elastic.co/elasticsearch/1.7/debian stable main" \
+        > /etc/apt/sources.list.d/elastic.list
 
-apt-get -y update
-apt-get -y install --no-install-recommends \
-    openjdk-8-jre-headless \
-    elasticsearch
+    apt-get -y update
+    apt-get -y install --no-install-recommends \
+        openjdk-8-jre-headless \
+        elasticsearch
+
+    systemctl enable elasticsearch
+}
+add
 
 # tune elasticsearch
 config='/etc/elasticsearch/elasticsearch.yml'
@@ -128,18 +158,21 @@ network.bind_host: 0.0.0.0
 node.local: true
 discovery.zen.ping.multicast: false
 EOF
-
-systemctl enable elasticsearch
 systemctl restart elasticsearch
+wait_elastic
 
 
 ### redis
-apt-get -y install software-properties-common
-add-apt-repository -y ppa:chris-lea/redis-server
-apt-get -y install --no-install-recommends redis-server
+add() {
+    _skip_install redis-server && return 0
+    apt-get -y install software-properties-common
+    add-apt-repository -y ppa:chris-lea/redis-server
+    apt-get -y install --no-install-recommends redis-server
 
-systemctl enable redis-server
-systemctl restart redis-server
+    systemctl enable redis-server
+    systemctl restart redis-server
+}
+add
 
 
 envfile=/opt/superdesk/env.sh
@@ -234,25 +267,20 @@ sed -i \
 unset dist_orig dist
 
 
-### prepopulate
-cd /opt/superdesk/server
-[ -z "${sample_data:-1}" ] || sample_data='--sample-data'
-python manage.py app:initialize_data --help | grep -- --sample-data && sample_data=$sample_data || sample_data=
-
-python manage.py app:initialize_data $sample_data
-python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
-
-
 ### nginx
-wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
-echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
-    > /etc/apt/sources.list.d/nginx.list
+add() {
+    _skip_install nginx && return 0
+    wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
+    echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
+        > /etc/apt/sources.list.d/nginx.list
 
-apt-get -y update
-apt-get -y install nginx
+    apt-get -y update
+    apt-get -y install nginx
 
-systemctl enable nginx
-systemctl restart nginx
+    systemctl enable nginx
+    systemctl restart nginx
+}
+add
 
 path=/etc/nginx/conf.d
 cat << "EOF" > $path/params.conf
@@ -336,13 +364,18 @@ nginx -s reload
 
 
 ### supervisor
-apt-get -y install supervisor
+add() {
+    _skip_install supervisor && return 0
+    apt-get -y install supervisor
 
-logs=/var/log/superdesk
-[ -d $logs ] || mkdir $logs
+    systemctl enable supervisor
+    systemctl restart supervisor
+    sleep 1
+}
+add
 
-path=/etc/supervisor/conf.d/superdesk.conf
-cat << "EOF" > $path
+[ -d /var/log/superdesk ] || mkdir /var/log/superdesk
+cat << "EOF" > /etc/supervisor/conf.d/superdesk.conf
 [program:rest]
 command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 wsgi'
 autostart=true
@@ -388,6 +421,13 @@ stdout_logfile=/var/log/superdesk/capi.log
 redirect_stderr=true
 directory=/opt/superdesk/server
 EOF
+supervisorctl update
 
-systemctl enable supervisor
-systemctl restart supervisor
+
+### prepopulate
+cd /opt/superdesk/server
+[ -z "${sample_data:-1}" ] || sample_data='--sample-data'
+python manage.py app:initialize_data --help | grep -- --sample-data && sample_data=$sample_data || sample_data=
+
+python manage.py app:initialize_data $sample_data
+python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin

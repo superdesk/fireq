@@ -30,6 +30,7 @@ def main():
         host = 'localhost'
         logs = '/var/log/%s' % name
         config = '/etc/%s.sh' % name
+        pkg_upgrade = ''
         return locals()
 
     for target in ['build', 'deploy', 'install']:

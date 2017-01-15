@@ -27,40 +27,7 @@ sed -i \
 unset dist_orig dist
 
 
-### prepopulate
-cd {{repo_server}}
-[ -z "${sample_data:-1}" ] || sample_data='--sample-data'
-python manage.py app:initialize_data --help | grep -- --sample-data && sample_data=$sample_data || sample_data=
-
-python manage.py app:initialize_data $sample_data
-python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
-
-
-### nginx
 {{>add-nginx.sh}}
 
-path=/etc/nginx/conf.d
-cat << "EOF" > $path/params.conf
-{{>nginx-params.conf}}
-EOF
 
-cat << EOF > $path/default.conf
-{{>nginx.conf}}
-EOF
-unset path
-nginx -s reload
-
-
-### supervisor
-apt-get -y install supervisor
-
-logs=/var/log/{{name}}
-[ -d $logs ] || mkdir $logs
-
-path=/etc/supervisor/conf.d/{{name}}.conf
-cat << "EOF" > $path
-{{>supervisor.conf}}
-EOF
-
-systemctl enable supervisor
-systemctl restart supervisor
+{{>add-supervisor.sh}}

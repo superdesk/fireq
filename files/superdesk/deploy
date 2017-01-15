@@ -12,6 +12,10 @@ _activate() {
     . /opt/superdesk/env/bin/activate
     set -ux
 }
+
+_skip_install() {
+    dpkg -l $1 && [ -z "" ] && true
+}
 envfile=/opt/superdesk/env.sh
 [ -f $envfile ] || cat << "EOF" > $envfile
 LANG=en_US.UTF-8
@@ -104,25 +108,20 @@ sed -i \
 unset dist_orig dist
 
 
-### prepopulate
-cd /opt/superdesk/server
-[ -z "${sample_data:-1}" ] || sample_data='--sample-data'
-python manage.py app:initialize_data --help | grep -- --sample-data && sample_data=$sample_data || sample_data=
-
-python manage.py app:initialize_data $sample_data
-python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
-
-
 ### nginx
-wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
-echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
-    > /etc/apt/sources.list.d/nginx.list
+add() {
+    _skip_install nginx && return 0
+    wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
+    echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
+        > /etc/apt/sources.list.d/nginx.list
 
-apt-get -y update
-apt-get -y install nginx
+    apt-get -y update
+    apt-get -y install nginx
 
-systemctl enable nginx
-systemctl restart nginx
+    systemctl enable nginx
+    systemctl restart nginx
+}
+add
 
 path=/etc/nginx/conf.d
 cat << "EOF" > $path/params.conf
@@ -206,13 +205,18 @@ nginx -s reload
 
 
 ### supervisor
-apt-get -y install supervisor
+add() {
+    _skip_install supervisor && return 0
+    apt-get -y install supervisor
 
-logs=/var/log/superdesk
-[ -d $logs ] || mkdir $logs
+    systemctl enable supervisor
+    systemctl restart supervisor
+    sleep 1
+}
+add
 
-path=/etc/supervisor/conf.d/superdesk.conf
-cat << "EOF" > $path
+[ -d /var/log/superdesk ] || mkdir /var/log/superdesk
+cat << "EOF" > /etc/supervisor/conf.d/superdesk.conf
 [program:rest]
 command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 wsgi'
 autostart=true
@@ -258,6 +262,4 @@ stdout_logfile=/var/log/superdesk/capi.log
 redirect_stderr=true
 directory=/opt/superdesk/server
 EOF
-
-systemctl enable supervisor
-systemctl restart supervisor
+supervisorctl update

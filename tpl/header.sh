@@ -12,3 +12,7 @@ _activate() {
     . {{repo_env}}/bin/activate
     set -ux
 }
+
+_skip_install() {
+    dpkg -l $1 && [ -z "{{pkg_upgrade}}" ] && true
+}
