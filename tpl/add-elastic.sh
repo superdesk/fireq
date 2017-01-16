@@ -27,6 +27,7 @@ add
 # tune elasticsearch
 config='/etc/elasticsearch/elasticsearch.yml'
 [ -f "${config}.bak" ] || mv $config $config.bak
+{{^db_optimize}}
 cat << EOF > $config
 network.bind_host: 0.0.0.0
 node.local: true
@@ -34,3 +35,32 @@ discovery.zen.ping.multicast: false
 EOF
 systemctl restart elasticsearch
 wait_elastic
+{{/db_optimize}}
+{{#db_optimize}}
+es_backups=/tmp/es-backups
+if [ ! -d "$es_backups" ]; then
+    mkdir $es_backups
+    chown elasticsearch:elasticsearch $es_backups
+fi
+echo 'log4j.rootLogger=OFF' > /etc/elasticsearch/logging.yml
+cat << EOF > $config
+network.bind_host: 0.0.0.0
+node.local: true
+discovery.zen.ping.multicast: false
+path.repo: $es_backups
+
+index.refresh_interval: 30s
+index.store.type: memory
+index.number_of_replicas: 0
+
+# Next setting break behave tests
+# index.number_of_shards: 1
+EOF
+
+systemctl restart elasticsearch
+wait_elastic
+curl -XPUT 'http://localhost:9200/_snapshot/backups' \
+    -d '{"type": "fs", "settings": {"location": "'$es_backups'"}}'
+unset es_backups
+{{/db_optimize}}
+unset config

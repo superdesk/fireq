@@ -14,3 +14,4 @@ cat << "EOF" > /etc/supervisor/conf.d/{{name}}.conf
 {{>supervisor.conf}}
 EOF
 supervisorctl update
+supervisorctl restart all

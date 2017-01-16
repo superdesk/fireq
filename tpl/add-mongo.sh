@@ -16,6 +16,7 @@ add
 # tune mongo
 config=/etc/mongod.conf
 [ -f "${config}.bak" ] || mv $config $config.bak
+{{^db_optimize}}
 cat << EOF > $config
 storage:
   dbPath: /var/lib/mongodb
@@ -32,4 +33,21 @@ net:
   port: 27017
   bindIp: 0.0.0.0
 EOF
+{{/db_optimize}}
+{{#db_optimize}}
+# path=/tmp/mongodb
+# [ -d $path ] || mkdir $path
+# chown mongodb:mongodb $path
+cat << EOF > $config
+storage:
+  dbPath: /var/lib/mongodb
+  journal:
+    enabled: false
+  engine: wiredTiger
+
+net:
+  port: 27017
+  bindIp: 0.0.0.0
+EOF
+{{/db_optimize}}
 systemctl restart mongod

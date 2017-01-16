@@ -1,4 +1,4 @@
-envfile={{repo}}/env.sh
+envfile={{repo_env}}.sh
 [ -f $envfile ] || cat << "EOF" > $envfile
 {{>env.sh}}
 EOF

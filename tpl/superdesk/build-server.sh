@@ -3,6 +3,7 @@
 env={{repo_env}}
 [ -d $env ] && rm -rf $env
 python3 -m venv $env
+echo 'export PATH=./node_modules/.bin/:$PATH' >> $env/bin/activate
 unset env
 
 _activate

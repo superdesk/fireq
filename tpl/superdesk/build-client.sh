@@ -1,6 +1,7 @@
 ### Client part
 {{>add-node.sh}}
 
+echo $PATH
 cd {{repo_client}}
 npm install grunt-cli
 time npm install

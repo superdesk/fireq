@@ -1,11 +1,11 @@
 #!/bin/bash
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -exuo pipefail
-IFS=$'\n\t'
+#IFS=$'\n\t'
 
-export DEBIAN_FRONTEND=noninteractive
-export DBUS_SESSION_BUS_ADDRESS=/dev/null
 export PATH=./node_modules/.bin/:$PATH
+DEBIAN_FRONTEND=noninteractive
+DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
@@ -35,13 +35,14 @@ if [ ! -d $repo ]; then
 else
     cd $repo
 fi
-unset repo
 
-cd /opt/superdesk
+cd $repo
+repo_ref=heads/master
 repo_sha=
-git fetch origin heads/master:
+git fetch origin $repo_ref:
 git checkout ${repo_sha:-FETCH_HEAD}
 unset repo_sha
+unset repo repo_ref
 
 
 ### Server part
@@ -49,6 +50,7 @@ unset repo_sha
 env=/opt/superdesk/env
 [ -d $env ] && rm -rf $env
 python3 -m venv $env
+echo 'export PATH=./node_modules/.bin/:$PATH' >> $env/bin/activate
 unset env
 
 _activate
@@ -71,6 +73,7 @@ add
 npm --version
 node --version
 
+echo $PATH
 cd /opt/superdesk/client
 npm install grunt-cli
 time npm install
