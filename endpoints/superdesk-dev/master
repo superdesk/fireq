@@ -240,6 +240,16 @@ do_www() {
         -e 's|raven:{dsn:""}|raven:{dsn:"'$SENTRY_DSN_PUBLIC'"}|' \
         app.bundle.*
 
+    # custom config.js
+    configjs=(./config.*.js)
+    [ -f $configjs ] && cat <<EOF > $configjs
+window.superdeskConfig = {
+    features: {
+        swimlane: {columnsLimit: 4},
+        editor3: true
+    }
+};
+EOF
     nginx_ssl=1 _nginx
 
     _log_mails
