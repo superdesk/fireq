@@ -1,6 +1,6 @@
 envfile={{repo_env}}.sh
 [ -f $envfile ] || cat << "EOF" > $envfile
-{{>env.sh}}
+{{>deploy-env.sh}}
 EOF
 
 config={{config}}

@@ -20,6 +20,7 @@ def render_tpl(tpl, ctx, search_dirs=None):
 
 def render(name, *, search_dirs=None, expand=None):
     def get_ctx():
+        dev = False
         is_pr = False
         name = 'superdesk'
         repo = '/opt/%s' % name
@@ -67,7 +68,7 @@ def main():
         ]
         if len(target) == 2:
             scope, name = target
-            search_dirs = ['tpl/superdesk-dev', 'tpl/%s' % scope] + search_dirs
+            search_dirs.insert(0, 'tpl/%s' % scope)
         else:
             scope, name = None, target[0]
 
@@ -75,6 +76,7 @@ def main():
         if scope == 'superdesk-server':
             repo = '/opt/superdesk/server-core'
             expand = {
+                'dev': True,
                 'repo_core': repo,
                 'repo_server': repo,
                 'db_optimize': True,
@@ -82,6 +84,7 @@ def main():
         elif scope == 'superdesk-client':
             repo = '/opt/superdesk/client-core'
             expand = {
+                'dev': True,
                 'repo_core': repo,
                 'repo_client': repo,
                 'repo_server': '%s/test-server' % repo,
