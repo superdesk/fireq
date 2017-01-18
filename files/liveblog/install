@@ -9,7 +9,7 @@ DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    . /opt/superdesk/env/bin/activate
+    . /opt/liveblog/env/bin/activate
     set -ux
 }
 
@@ -26,12 +26,12 @@ libfreetype6-dev liblcms2-dev libwebp-dev \
 curl libfontconfig libssl-dev
 
 
-repo=/opt/superdesk
+repo=/opt/liveblog
 if [ ! -d $repo ]; then
     mkdir $repo
     cd $repo
     git init
-    git remote add origin https://github.com/superdesk/superdesk.git
+    git remote add origin https://github.com/liveblog/liveblog.git
 else
     cd $repo
 fi
@@ -47,7 +47,7 @@ unset repo repo_ref
 
 ### Server part
 # init virtualenv
-env=/opt/superdesk/env
+env=/opt/liveblog/env
 [ -d $env ] && rm -rf $env
 python3 -m venv $env
 echo 'export PATH=./node_modules/.bin/:$PATH' >> $env/bin/activate
@@ -56,7 +56,7 @@ unset env
 _activate
 pip install -U pip wheel
 
-cd /opt/superdesk/server
+cd /opt/liveblog/server
 time pip install -U -r requirements.txt
 
 
@@ -74,12 +74,12 @@ npm --version
 node --version
 
 echo $PATH
-cd /opt/superdesk/client
-npm install grunt-cli
+cd /opt/liveblog/client
+npm i grunt-cli
+npm i bower
 time npm install
+time bower --allow-root install
 
-# TODO: maybe remove "--force" later
-# vars are used in "webpack.config.js"
 # export VIEW_DATE_FORMAT='<VIEW_DATE_FORMAT>'
 # export VIEW_TIME_FORMAT='<VIEW_TIME_FORMAT>'
 time \
@@ -87,6 +87,7 @@ SUPERDESK_URL='<SUPERDESK_URL>' \
 SUPERDESK_WS_URL='<SUPERDESK_WS_URL>' \
 SUPERDESK_RAVEN_DSN='<RAVEN_DSN>' \
 IFRAMELY_KEY='<IFRAMELY_KEY>' \
+EMBEDLY_KEY='<EMBEDLY_KEY>' \
 grunt build --force
 
 
@@ -179,7 +180,7 @@ add() {
 add
 
 
-envfile=/opt/superdesk/env.sh
+envfile=/opt/liveblog/env.sh
 [ -f $envfile ] || cat << "EOF" > $envfile
 LANG=en_US.UTF-8
 LANGUAGE=en_US:en
@@ -201,13 +202,13 @@ SUPERDESK_URL=${SUPERDESK_URL:-"http$SSL://$HOST/api"}
 CONTENTAPI_URL=${CONTENTAPI_URL:-"http$SSL://$HOST/contentapi"}
 
 
-MONGO_URI=${MONGO_URI:-"mongodb://localhost/superdesk"}
-LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://localhost/superdesk_la"}
-ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://localhost/superdesk_ar"}
-CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"mongodb://localhost/superdesk_pa"}
+MONGO_URI=${MONGO_URI:-"mongodb://localhost/liveblog"}
+LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://localhost/liveblog_la"}
+ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://localhost/liveblog_ar"}
+CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"mongodb://localhost/liveblog_pa"}
 ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://localhost:9200"}
-ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"superdesk"}
-CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"superdesk_capi"}
+ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"liveblog"}
+CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"liveblog_capi"}
 # TODO: fix will be in 1.6 release, keep it for a while
 CONTENTAPI_ELASTIC_INDEX=$CONTENTAPI_ELASTICSEARCH_INDEX
 
@@ -245,10 +246,14 @@ if [ -n "${SUPERDESK_TESTING:-}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
 fi
+
+### Liveblog custom
+S3_THEMES_PREFIX=${S3_THEMES_PREFIX:-"/$(hostname)/"}
+EMBEDLY_KEY=${EMBEDLY_KEY:-}
 EOF
 
-config=/etc/superdesk.sh
-activate=/opt/superdesk/env/bin/activate
+config=/etc/liveblog.sh
+activate=/opt/liveblog/env/bin/activate
 grep "$envfile" $activate || cat << EOF >> $activate
 set -a
 [ -f $config ] && . $config
@@ -258,7 +263,7 @@ EOF
 unset envfile config activate
 
 _activate
-dist_orig=/opt/superdesk/client/dist
+dist_orig=/opt/liveblog/client/dist
 dist=${dist_orig}-deploy
 rm -rf $dist
 cp -r $dist_orig $dist
@@ -268,7 +273,7 @@ sed -i \
     -e "s|<IFRAMELY_KEY>|${IFRAMELY_KEY:-}|" \
     -e "s|<EMBEDLY_KEY>|${EMBEDLY_KEY:-}|" \
     -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
-    $dist/app.bundle.*
+    $dist/index.html
 unset dist_orig dist
 
 
@@ -349,18 +354,13 @@ server {
         expires epoch;
     }
 
-    location /contentapi {
-        proxy_pass http://localhost:5400;
-        proxy_set_header Host $HOST;
-        expires epoch;
-    }
 
     location /.well-known {
         root /var/tmp;
     }
 
     location / {
-        root /opt/superdesk/client/dist-deploy;
+        root /opt/liveblog/client/dist-deploy;
     }
 }
 EOF
@@ -379,52 +379,45 @@ add() {
 }
 add
 
-[ -d /var/log/superdesk ] || mkdir /var/log/superdesk
-cat << "EOF" > /etc/supervisor/conf.d/superdesk.conf
+[ -d /var/log/liveblog ] || mkdir /var/log/liveblog
+cat << "EOF" > /etc/supervisor/conf.d/liveblog.conf
 [program:rest]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 wsgi'
+command=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 wsgi'
 autostart=true
 autorestart=true
-stdout_logfile=/var/log/superdesk/rest.log
+stdout_logfile=/var/log/liveblog/rest.log
 redirect_stderr=true
-directory=/opt/superdesk/server
+directory=/opt/liveblog/server
 
 [program:wamp]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec python -u ws.py'
+command=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec python -u ws.py'
 autostart=true
 autorestart=true
-stdout_logfile=/var/log/superdesk/wamp.log
+stdout_logfile=/var/log/liveblog/wamp.log
 redirect_stderr=true
-directory=/opt/superdesk/server
+directory=/opt/liveblog/server
 
 [program:work]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec celery -A worker worker --loglevel=DEBUG'
+command=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec celery -A worker worker --loglevel=DEBUG'
 user=nobody
 autostart=true
 autorestart=true
 #startsecs=10
 #killasgroup=true
-stdout_logfile=/var/log/superdesk/work.log
+stdout_logfile=/var/log/liveblog/work.log
 redirect_stderr=true
-directory=/opt/superdesk/server
+directory=/opt/liveblog/server
 
 [program:beat]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec celery -A worker beat --loglevel=DEBUG --pid='
+command=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec celery -A worker beat --loglevel=DEBUG --pid='
 user=nobody
 autostart=true
 autorestart=true
 #startsecs=10
-stdout_logfile=/var/log/superdesk/beat.log
+stdout_logfile=/var/log/liveblog/beat.log
 redirect_stderr=true
-directory=/opt/superdesk/server
+directory=/opt/liveblog/server
 
-[program:capi]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5400 content_api.wsgi'
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/superdesk/capi.log
-redirect_stderr=true
-directory=/opt/superdesk/server
 EOF
 supervisorctl update
 supervisorctl restart all
@@ -432,9 +425,11 @@ supervisorctl restart all
 
 ### prepopulate
 _activate
-cd /opt/superdesk/server
-[ -z "${sample_data:-1}" ] || sample_data='--sample-data'
-python manage.py app:initialize_data --help | grep -- --sample-data && sample_data=$sample_data || sample_data=
+cd /opt/liveblog/server
+python manage.py app:initialize_data
 
-python manage.py app:initialize_data $sample_data
-python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+# for master it should be '--admin=true' for devel just '--admin'
+python manage.py users:create --help | grep -- '-a ADMIN' && admin='--admin=true' || admin='--admin'
+python manage.py users:create -u admin -p admin -e 'admin@example.com' $admin
+
+python manage.py register_local_themes

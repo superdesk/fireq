@@ -22,8 +22,14 @@ sed -i \
     -e "s|<SUPERDESK_URL>|http$SSL://$HOST/api|" \
     -e "s|<SUPERDESK_WS_URL>|ws$SSL://$HOST/ws|" \
     -e "s|<IFRAMELY_KEY>|${IFRAMELY_KEY:-}|" \
+    -e "s|<EMBEDLY_KEY>|${EMBEDLY_KEY:-}|" \
     -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
+{{#is_superdesk}}
     $dist/app.bundle.*
+{{/is_superdesk}}
+{{^is_superdesk}}
+    $dist/index.html
+{{/is_superdesk}}
 unset dist_orig dist
 
 
