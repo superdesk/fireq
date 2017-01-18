@@ -1,6 +1,5 @@
 ### mongod
-add() {
-    _skip_install mongodb-org-server && return 0
+if ! _skip_install mongodb-org-server; then
 
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
     echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" \
@@ -10,8 +9,7 @@ add() {
     apt-get -y install --no-install-recommends mongodb-org-server
 
     systemctl enable mongod
-}
-add
+fi
 
 # tune mongo
 config=/etc/mongod.conf

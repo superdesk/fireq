@@ -14,7 +14,7 @@ _activate() {
 }
 
 _skip_install() {
-    dpkg -l $1 && [ -z "" ] && true
+    dpkg -l | grep '^ii.*'$1 && [ -z "" ]
 }
 locale-gen en_US.UTF-8
 
@@ -62,18 +62,15 @@ time pip install -U -r requirements.txt
 
 ### Client part
 ### node & npm
-add() {
-    _skip_install nodejs && return 0
+if ! _skip_install nodejs; then
     curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
     apt-get install -y nodejs
-}
-add
+fi
 
 [ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
 npm --version
 node --version
 
-echo $PATH
 cd /opt/liveblog/client
 npm i grunt-cli
 npm i bower

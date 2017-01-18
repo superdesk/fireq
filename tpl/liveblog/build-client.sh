@@ -1,7 +1,6 @@
 ### Client part
 {{>add-node.sh}}
 
-echo $PATH
 cd {{repo_client}}
 npm i grunt-cli
 npm i bower

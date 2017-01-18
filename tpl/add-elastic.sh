@@ -9,8 +9,7 @@ wait_elastic() {
         sleep 1
     done
 }
-add() {
-    _skip_install elasticsearch && return 0
+if ! _skip_install elasticsearch; then
     wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
     echo "deb http://packages.elastic.co/elasticsearch/1.7/debian stable main" \
         > /etc/apt/sources.list.d/elastic.list
@@ -21,8 +20,7 @@ add() {
         elasticsearch
 
     systemctl enable elasticsearch
-}
-add
+fi
 
 # tune elasticsearch
 config='/etc/elasticsearch/elasticsearch.yml'

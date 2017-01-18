@@ -14,7 +14,7 @@ _activate() {
 }
 
 _skip_install() {
-    dpkg -l $1 && [ -z "" ] && true
+    dpkg -l | grep '^ii.*'$1 && [ -z "" ]
 }
 locale-gen en_US.UTF-8
 
@@ -62,18 +62,15 @@ time pip install -U -r requirements.txt
 
 ### Client part
 ### node & npm
-add() {
-    _skip_install nodejs && return 0
+if ! _skip_install nodejs; then
     curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
     apt-get install -y nodejs
-}
-add
+fi
 
 [ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
 npm --version
 node --version
 
-echo $PATH
 cd /opt/superdesk/client
 npm install grunt-cli
 time npm install
@@ -91,8 +88,7 @@ grunt build --force
 
 
 ### mongod
-add() {
-    _skip_install mongodb-org-server && return 0
+if ! _skip_install mongodb-org-server; then
 
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
     echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" \
@@ -102,8 +98,7 @@ add() {
     apt-get -y install --no-install-recommends mongodb-org-server
 
     systemctl enable mongod
-}
-add
+fi
 
 # tune mongo
 config=/etc/mongod.conf
@@ -138,8 +133,7 @@ wait_elastic() {
         sleep 1
     done
 }
-add() {
-    _skip_install elasticsearch && return 0
+if ! _skip_install elasticsearch; then
     wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
     echo "deb http://packages.elastic.co/elasticsearch/1.7/debian stable main" \
         > /etc/apt/sources.list.d/elastic.list
@@ -150,8 +144,7 @@ add() {
         elasticsearch
 
     systemctl enable elasticsearch
-}
-add
+fi
 
 # tune elasticsearch
 config='/etc/elasticsearch/elasticsearch.yml'
@@ -167,16 +160,14 @@ unset config
 
 
 ### redis
-add() {
-    _skip_install redis-server && return 0
+if ! _skip_install redis-server; then
     apt-get -y install software-properties-common
     add-apt-repository -y ppa:chris-lea/redis-server
     apt-get -y install --no-install-recommends redis-server
 
     systemctl enable redis-server
     systemctl restart redis-server
-}
-add
+fi
 
 
 envfile=/opt/superdesk/env.sh
@@ -273,8 +264,7 @@ unset dist_orig dist
 
 
 ### nginx
-add() {
-    _skip_install nginx && return 0
+if ! _skip_install nginx; then
     wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
     echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
         > /etc/apt/sources.list.d/nginx.list
@@ -284,8 +274,7 @@ add() {
 
     systemctl enable nginx
     systemctl restart nginx
-}
-add
+fi
 
 path=/etc/nginx/conf.d
 cat << "EOF" > $path/params.conf
@@ -369,15 +358,13 @@ nginx -s reload
 
 
 ### supervisor
-add() {
-    _skip_install supervisor && return 0
+if ! _skip_install supervisor; then
     apt-get -y install supervisor
 
     systemctl enable supervisor
     systemctl restart supervisor
     sleep 1
-}
-add
+fi
 
 [ -d /var/log/superdesk ] || mkdir /var/log/superdesk
 cat << "EOF" > /etc/supervisor/conf.d/superdesk.conf

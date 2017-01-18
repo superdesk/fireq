@@ -14,7 +14,7 @@ _activate() {
 }
 
 _skip_install() {
-    dpkg -l $1 && [ -z "" ] && true
+    dpkg -l | grep '^ii.*'$1 && [ -z "" ]
 }
 envfile=/opt/superdesk/env.sh
 [ -f $envfile ] || cat << "EOF" > $envfile
@@ -110,8 +110,7 @@ unset dist_orig dist
 
 
 ### nginx
-add() {
-    _skip_install nginx && return 0
+if ! _skip_install nginx; then
     wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
     echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
         > /etc/apt/sources.list.d/nginx.list
@@ -121,8 +120,7 @@ add() {
 
     systemctl enable nginx
     systemctl restart nginx
-}
-add
+fi
 
 path=/etc/nginx/conf.d
 cat << "EOF" > $path/params.conf
@@ -206,15 +204,13 @@ nginx -s reload
 
 
 ### supervisor
-add() {
-    _skip_install supervisor && return 0
+if ! _skip_install supervisor; then
     apt-get -y install supervisor
 
     systemctl enable supervisor
     systemctl restart supervisor
     sleep 1
-}
-add
+fi
 
 [ -d /var/log/superdesk ] || mkdir /var/log/superdesk
 cat << "EOF" > /etc/supervisor/conf.d/superdesk.conf
