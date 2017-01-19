@@ -1,9 +1,10 @@
 #!/bin/bash
+{{{header_doc}}}
+
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -exuo pipefail
-#IFS=$'\n\t'
+# IFS=$'\n\t'
 
-export PATH=./node_modules/.bin/:$PATH
 DEBIAN_FRONTEND=noninteractive
 DBUS_SESSION_BUS_ADDRESS=/dev/null
 

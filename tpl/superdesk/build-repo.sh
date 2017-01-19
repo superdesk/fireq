@@ -1,3 +1,4 @@
+## prepare source code
 repo={{repo_core}}{{^repo_core}}{{repo}}{{/repo_core}}
 if [ ! -d $repo ]; then
     mkdir $repo

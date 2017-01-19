@@ -1,4 +1,4 @@
-### Server part
+## server part
 # init virtualenv
 env={{repo_env}}
 [ -d $env ] && rm -rf $env

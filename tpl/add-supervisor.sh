@@ -1,4 +1,4 @@
-### supervisor
+## supervisor
 if ! _skip_install supervisor; then
     apt-get -y install supervisor
 

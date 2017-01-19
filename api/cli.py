@@ -418,7 +418,8 @@ def main():
     cmd('lxc-wait')\
         .arg('name')\
         .exe(lambda a: sh(
-            'lxc-wait -n {name} -s RUNNING &&'
+            'sleep 3 && '
+            'lxc-wait -n {name} -s RUNNING && '
             'while ! $(./fire lxc-ssh {name} -c true > /dev/null);'
             '   do sleep 1; '
             'done'

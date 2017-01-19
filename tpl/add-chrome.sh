@@ -1,3 +1,4 @@
+## chrome
 if ! _skip_install google-chrome-stable; then
     wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
     echo "deb http://dl.google.com/linux/chrome/deb/ stable main" \

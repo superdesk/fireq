@@ -1,4 +1,4 @@
-{{>superdesk/build-server.sh}}
+{{>superdesk/build.sh}}
 
 cd {{repo}}/server
 # here are some deployment dependencies: gunicorn, etc.

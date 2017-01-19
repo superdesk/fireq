@@ -1,6 +1,6 @@
 repo={{repo}}
 github=https://github.com/superdesk
-#rm -rf $repo
+# rm -rf $repo
 if [ ! -d $repo ]; then
     mkdir $repo
     cd $repo

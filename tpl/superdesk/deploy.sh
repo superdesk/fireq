@@ -1,8 +1,11 @@
+### deploy
+## env.sh
 envfile={{repo_env}}.sh
 [ -f $envfile ] || cat << "EOF" > $envfile
 {{>deploy-env.sh}}
 EOF
 
+## load env.sh and custom settings in activation script
 config={{config}}
 activate={{repo_env}}/bin/activate
 grep "$envfile" $activate || cat << EOF >> $activate
@@ -13,6 +16,7 @@ set +a
 EOF
 unset envfile config activate
 
+## prepare dist directory
 _activate
 dist_orig={{repo_client}}/dist
 dist=${dist_orig}-deploy
