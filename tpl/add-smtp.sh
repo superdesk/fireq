@@ -1,5 +1,5 @@
 mails={{logs}}/mail
-mkdir $mails || true
+mkdir -p $mails
 
 smtp_py=/var/tmp/smtp.py
 cat <<EOF > $smtp_py

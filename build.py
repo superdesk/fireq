@@ -4,6 +4,7 @@ import random
 import re
 import subprocess
 from concurrent import futures
+from collections import namedtuple
 from pathlib import Path
 
 from pystache import Renderer
@@ -12,6 +13,39 @@ from api import log
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
+Scope = namedtuple('Scope', 'name, tpldir, repo')
+scopes = [
+    Scope('sd', 'superdesk', 'superdesk/superdesk'),
+    Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
+    Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
+    Scope('lb', 'liveblog', 'liveblog/liveblog'),
+]
+scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
+checks = {
+    scopes.sd.name: ('npmtest', 'flake8', 'nose', 'behave'),
+    scopes.sds.name: ('flake8', 'nose', 'behave'),
+    scopes.sdc.name: ('npmtest', 'e2e--part1', 'e2e--part2'),
+}
+
+
+class Ref(namedtuple('Ref', 'scope, val, uid')):
+    __slots__ = ()
+
+    def __new__(cls, scope, ref):
+        scope = getattr(scopes, scope)
+        if ref.startswith('pull/'):
+            uid = ('pr', re.sub('[^0-9]', '', ref))
+        elif ref.startswith('tags/'):
+            uid = ('tag', re.sub('^tags/', '', ref))
+        else:
+            ref = re.sub('^heads/', '', ref)
+            uid = ('', ref)
+            ref = 'heads/' + ref
+        uid = '%s%s-%s' % (scope.name, uid[0], re.sub('[^a-z0-9]', '', uid[1]))
+        uid = 'dev-' + uid
+
+        return super().__new__(cls, scope, ref, uid)
 
 
 def render_tpl(tpl, ctx, search_dirs=None):
@@ -60,29 +94,31 @@ def endpoint(tpl, scope=None, *, expand=None):
         config = '/etc/%s.sh' % name
         return locals()
 
-    search_dirs = ['tpl/superdesk', 'tpl/']
     scope = scope or expand.get('scope')
-    if scope and scope != 'superdesk':
-        search_dirs.insert(0, 'tpl/%s' % scope)
+    scope = getattr(scopes, scope) if scope else scopes.sd
+
+    search_dirs = ['tpl/superdesk', 'tpl']
+    if scope != scopes.sd:
+        search_dirs.insert(0, 'tpl/%s' % scope.tpldir)
 
     name = 'superdesk'
     ctx = {}
-    if scope == 'superdesk-server':
+    if scope == scopes.sds:
         repo = '/opt/superdesk/server-core'
         ctx = {
             'repo_core': repo,
             'repo_server': repo,
             'db_host': 'localhost',
         }
-    elif scope == 'superdesk-client':
+    elif scope == scopes.sdc:
         repo = '/opt/superdesk/client-core'
         ctx = {
             'repo_core': repo,
             'repo_client': repo,
             'repo_server': '%s/test-server' % repo,
         }
-    elif scope == 'liveblog':
-        name = scope
+    elif scope == scopes.lb:
+        name = 'liveblog'
         ctx = {
             'repo_remote': 'https://github.com/liveblog/liveblog.git'
         }
@@ -127,49 +163,55 @@ def run_job(target, tpl, ctx, log_path):
     (log_path / (target + '.sh')).write_text(cmd)
     try:
         code = sh(cmd, log_file, exit=False, quiet=True)
-        log.info('code=%s (%s/%s)', code, ctx['id'], target)
+        log.info('code=%s log=%s', code, log_file)
     except Exception as e:
         log.error(e)
         code = 1
     return code
 
 
-def run_jobs(targets=None, scope='superdesk'):
-    def ctx(scope):
-        lxc_www = 'dev-sd'
+def run_jobs(targets=None, scope=None, ref='master'):
+    def ctx(scope, ref):
+        uid = ref.uid
+        repo_ref = ref.val
         lxc_base = 'base-sd--dev'
-        lxc_build = '%s--build' % lxc_www
-        host = '%s.test.superdesk.org' % lxc_www
-        host_logs = '/tmp/logs/www/%s' % lxc_www
+        lxc_build = '%s--build' % uid
+        host = '%s.test.superdesk.org' % uid
+        host_logs = '/tmp/logs/www/%s' % uid
         db_host = 'data-dev'
-        db_name = lxc_www
-        ref = 'heads/naspeh'
+        db_name = uid
         ssh = 'ssh %s' % ssh_opts
-        id = '%s/%s' % (scope, ref)
         return locals()
 
-    ctx = ctx(scope)
-    ref = ctx['ref'].split('/', 1)
-    log_path = Path(
-        '/tmp/logs/sd-{0}/{time:%Y%m%d-%H%M%S}-{rand:02d}--{1}/'
+    ref = Ref(scope, ref)
+    ctx = ctx(scope, ref)
+    log_root = Path('/tmp/logs')
+    log_path = log_root / (
+        'all/{time:%Y%m%d-%H%M%S}-{rand:02d}-{uid}'
         .format(
-            *ref,
+            uid=ctx['uid'],
             time=dt.datetime.now(),
             rand=random.randint(0, 99)
         )
     )
     log_path.mkdir(parents=True, exist_ok=True)
-    latest = log_path.parent / 'latest-{1}'.format(*ref)
+    latest = log_root / ('latest/' + ctx['uid'])
+    latest.parent.mkdir(parents=True, exist_ok=True)
     latest.exists() and latest.unlink()
     latest.symlink_to(log_path)
 
     if targets is None:
-        targets = ['build', 'www']
+        targets = (
+            ['build', 'www'] +
+            ['check-' + i for i in checks.get(scope, ())]
+        )
 
     target = 'build'
     if target in targets:
         targets.remove(target)
-        run_job(target, '{{>ci-build.sh}}', ctx, log_path)
+        code = run_job(target, '{{>ci-build.sh}}', ctx, log_path)
+        if code != 0:
+            raise SystemExit(code)
 
     jobs = {}
     with futures.ThreadPoolExecutor() as pool:
@@ -194,22 +236,20 @@ def run_jobs(targets=None, scope='superdesk'):
 
 
 def gen_files():
-    def gen(name):
+    def gen(scope):
         for target in ['build', 'deploy', 'install']:
-            path = '%s/%s' % (name, target)
-            txt = endpoint('{{>%s.sh}}' % target, expand={
+            txt = endpoint('{{>%s.sh}}' % target, scope.name, expand={
                 'dev': False,
-                'scope': name,
                 'header_doc': (
                     '# NOTE: This file is generated by script.\n'
                     '# Modify "tpl/*" and run "./fire gen-files"\n'
                 )
             })
-            p = Path('files/%s' % path)
+            p = Path('files') / scope.tpldir / target
             p.write_text(txt)
             print('+ updated "%s"' % p)
 
-    for name in ['superdesk', 'liveblog']:
+    for name in [scopes.sd, scopes.lb]:
         gen(name)
 
 
@@ -233,7 +273,7 @@ def main():
 
     cmd('run', aliases=['r'])\
         .arg('name')\
-        .arg('--scope', default='superdesk')\
+        .arg('--scope', choices=scopes._fields)\
         .arg('--dev', type=bool, default=True)\
         .arg('--host', default='localhost')\
         .exe(lambda a: print(endpoint('{{>%s.sh}}' % a.name, expand={
@@ -243,9 +283,10 @@ def main():
         })))
 
     cmd('ci')\
-        .arg('--scope', default='superdesk')\
+        .arg('scope', choices=scopes._fields)\
+        .arg('ref')\
         .arg('-t', '--target', action='append', default=None)\
-        .exe(lambda a: run_jobs(a.target, a.scope))
+        .exe(lambda a: run_jobs(a.target, a.scope, a.ref))
 
     args = parser.parse_args()
     dry_run = getattr(args, 'dry_run', dry_run)

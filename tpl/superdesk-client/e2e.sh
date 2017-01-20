@@ -1,6 +1,14 @@
 {{>add-chrome.sh}}
+{{>add-dbs.sh}}
 
-grep -q SUPERDESK_TESTING {{config}} || echo 'SUPERDESK_TESTING=True' >> {{config}}
+HOST=localhost
+HOST_SSL=
+{{^db_local}}
+DB_NAME=$(hostname)
+{{/db_local}}
+SUPERDESK_TESTING=True
+{{>deploy.sh}}
+
 cat <<"EOF" > /etc/supervisor/conf.d/superdesk.conf
 [program:rest]
 command=/bin/sh -c '. {{repo_env}}/bin/activate && exec gunicorn -b 0.0.0.0:5000 wsgi'
@@ -24,7 +32,7 @@ supervisorctl restart all
 cd {{repo_client}}
 npm i protractor-flake
 webdriver-manager update
-specs=$(cat /var/tmp/specs-chunk${E2E_NUM:-1})
+specs=$(cat /var/tmp/specs-part${E2E_NUM:-1})
 time xvfb-run -a -s "-ac -screen 0 1920x1080x24"\
     protractor-flake --max-attempts=2 --\
     protractor.conf.js --stackTrace --verbose\
