@@ -57,3 +57,6 @@ unset dist_orig dist
 
 
 {{>add-supervisor.sh}}
+{{#dev}}
+{{>add-smtp.sh}}
+{{/dev}}
