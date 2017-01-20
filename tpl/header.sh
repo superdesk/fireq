@@ -14,5 +14,5 @@ _activate() {
 }
 
 _skip_install() {
-    dpkg -l | grep '^ii.*'$1 && [ -z "{{pkg_upgrade}}" ]
+    dpkg -l | grep '^ii.*'$1 && [ -z "${pkg_upgrade:-'{{pkg_upgrade}}'}" ]
 }

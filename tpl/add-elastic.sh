@@ -1,4 +1,4 @@
-## elasticsearch
+# elasticsearch
 wait_elastic() {
     elastic=0
     while [ $elastic -eq 0 ]

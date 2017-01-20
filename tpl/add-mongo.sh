@@ -1,4 +1,4 @@
-## mongo
+# mongo
 if ! _skip_install mongodb-org-server; then
 
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927

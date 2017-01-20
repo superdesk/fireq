@@ -7,18 +7,18 @@ EOF
 
 # write config if not exist
 config={{config}}
-[ -f $config ] || cat <<"EOF" > $config
-HOST={{host}}
-SSL={{ssl}}
+[ -f $config ] || cat <<EOF > $config
+HOST=${HOST:-'{{host}}'}
+HOST_SSL=${HOST_SSL:-'{{host_ssl}}'}
 
 MONGO_URI=mongodb://{{db_host}}/{{db_name}}
-LEGAL_ARCHIVE_URI=${MONGO_URI}_la
-ARCHIVED_URI=${MONGO_URI}_ar
-CONTENTAPI_MONGO_URI=${MONGO_URI}_ca
+LEGAL_ARCHIVE_URI=\${MONGO_URI}_la
+ARCHIVED_URI=\${MONGO_URI}_ar
+CONTENTAPI_MONGO_URI=\${MONGO_URI}_ca
 
 ELASTICSEARCH_URL=http://{{db_host}}:9200
 ELASTICSEARCH_INDEX={{db_name}}
-CONTENTAPI_ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX}_ca
+CONTENTAPI_ELASTICSEARCH_INDEX=\${ELASTICSEARCH_INDEX}_ca
 EOF
 
 # load env.sh and config in activation script

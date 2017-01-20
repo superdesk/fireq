@@ -5,7 +5,7 @@ PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
 
 HOST=${HOST:-localhost}
-[ -n "${SSL:-}" ] && SSL='s' || SSL=''
+[ -n "${HOST_SSL:-}" ] && [ "$HOST" != 'localhost' ] && SSL='s' || SSL=''
 
 # TODO: need to get rid this for proper SaaS
 SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-"http$SSL://$HOST"}
