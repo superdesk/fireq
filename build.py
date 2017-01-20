@@ -1,8 +1,9 @@
 import argparse
 import datetime as dt
-import os
 import random
+import re
 import subprocess
+from concurrent import futures
 from pathlib import Path
 
 from pystache import Renderer
@@ -11,6 +12,14 @@ from api import log
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+tpl_ci_check = '''
+lxc="{{lxc_www}}--{{target}}";
+./fire lxc-copy -cs -b {{lxc_build}} $lxc
+cat <<"EOF2" | {{ssh}} $lxc
+{{>header.sh}}
+{{>%s.sh}}
+EOF2
+'''
 
 
 def render_tpl(tpl, ctx, search_dirs=None):
@@ -25,58 +34,60 @@ def render_tpl(tpl, ctx, search_dirs=None):
     return renderer.render(tpl, ctx)
 
 
-def render(target, *, expand=None):
-    def get_ctx(name):
-        dev = False
-        is_pr = False
-        repo = '/opt/%s' % name
-        repo_core = ''
-        repo_ref = 'heads/master'
-        repo_sha = ''
-        repo_remote = 'https://github.com/superdesk/superdesk.git'
-        repo_server = '%s/server' % repo
-        repo_client = '%s/client' % repo
-        repo_env = '%s/env' % repo
+def endpoint(tpl, scope=None, *, expand=None):
+    def val(name, default=None):
+        if name in expand:
+            return expand.pop(name)
+        return default
 
-        # deploy
+    def get_ctx(name):
+        repo = '/opt/%s' % name
+        repo_env = '%s/env' % repo
+        repo_core = val('repo_core', '')
+        repo_ref = val('repo_ref') or 'heads/master'
+        repo_sha = val('repo_sha', '')
+        repo_remote = val('repo_remote') or (
+            'https://github.com/superdesk/superdesk.git'
+        )
+        repo_server = val('repo_server', '%s/server' % repo)
+        repo_client = val('repo_client', '%s/client' % repo)
+
+        dev = val('dev', True)
+        ssl = val('ssl', False) and 1 or ''
+        host = val('host', 'localhost')
+        db_host = val('db_host', 'localhost')
+        db_name = name
+        db_optimize = val('db_optimize', dev)
+        db_local = db_host == 'localhost'
+        pkg_upgrade = val('pkg_upgrade', False) and 1 or ''
+        header_doc = val('header_doc', '')
+
+        is_pr = re.match('^pulls/\d*$', repo_ref)
         is_superdesk = name == 'superdesk'
-        host = 'localhost'
         logs = '/var/log/%s' % name
         config = '/etc/%s.sh' % name
-        pkg_upgrade = ''
-        db_optimize = False
-        header_doc = ''
         return locals()
 
-    target = target.split('/')
-    search_dirs = [
-        'tpl/superdesk',
-        'tpl'
-    ]
-    if len(target) == 2:
-        scope, target = target
+    search_dirs = ['tpl/superdesk', 'tpl/']
+    scope = scope or expand.get('scope')
+    if scope and scope != 'superdesk':
         search_dirs.insert(0, 'tpl/%s' % scope)
-    else:
-        scope, target = None, target[0]
 
-    ctx = {}
     name = 'superdesk'
+    ctx = {}
     if scope == 'superdesk-server':
         repo = '/opt/superdesk/server-core'
         ctx = {
-            'dev': True,
             'repo_core': repo,
             'repo_server': repo,
-            'db_optimize': True,
+            'db_host': 'localhost',
         }
     elif scope == 'superdesk-client':
         repo = '/opt/superdesk/client-core'
         ctx = {
-            'dev': True,
             'repo_core': repo,
             'repo_client': repo,
             'repo_server': '%s/test-server' % repo,
-            'db_optimize': True,
         }
     elif scope == 'liveblog':
         name = scope
@@ -84,22 +95,18 @@ def render(target, *, expand=None):
             'repo_remote': 'https://github.com/liveblog/liveblog.git'
         }
 
-    tpl = (
-        '{{>header.sh}}'
-        '{{>%s.sh}}'
-        % target
-    )
-    ctx = dict(get_ctx(name), **ctx)
-    if expand is not None:
+    expand = expand or {}
+    expand.update(ctx)
+    ctx = get_ctx(name)
+    if expand:
         ctx.update(expand)
+    tpl = '{{>header.sh}}\n' + tpl
     return render_tpl(tpl, ctx, search_dirs)
 
 
-def sh(cmd, ctx, log_file=None, exit=True):
-    if ctx is not None:
-        cmd = render_tpl(cmd, ctx)
-
-    cmd = 'set -eux; %s' % cmd
+def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
+    if header:
+        cmd = 'set -eux; %s' % cmd
     if log_file:
         cmd = (
             '(time ({cmd})) 2>&1'
@@ -109,7 +116,8 @@ def sh(cmd, ctx, log_file=None, exit=True):
             .format(cmd=cmd, path=log_file)
         )
 
-    log.info(cmd)
+    if not quiet:
+        log.info(cmd)
     if dry_run:
         log.info('Dry run!')
         return 0
@@ -120,86 +128,92 @@ def sh(cmd, ctx, log_file=None, exit=True):
     return code
 
 
-def run_ci():
-    from concurrent import futures
+def run_job(target, tpl, ctx, log_path):
+    # TODO: add github statuses here
+    cmd = endpoint(tpl, expand=ctx)
+    log_file = log_path / (target + '.log')
+    log.info('log=%s', log_file)
+    (log_path / (target + '.sh')).write_text(cmd)
+    try:
+        code = sh(cmd, log_file, exit=False, quiet=True)
+        log.info('code=%s (%s/%s)', code, ctx['id'], target)
+    except Exception as e:
+        log.error(e)
+        code = 1
+    return code
 
-    def ctx():
-        ref = 'heads/master'
-        name = 'dev-sd'
-        lxc_build = '%s--build' % name
-        lxc_base = 'base-sd--4'
+
+def run_jobs(targets=None, scope='superdesk'):
+    def ctx(scope):
+        lxc_www = 'dev-sd'
+        lxc_base = 'base-sd--dev'
+        lxc_build = '%s--build' % lxc_www
+        host = '%s.test.superdesk.org' % lxc_www
+        host_logs = '/tmp/logs/www/%s' % lxc_www
+        db_host = 'data-dev'
+        db_name = lxc_www
+        ref = 'heads/naspeh'
         ssh = 'ssh %s' % ssh_opts
-        logs = '/tmp/logs/www/%s' % name
+        id = '%s/%s' % (scope, ref)
         return locals()
 
-    ctx = ctx()
-    log_path = (
+    ctx = ctx(scope)
+    ref = ctx['ref'].split('/', 1)
+    log_path = Path(
         '/tmp/logs/sd-{0}/{time:%Y%m%d-%H%M%S}-{rand:02d}--{1}/'
         .format(
-            *ctx['ref'].split('/', 1),
+            *ref,
             time=dt.datetime.now(),
             rand=random.randint(0, 99)
         )
     )
-    os.makedirs(log_path, exist_ok=True)
-    os.makedirs(ctx['logs'], exist_ok=True)
+    log_path.mkdir(parents=True, exist_ok=True)
+    latest = log_path.parent / 'latest-{1}'.format(*ref)
+    latest.exists() and latest.unlink()
+    latest.symlink_to(log_path)
 
-    sh('''
-    (lxc-ls -1\
-        | grep "^{{name}}--"\
-        | grep -v "^{{lxc_build}}$"\
-        | sort -r\
-        | xargs -r ./fire lxc-rm) || true;
-    lxc={{lxc_build}};
-    ./fire lxc-copy -rsc -b {{lxc_base}} $lxc;
-    ./fire2 run superdesk/build | {{ssh}} $lxc;
-    lxc-stop -n $lxc
-    ''', ctx, log_path + 'build.log')
+    if targets is None:
+        targets = ['build', 'www']
 
-    check = '''
-    lxc="{{name}}--{{target}}";
-    ./fire lxc-copy -rcs -b {{lxc_build}} $lxc
-    ./fire2 run superdesk/{{target}} | {{ssh}} $lxc
-    '''
+    target = 'build'
+    if target in targets:
+        targets.remove(target)
+        run_job(target, '{{>ci-build.sh}}', ctx, log_path)
 
-    www = '{{>ci/www.sh}}'
-
+    jobs = {}
     with futures.ThreadPoolExecutor() as pool:
-        jobs = {}
-        for t in ['flake8', 'nose', 'behave', 'npmtest']:
-            target = 'check-%s' % t
-            log_file = log_path + target + '.log'
-            c = dict(ctx, target=target)
-            jobs[pool.submit(sh, check, c, log_file, exit=False)] = {
-                'log_file': log_file,
-                'target': target
-            }
+        target = 'www'
+        if target in targets:
+            targets.remove(target)
+            j = pool.submit(run_job, target, '{{>ci-www.sh}}', ctx, log_path)
+            jobs[j] = ctx
 
-        log_file = log_path + 'www.log'
-        jobs[pool.submit(sh, www, ctx, log_file, exit=False)] = {
-            'log_file': log_file,
-            'target': 'www'
-        }
+        for target in targets:
+            tpl = tpl_ci_check % target
+            c = dict(ctx, target=target)
+            j = pool.submit(run_job, target, tpl, c, log_path)
+            jobs[j] = c
 
     for f in futures.as_completed(jobs):
         ctx = jobs[f]
         try:
-            code = f.result()
+            f.result()
         except Exception as exc:
             log.exception(ctx, exc)
-        else:
-            ctx.update(code=code)
-            log.info('target=%(target)s code=%(code)s log=%(log_file)s', ctx)
 
 
 def gen_files():
     def gen(name):
         for target in ['build', 'deploy', 'install']:
             path = '%s/%s' % (name, target)
-            txt = render(path, expand={'header_doc': (
-                '# NOTE: This file is generated by script.\n'
-                '# Modify "tpl/*" and run "./fire gen-files"'
-            )})
+            txt = endpoint('{{>%s.sh}}' % target, expand={
+                'dev': False,
+                'scope': name,
+                'header_doc': (
+                    '# NOTE: This file is generated by script.\n'
+                    '# Modify "tpl/*" and run "./fire gen-files"'
+                )
+            })
             p = Path('files/%s' % path)
             p.write_text(txt)
             print('+ updated "%s"' % p)
@@ -227,11 +241,20 @@ def main():
         .exe(lambda a: gen_files())
 
     cmd('run', aliases=['r'])\
-        .arg('endpoint')\
-        .exe(lambda a: print(render(a.endpoint)))
+        .arg('name')\
+        .arg('--scope', default='superdesk')\
+        .arg('--dev', type=bool, default=True)\
+        .arg('--host', default='localhost')\
+        .exe(lambda a: print(endpoint('{{>%s.sh}}' % a.name, expand={
+            'scope': a.scope,
+            'dev': a.dev,
+            'host': a.host
+        })))
 
     cmd('ci')\
-        .exe(lambda a: run_ci())
+        .arg('--scope', default='superdesk')\
+        .arg('-t', '--target', action='append', default=None)\
+        .exe(lambda a: run_jobs(a.target, a.scope))
 
     args = parser.parse_args()
     dry_run = getattr(args, 'dry_run', dry_run)
@@ -242,4 +265,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        raise SystemExit('^C')

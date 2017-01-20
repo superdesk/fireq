@@ -15,7 +15,7 @@ fi
 config=/etc/mongod.conf
 [ -f "${config}.bak" ] || mv $config $config.bak
 {{^db_optimize}}
-cat << EOF > $config
+cat <<EOF > $config
 storage:
   dbPath: /var/lib/mongodb
   journal:
@@ -36,7 +36,7 @@ EOF
 # path=/tmp/mongodb
 # [ -d $path ] || mkdir $path
 # chown mongodb:mongodb $path
-cat << EOF > $config
+cat <<EOF > $config
 storage:
   dbPath: /var/lib/mongodb
   journal:

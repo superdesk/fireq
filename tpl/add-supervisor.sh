@@ -7,8 +7,8 @@ if ! _skip_install supervisor; then
     sleep 1
 fi
 
-[ -d {{logs}} ] || mkdir {{logs}}
-cat << "EOF" > /etc/supervisor/conf.d/{{name}}.conf
+[ -d {{logs}} ] || mkdir -p {{logs}}
+cat <<"EOF" > /etc/supervisor/conf.d/{{name}}.conf
 {{>supervisor.conf}}
 EOF
 supervisorctl update

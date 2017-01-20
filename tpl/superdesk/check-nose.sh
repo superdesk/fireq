@@ -1,3 +1,6 @@
+{{>add-dbs.sh}}
+
+
 cd {{repo_server}}
 _activate
 

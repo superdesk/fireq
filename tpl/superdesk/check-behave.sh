@@ -1,4 +1,11 @@
 cd {{repo_server}}
 _activate
 
-[ ! -f ./features/*.feature ] || time behave --format progress2 --logging-clear-handlers --logcapture
+feature=(./features/*.feature)
+[ -f $feature ] || exit 0
+
+
+{{>add-dbs.sh}}
+
+
+time behave --format progress2 --logging-clear-handlers --logcapture

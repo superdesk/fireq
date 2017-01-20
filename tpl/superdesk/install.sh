@@ -1,13 +1,7 @@
 {{>build.sh}}
 
-### databases
-{{>add-mongo.sh}}
 
-
-{{>add-elastic.sh}}
-
-
-{{>add-redis.sh}}
+{{>add-dbs.sh}}
 
 
 {{>deploy.sh}}

@@ -1,22 +1,38 @@
 ### deploy
-## env.sh
+# env.sh
 envfile={{repo_env}}.sh
-[ -f $envfile ] || cat << "EOF" > $envfile
+cat <<"EOF" > $envfile
 {{>deploy-env.sh}}
 EOF
 
-## load env.sh and custom settings in activation script
+# write config if not exist
 config={{config}}
+[ -f $config ] || cat <<"EOF" > $config
+HOST={{host}}
+SSL={{ssl}}
+
+MONGO_URI=mongodb://{{db_host}}/{{db_name}}
+LEGAL_ARCHIVE_URI=${MONGO_URI}_la
+ARCHIVED_URI=${MONGO_URI}_ar
+CONTENTAPI_MONGO_URI=${MONGO_URI}_ca
+
+ELASTICSEARCH_URL=http://{{db_host}}:9200
+ELASTICSEARCH_INDEX={{db_name}}
+CONTENTAPI_ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX}_ca
+EOF
+
+# load env.sh and config in activation script
 activate={{repo_env}}/bin/activate
-grep "$envfile" $activate || cat << EOF >> $activate
+grep "$envfile" $activate || cat <<EOF >> $activate
 set -a
 [ -f $config ] && . $config
 . $envfile
 set +a
 EOF
-unset envfile config activate
+unset envfile activate config
 
-## prepare dist directory
+
+# prepare dist directory
 _activate
 dist_orig={{repo_client}}/dist
 dist=${dist_orig}-deploy

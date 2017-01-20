@@ -12,11 +12,11 @@ if ! _skip_install nginx; then
 fi
 
 path=/etc/nginx/conf.d
-cat << "EOF" > $path/params.conf
+cat <<"EOF" > $path/params.conf
 {{>nginx-params.conf}}
 EOF
 
-cat << EOF > $path/default.conf
+cat <<EOF > $path/default.conf
 {{>nginx.conf}}
 EOF
 unset path

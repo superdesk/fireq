@@ -26,7 +26,7 @@ fi
 config='/etc/elasticsearch/elasticsearch.yml'
 [ -f "${config}.bak" ] || mv $config $config.bak
 {{^db_optimize}}
-cat << EOF > $config
+cat <<EOF > $config
 network.bind_host: 0.0.0.0
 node.local: true
 discovery.zen.ping.multicast: false
@@ -41,7 +41,7 @@ if [ ! -d "$es_backups" ]; then
     chown elasticsearch:elasticsearch $es_backups
 fi
 echo 'log4j.rootLogger=OFF' > /etc/elasticsearch/logging.yml
-cat << EOF > $config
+cat <<EOF > $config
 network.bind_host: 0.0.0.0
 node.local: true
 discovery.zen.ping.multicast: false
