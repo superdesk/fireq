@@ -12,14 +12,6 @@ from api import log
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-tpl_ci_check = '''
-lxc="{{lxc_www}}--{{target}}";
-./fire lxc-copy -cs -b {{lxc_build}} $lxc
-cat <<"EOF2" | {{ssh}} $lxc
-{{>header.sh}}
-{{>%s.sh}}
-EOF2
-'''
 
 
 def render_tpl(tpl, ctx, search_dirs=None):
@@ -95,8 +87,7 @@ def endpoint(tpl, scope=None, *, expand=None):
             'repo_remote': 'https://github.com/liveblog/liveblog.git'
         }
 
-    expand = expand or {}
-    expand.update(ctx)
+    expand = dict(expand or {}, **ctx)
     ctx = get_ctx(name)
     if expand:
         ctx.update(expand)
@@ -189,9 +180,9 @@ def run_jobs(targets=None, scope='superdesk'):
             jobs[j] = ctx
 
         for target in targets:
-            tpl = tpl_ci_check % target
-            c = dict(ctx, target=target)
-            j = pool.submit(run_job, target, tpl, c, log_path)
+            inner = endpoint('{{>%s.sh}}' % target, expand=ctx)
+            c = dict(ctx, target=target, inner=inner)
+            j = pool.submit(run_job, target, '{{>ci-check.sh}}', c, log_path)
             jobs[j] = c
 
     for f in futures.as_completed(jobs):
