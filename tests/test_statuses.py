@@ -6,7 +6,7 @@ logs = 'http://localhost/logs/all/20170101-000000-00'
 
 @patch('fire.gh.get_sha')
 @patch('fire.gh.call')
-def test_base(_call, _sha, sp, main):
+def test_base(_call, _sha, sp, main, raises):
     _call.return_value = {}
     _sha.return_value = '<sha>'
 
@@ -66,7 +66,8 @@ def test_base(_call, _sha, sp, main):
 
     _call.reset_mock()
     sp.call.return_value = 16
-    main('ci sd master -t www')
+    with raises(SystemExit):
+        main('ci sd master -t www')
     assert _call.call_count == 2
     a1, a2 = _call.call_args_list
     assert a1[0] == (

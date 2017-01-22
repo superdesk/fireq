@@ -244,6 +244,7 @@ def run_jobs(scope_name, ref_name, targets):
     scope_name = scope_name or scopes[0].name
     ref = Ref(scope_name, ref_name)
     ctx = ctx()
+    codes = []
 
     if targets is None:
         targets = (
@@ -259,7 +260,9 @@ def run_jobs(scope_name, ref_name, targets):
         targets.remove(target)
         code = run_job(target, '{{>ci-build.sh}}', ctx)
         if code != 0:
+            log.error('%s %s', target, ctx['uid'])
             raise SystemExit(code)
+        codes.append((target, code))
 
     jobs = {}
     with futures.ThreadPoolExecutor() as pool:
@@ -267,20 +270,27 @@ def run_jobs(scope_name, ref_name, targets):
         if target in targets:
             targets.remove(target)
             j = pool.submit(run_job, target, '{{>ci-www.sh}}', ctx)
-            jobs[j] = ctx
+            jobs[j] = target
 
         for target in targets:
             inner = endpoint('{{>%s.sh}}' % target, expand=ctx)
             c = dict(ctx, target=target, inner=inner)
             j = pool.submit(run_job, target, '{{>ci-check.sh}}', c)
-            jobs[j] = c
+            jobs[j] = target
 
     for f in futures.as_completed(jobs):
-        ctx = jobs[f]
+        target = jobs[f]
         try:
-            f.result()
+            code = f.result()
         except Exception as exc:
             log.exception('%s ctx=%s', exc, gh.pretty_json(ctx))
+        else:
+            codes.append((target, code))
+
+    code = 1 if [i[1] for i in codes if i[1] != 0] else 0
+    log.info('%s: %s', code, ' '.join('%s=%s' % i for i in codes))
+    if code:
+        raise SystemExit(code)
 
 
 def gen_files():
