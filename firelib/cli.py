@@ -293,7 +293,8 @@ def run_jobs(scope_name, ref_name, targets):
             codes.append((target, code))
 
     code = 1 if [i[1] for i in codes if i[1] != 0] else 0
-    log.info('%s: %s', code, ' '.join('%s=%s' % i for i in codes))
+    state = 'failure' if code else 'success'
+    log.info('%s: %s', state, ' '.join('%s=%s' % i for i in codes))
     if code:
         raise SystemExit(code)
 

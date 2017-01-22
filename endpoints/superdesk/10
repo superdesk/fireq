@@ -1,6 +1,0 @@
-#!/bin/bash
-set -ex
-
-repo_ref=heads/1.0
-
-. superdesk/master

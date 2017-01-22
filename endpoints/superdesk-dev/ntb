@@ -1,8 +1,0 @@
-#!/bin/bash
-
-name=superdesk
-repo_remote=https://github.com/superdesk/superdesk-ntb.git
-repo_ref=heads/1.0
-sample_data=
-
-. superdesk-dev/master

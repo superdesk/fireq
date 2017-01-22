@@ -1,6 +1,0 @@
-#!/bin/bash
-set -ex
-
-. common/index.sh
-
-$action

@@ -1,8 +1,0 @@
-#!/bin/bash
-set -ex
-
-repo_ref=heads/devel
-
-. common/index.sh
-
-$action

@@ -10,7 +10,6 @@ import uuid
 import warnings
 from pathlib import Path
 
-# from aiofiles import open as async_open
 from aiohttp import web, ClientSession
 from aioauth_client import GithubClient
 from aiohttp_session import get_session, session_middleware
