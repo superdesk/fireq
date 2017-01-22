@@ -92,29 +92,25 @@ def test_base(_call, _sha, sp, main):
     _call.reset_mock()
     sp.call.return_value = 0
     main('ci sd master')
-    assert _call.call_count == 13
+    assert _call.call_count == 9
     s = [(i[0][1]['context'], i[0][1]['state']) for i in _call.call_args_list]
-    assert s[:7] == [
+    assert s[:5] == [
         ('fire:!restart', 'success'),
 
         ('fire:build', 'pending'),
         ('fire:www', 'pending'),
         ('fire:check-npmtest', 'pending'),
         ('fire:check-flake8', 'pending'),
-        ('fire:check-nose', 'pending'),
-        ('fire:check-behave', 'pending'),
     ]
-    assert set(s[7:]) == {
+    assert set(s[5:]) == {
         ('fire:build', 'success'),
         ('fire:www', 'success'),
         ('fire:check-npmtest', 'success'),
         ('fire:check-flake8', 'success'),
-        ('fire:check-nose', 'success'),
-        ('fire:check-behave', 'success'),
     }
 
 
 def test_base__real_http(sp, capfd, real_http, main):
     main('ci sd naspeh')
     out, err = capfd.readouterr()
-    assert 13 == err.count("201 url='https://api.github.com/repos/")
+    assert 9 == err.count("201 url='https://api.github.com/repos/")
