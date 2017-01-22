@@ -1,10 +1,10 @@
 from unittest.mock import patch
 
-from fire_gh import Error
-from fire import Ref, scopes
+from firelib import gh
+from firelib.cli import Ref, scopes
 
 
-@patch('fire_gh.get_sha', return_value='sha')
+@patch('firelib.gh.get_sha', return_value='sha')
 def test_base(_):
     ref = Ref('sd', 'heads/master')
     assert ref.scope == scopes.sd
@@ -32,7 +32,7 @@ def test_base(_):
     assert ref.val == 'tags/v1.0'
 
 
-@patch('fire.gh.call')
+@patch('firelib.gh.call')
 def test_sha(gh_call, load_json, raises):
     gh_call.return_value = load_json('gh_sha-sds_master.json')
     ref = Ref('sds', 'master')
@@ -70,8 +70,8 @@ def test_sha(gh_call, load_json, raises):
     assert ref.sha == '59ad6aaac17b5e476015cbb861b4d0685770cdc4'
 
     gh_call.reset_mock()
-    gh_call.side_effect = Error
-    with raises(Error):
+    gh_call.side_effect = gh.Error
+    with raises(gh.Error):
         ref = Ref('sds', 'pull/1000000000')
 
 
@@ -79,5 +79,5 @@ def test_sha__real_http(raises, real_http):
     ref = Ref('sds', 'master')
     assert ref.sha
 
-    with raises(Error):
+    with raises(gh.Error):
         ref = Ref('sds', 'pull/1000000000')

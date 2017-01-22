@@ -29,11 +29,11 @@ def pytest_configure():
     conf_tmp.write_text(json.dumps(conf, indent=2, sort_keys=True))
     os.environ['FIRE_CONFIG'] = str(conf_tmp)
 
-    _rand = patch('fire.random').start()
+    _rand = patch('firelib.cli.random').start()
     _rand.randint.return_value = 0
 
     now = dt.datetime(2017, 1, 1)
-    _dt = patch('fire.dt.datetime').start()
+    _dt = patch('firelib.cli.dt.datetime').start()
     _dt.now.return_value = now
 
 
@@ -67,14 +67,14 @@ def setup(sp):
 
 @pytest.fixture
 def sp():
-    with patch('fire.subprocess') as sp:
+    with patch('firelib.cli.subprocess') as sp:
         sp.call.return_value = 0
         yield sp
 
 
 @pytest.fixture
 def main():
-    from fire import main
+    from firelib.cli import main
 
     return main
 

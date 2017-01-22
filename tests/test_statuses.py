@@ -4,8 +4,8 @@ from unittest.mock import patch
 logs = 'http://localhost/logs/all/20170101-000000-00'
 
 
-@patch('fire.gh.get_sha')
-@patch('fire.gh.call')
+@patch('firelib.gh.get_sha')
+@patch('firelib.gh.call')
 def test_base(_call, _sha, sp, main, raises):
     _call.return_value = {}
     _sha.return_value = '<sha>'

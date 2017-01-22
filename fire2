@@ -9,5 +9,5 @@ else
     [ -d env ] || virtualenv -p /usr/bin/python3 env
     . env/bin/activate
     pip show -q pystache || pip install pystache
-    python -m fire "$@"
+    python -m firelib.cli "$@"
 fi

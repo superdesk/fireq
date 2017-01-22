@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pystache import Renderer
 
-import fire_gh as gh
+from . import gh
 from api import log, conf
 
 dry_run = False
