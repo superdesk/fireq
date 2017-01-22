@@ -1,26 +1,16 @@
-import datetime as dt
 from unittest.mock import patch
 
-from fire import run_jobs
-
-now = dt.datetime(2017, 1, 1)
-randint = 0
+# patched in conftest.py:pytest_runtest_setup
 logs = 'http://localhost/logs/all/20170101-000000-00'
 
 
-@patch('fire.random')
-@patch('fire.dt.datetime')
-@patch('fire.subprocess')
 @patch('fire.gh.get_sha')
 @patch('fire.gh.call')
-def test_base(_call, _sha, _sp, _dt, _rand):
-    _rand.randint.return_value = 0
-    _dt.now.return_value = now
-    _sp.call.return_value = 0
+def test_base(_call, _sha, sp, main):
     _call.return_value = {}
     _sha.return_value = '<sha>'
 
-    run_jobs(['build'], 'sds')
+    main('ci sds master -t build')
     assert _call.call_count == 3
     a1, a2, a3 = _call.call_args_list
     assert a1[0] == (
@@ -52,7 +42,7 @@ def test_base(_call, _sha, _sp, _dt, _rand):
     )
 
     _call.reset_mock()
-    run_jobs(['www'])
+    main('ci sd master -t www')
     assert _call.call_count == 2
     a1, a2 = _call.call_args_list
     assert a1[0] == (
@@ -75,8 +65,8 @@ def test_base(_call, _sha, _sp, _dt, _rand):
     )
 
     _call.reset_mock()
-    _sp.call.return_value = 16
-    run_jobs(['www'])
+    sp.call.return_value = 16
+    main('ci sd master -t www')
     assert _call.call_count == 2
     a1, a2 = _call.call_args_list
     assert a1[0] == (
@@ -100,8 +90,8 @@ def test_base(_call, _sha, _sp, _dt, _rand):
 
     # should be all pending statuses in the begining
     _call.reset_mock()
-    _sp.call.return_value = 0
-    run_jobs()
+    sp.call.return_value = 0
+    main('ci sd master')
     assert _call.call_count == 13
     s = [(i[0][1]['context'], i[0][1]['state']) for i in _call.call_args_list]
     assert s[:7] == [
@@ -124,7 +114,7 @@ def test_base(_call, _sha, _sp, _dt, _rand):
     }
 
 
-@patch('fire.subprocess')
-def test_base__real_http(_sp, real_http):
-    _sp.call.return_value = 0
-    run_jobs(ref_name='naspeh')
+def test_base__real_http(sp, capfd, real_http, main):
+    main('ci sd naspeh')
+    out, err = capfd.readouterr()
+    assert 13 == err.count("201 url='https://api.github.com/repos/")

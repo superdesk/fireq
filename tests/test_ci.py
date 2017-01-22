@@ -1,4 +1,10 @@
-def test_www(sh):
-    out = sh('./fire2 ci sd naspeh -t www --dry-run| grep -3 ^lxc.mount.entry')
-    assert '/tmp/fire-logs/www/sd-naspeh ${logs:1}' in out
-    assert 'logs=/var/log/superdesk' in out
+import re
+
+
+def test_www(main, capfd):
+    main('ci sd naspeh -t www --dry-run')
+    out, err = capfd.readouterr()
+    mount, = re.findall(r'(?m)^lxc\.mount\.entry.*', out)
+    assert '/tmp/fire/logs/www/sd-naspeh ${logs:1}' in mount
+    logs, = re.findall(r'(?m)^logs=.*', out)
+    assert 'logs=/var/log/superdesk' == logs

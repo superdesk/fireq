@@ -2,6 +2,7 @@ import argparse
 import datetime as dt
 import random
 import re
+import shlex
 import subprocess
 from concurrent import futures
 from collections import namedtuple
@@ -213,7 +214,7 @@ def run_job(target, tpl, ctx):
     return code
 
 
-def run_jobs(targets=None, scope_name=None, ref_name='master'):
+def run_jobs(scope_name, ref_name, targets):
     def ctx():
         uid = ref.uid
         scope = ref.scope.name
@@ -299,7 +300,7 @@ def gen_files():
         gen(name)
 
 
-def main():
+def main(args=None):
     global dry_run
 
     parser = argparse.ArgumentParser('fire')
@@ -332,9 +333,12 @@ def main():
         .arg('scope', choices=scopes._fields)\
         .arg('ref')\
         .arg('-t', '--target', action='append', default=None)\
-        .exe(lambda a: run_jobs(a.target, a.scope, a.ref))
+        .exe(lambda a: run_jobs(a.scope, a.ref, a.target))
 
-    args = parser.parse_args()
+    if isinstance(args, str):
+        args = shlex.split(args)
+
+    args = parser.parse_args(args)
     dry_run = getattr(args, 'dry_run', dry_run)
     if not hasattr(args, 'exe'):
         parser.print_usage()

@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from enum import Enum
 from pathlib import Path
 
@@ -19,7 +20,7 @@ class Repo(Enum):
 
 
 def get_conf():
-    path = root / 'config.json'
+    path = root / os.environ.get('FIRE_CONFIG', 'config.json')
     if path.exists():
         conf = path.read_text()
         conf = json.loads(conf)
@@ -46,7 +47,7 @@ def get_conf():
         ('github_callback', '/oauth_callback/github'),
 
         ('log_url', lambda c: 'http://%s/logs/' % c['domain']),
-        ('log_root', '/tmp/fire-logs'),
+        ('log_root', '/tmp/fire/logs'),
     ]
     for key, value in defaults:
         if callable(value):

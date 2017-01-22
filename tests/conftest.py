@@ -1,14 +1,40 @@
+import datetime as dt
 import json
-import pathlib
-import subprocess
+import os
 import sys
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-root = (pathlib.Path(__file__).parent / '..').resolve()
+root = (Path(__file__).parent / '..').resolve()
 sys.path.insert(0, str(root))
+
+
+def pytest_configure():
+    tmp = Path('/tmp/fire')
+    tmp.mkdir(exist_ok=True)
+    conf = {
+        'log_root': str(tmp / 'logs'),
+        'log_url': 'http://localhost/logs/',
+        'domain': 'localhost',
+        'url_prefix': ''
+    }
+    conf = (root / 'config.json').read_text()
+    conf = json.loads(conf)
+    conf = {k: v for k, v in conf.items() if k.startswith('github_')}
+
+    conf_tmp = tmp / 'config.json'
+    conf_tmp.write_text(json.dumps(conf, indent=2, sort_keys=True))
+    os.environ['FIRE_CONFIG'] = str(conf_tmp)
+
+    _rand = patch('fire.random').start()
+    _rand.randint.return_value = 0
+
+    now = dt.datetime(2017, 1, 1)
+    _dt = patch('fire.dt.datetime').start()
+    _dt.now.return_value = now
 
 
 def pytest_addoption(parser):
@@ -35,15 +61,22 @@ def real_http(request):
 
 
 @pytest.fixture
-def setup(request):
-    conf = {
-        'log_root': '/tmp/fire-logs',
-        'log_url': 'http://localhost/logs/',
-        'domain': 'localhost',
-        'url_prefix': ''
-    }
-    with patch.dict('api.conf', conf) as conf:
-        yield conf
+def setup(sp):
+    pass
+
+
+@pytest.fixture
+def sp():
+    with patch('fire.subprocess') as sp:
+        sp.call.return_value = 0
+        yield sp
+
+
+@pytest.fixture
+def main():
+    from fire import main
+
+    return main
 
 
 @pytest.fixture
@@ -65,11 +98,4 @@ def load_json():
     def inner(path):
         txt = _load(path)
         return json.loads(txt)
-    return inner
-
-
-@pytest.fixture
-def sh():
-    def inner(*a, **kw):
-        return subprocess.check_output(*a, shell=1, **kw).decode()
     return inner
