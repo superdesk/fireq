@@ -1,0 +1,9 @@
+{
+  "ref": "refs/pull/1991/merge",
+  "url": "https://api.github.com/repos/superdesk/superdesk/git/refs/pull/1991/merge",
+  "object": {
+    "sha": "59ad6aaac17b5e476015cbb861b4d0685770cdc4",
+    "type": "commit",
+    "url": "https://api.github.com/repos/superdesk/superdesk/git/commits/59ad6aaac17b5e476015cbb861b4d0685770cdc4"
+  }
+}

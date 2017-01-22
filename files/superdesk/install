@@ -452,3 +452,4 @@ python manage.py app:initialize_data --help | grep -q -- --sample-data && sample
 
 python manage.py app:initialize_data $sample_data
 python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+unset sample_data

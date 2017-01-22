@@ -21,7 +21,7 @@ class Repo(Enum):
 def get_conf():
     path = root / 'config.json'
     if path.exists():
-        conf = (root / 'config.json').read_text()
+        conf = path.read_text()
         conf = json.loads(conf)
     else:
         conf = {}
@@ -44,6 +44,9 @@ def get_conf():
         ('github_secret', None),
         ('github_orgs', ['superdesk']),
         ('github_callback', '/oauth_callback/github'),
+
+        ('log_url', lambda c: 'http://%s/logs/' % c['domain']),
+        ('log_root', '/tmp/fire-logs'),
     ]
     for key, value in defaults:
         if callable(value):

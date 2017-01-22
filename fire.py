@@ -9,7 +9,8 @@ from pathlib import Path
 
 from pystache import Renderer
 
-from api import log
+import fire_gh as gh
+from api import log, conf
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
@@ -29,10 +30,10 @@ checks = {
 }
 
 
-class Ref(namedtuple('Ref', 'scope, val, uid')):
+class Ref(namedtuple('Ref', 'scope, val, uid, sha')):
     __slots__ = ()
 
-    def __new__(cls, scope, ref):
+    def __new__(cls, scope, ref, sha=None):
         scope = getattr(scopes, scope)
         if ref.startswith('pull/'):
             uid = ('pr', re.sub('[^0-9]', '', ref))
@@ -43,9 +44,47 @@ class Ref(namedtuple('Ref', 'scope, val, uid')):
             uid = ('', ref)
             ref = 'heads/' + ref
         uid = '%s%s-%s' % (scope.name, uid[0], re.sub('[^a-z0-9]', '', uid[1]))
-        uid = 'dev-' + uid
+        # uid = 'dev-' + uid
 
-        return super().__new__(cls, scope, ref, uid)
+        ref = super().__new__(cls, scope, ref, uid, sha)
+        if not sha:
+            sha = gh.get_sha(ref)
+            ref = ref._replace(sha=sha)
+        return ref
+
+    @property
+    def is_pr(self):
+        return re.match('^pull/\d*$', self.val)
+
+
+class Logs(namedtuple('Logs', 'path, www')):
+    __slots__ = ()
+
+    def __new__(cls, uid):
+        root = Path(conf['log_root'])
+        path = (
+            'all/{time:%Y%m%d-%H%M%S}-{rand:02d}-{uid}/'
+            .format(
+                uid=uid,
+                time=dt.datetime.now(),
+                rand=random.randint(0, 99)
+            )
+        )
+        current = root / path
+        current.mkdir(parents=True, exist_ok=True)
+
+        latest = root / 'latest' / uid
+        latest.parent.mkdir(parents=True, exist_ok=True)
+        latest.exists() and latest.unlink()
+        latest.symlink_to(current)
+
+        return super().__new__(cls, path, str(root / 'www' / uid))
+
+    def file(self, target):
+        return Path(conf['log_root']) / self.path / target
+
+    def url(self, target):
+        return conf['log_url'] + self.path + target
 
 
 def render_tpl(tpl, ctx, search_dirs=None):
@@ -85,20 +124,21 @@ def endpoint(tpl, scope=None, *, expand=None):
         db_name = name
         db_optimize = val('db_optimize', dev)
         db_local = db_host == 'localhost'
+        test_data = val('test_data') and 1 or ''
         pkg_upgrade = val('pkg_upgrade', False) and 1 or ''
         header_doc = val('header_doc', '')
 
-        is_pr = re.match('^pulls/\d*$', repo_ref)
+        is_pr = re.match('^pull/\d*$', repo_ref)
         is_superdesk = name == 'superdesk'
         logs = '/var/log/%s' % name
         config = '/etc/%s.sh' % name
         return locals()
 
     scope = scope or expand.get('scope')
-    scope = getattr(scopes, scope) if scope else scopes.sd
+    scope = getattr(scopes, scope) if scope else scopes[0]
 
-    search_dirs = ['tpl/superdesk', 'tpl']
-    if scope != scopes.sd:
+    search_dirs = ['tpl/' + scopes[0].tpldir, 'tpl']
+    if scope != scopes[0]:
         search_dirs.insert(0, 'tpl/%s' % scope.tpldir)
 
     name = 'superdesk'
@@ -143,8 +183,8 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
             .format(cmd=cmd, path=log_file)
         )
 
-    if not quiet:
-        log.info(cmd)
+    if not quiet or dry_run:
+        print(cmd)
     if dry_run:
         log.info('Dry run!')
         return 0
@@ -155,61 +195,67 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
     return code
 
 
-def run_job(target, tpl, ctx, log_path):
+def run_job(target, tpl, ctx):
     # TODO: add github statuses here
     cmd = endpoint(tpl, expand=ctx)
-    log_file = log_path / (target + '.log')
-    log.info('log=%s', log_file)
-    (log_path / (target + '.sh')).write_text(cmd)
+    logs = ctx['host_logs']
+    log_file = logs.file(target + '.log')
+    log.info('log=%s url=%s', log_file, logs.url(target + '.log'))
+    logs.file(target + '.sh').write_text(cmd)
     try:
         code = sh(cmd, log_file, exit=False, quiet=True)
         log.info('code=%s log=%s', code, log_file)
     except Exception as e:
         log.error(e)
         code = 1
+
+    gh.post_status(target, ctx, code=code)
     return code
 
 
-def run_jobs(targets=None, scope=None, ref='master'):
-    def ctx(scope, ref):
+def run_jobs(targets=None, scope_name=None, ref_name='master'):
+    def ctx():
         uid = ref.uid
+        scope = ref.scope.name
         repo_ref = ref.val
-        lxc_base = 'base-sd--dev'
+        repo_name = ref.scope.repo
+        repo_sha = ref.sha
+        lxc_base = conf['lxc_base']
         lxc_build = '%s--build' % uid
-        host = '%s.test.superdesk.org' % uid
-        host_logs = '/tmp/logs/www/%s' % uid
-        db_host = 'data-dev'
+        host = '%s.%s' % (uid, conf['domain'])
+        host_ssl = 1
+        host_logs = Logs(uid)
+        db_host = conf['lxc_data']
         db_name = uid
+        test_data = 1
         ssh = 'ssh %s' % ssh_opts
+        restart_url = (
+            'http://{domain}{url_prefix}/{ref.scope.name}/{ref.val}/restart'
+            .format(
+                domain=conf['domain'],
+                url_prefix=conf['url_prefix'],
+                ref=ref
+            )
+        )
         return locals()
 
-    ref = Ref(scope, ref)
-    ctx = ctx(scope, ref)
-    log_root = Path('/tmp/logs')
-    log_path = log_root / (
-        'all/{time:%Y%m%d-%H%M%S}-{rand:02d}-{uid}'
-        .format(
-            uid=ctx['uid'],
-            time=dt.datetime.now(),
-            rand=random.randint(0, 99)
-        )
-    )
-    log_path.mkdir(parents=True, exist_ok=True)
-    latest = log_root / ('latest/' + ctx['uid'])
-    latest.parent.mkdir(parents=True, exist_ok=True)
-    latest.exists() and latest.unlink()
-    latest.symlink_to(log_path)
+    scope_name = scope_name or scopes[0].name
+    ref = Ref(scope_name, ref_name)
+    ctx = ctx()
 
     if targets is None:
         targets = (
             ['build', 'www'] +
-            ['check-' + i for i in checks.get(scope, ())]
+            ['check-' + i for i in checks.get(scope_name, ())]
         )
+
+    for target in targets:
+        gh.post_status(target, ctx)
 
     target = 'build'
     if target in targets:
         targets.remove(target)
-        code = run_job(target, '{{>ci-build.sh}}', ctx, log_path)
+        code = run_job(target, '{{>ci-build.sh}}', ctx)
         if code != 0:
             raise SystemExit(code)
 
@@ -218,13 +264,13 @@ def run_jobs(targets=None, scope=None, ref='master'):
         target = 'www'
         if target in targets:
             targets.remove(target)
-            j = pool.submit(run_job, target, '{{>ci-www.sh}}', ctx, log_path)
+            j = pool.submit(run_job, target, '{{>ci-www.sh}}', ctx)
             jobs[j] = ctx
 
         for target in targets:
             inner = endpoint('{{>%s.sh}}' % target, expand=ctx)
             c = dict(ctx, target=target, inner=inner)
-            j = pool.submit(run_job, target, '{{>ci-check.sh}}', c, log_path)
+            j = pool.submit(run_job, target, '{{>ci-check.sh}}', c)
             jobs[j] = c
 
     for f in futures.as_completed(jobs):
@@ -232,7 +278,7 @@ def run_jobs(targets=None, scope=None, ref='master'):
         try:
             f.result()
         except Exception as exc:
-            log.exception(ctx, exc)
+            log.exception('%s ctx=%s', exc, gh.pretty_json(ctx))
 
 
 def gen_files():
