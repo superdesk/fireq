@@ -8,7 +8,10 @@ def check_output(cmd):
 
 def startswith(cmd, txt):
     txt = textwrap.dedent(txt).strip()
-    assert check_output(cmd).startswith(txt)
+    out = check_output(cmd)
+    if out.startswith('Running with sudo...\n'):
+        out = out.split('\n', 1)[1]
+    assert out.startswith(txt)
 
 
 def test_fire_wrapper():

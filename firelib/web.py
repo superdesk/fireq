@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 import asyncio
+import datetime as dt
+import hashlib
 import hmac
+import json
 import os
 import re
 import uuid
 import warnings
+from pathlib import Path
 
 # from aiofiles import open as async_open
-from aiohttp import web
+from aiohttp import web, ClientSession
 from aioauth_client import GithubClient
 from aiohttp_session import get_session, session_middleware
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from pystache import render
 
-from . import log, conf, Repo, utils
-from .build import get_ctx, build, gh_api
+from . import log, conf, root, pretty_json, get_restart_url, gh
+from .cli import scopes, Ref
 
 
 def get_app():
@@ -47,21 +51,35 @@ def get_app():
     url('/logs/{path:.*}', logs)
     url('/hook', hook, method='POST')
 
-    prefix = '{prefix:(%s)}' % '|'.join(i.name for i in Repo)
+    prefix = '{prefix:(%s)}' % '|'.join(i.name for i in scopes)
     url(r'/%s' % prefix, repo)
     url(r'/%s/{ref:.+}/restart' % prefix, restart)
 
-    # TODO: keep it for a while
+    # TODO: previous urls; keep redirects for a while
     refs_prefix = {'pr': 'pull/', 'br': 'heads/'}
     url(
         r'/%s/restart/{typ:(pr|br)}/{ref:.+}' % prefix,
-        lambda r: web.HTTPFound(utils.get_restart_url(
+        lambda r: web.HTTPFound(get_restart_url(
             r.match_info['prefix'],
             refs_prefix[r.match_info['typ']] + r.match_info['ref']
         ))
     )
     url('/push/{p:.*}', lambda r: web.HTTPFound('/logs/' + r.match_info['p']))
     return app
+
+
+async def gh_api(url, data=None):
+    if not url.startswith('https://'):
+        url = 'https://api.github.com/' + url
+
+    async with ClientSession(headers=gh.auth()) as s:
+        if data is None:
+            method = 'GET'
+        else:
+            method = 'POST'
+            data = json.dumps(data)
+        async with s.request(method, url, data=data) as resp:
+            return resp, await resp.json()
 
 
 async def auth_middleware(app, handler):
@@ -127,31 +145,45 @@ async def logs(request):
     )
 
 
-async def get_hook_ctx(headers, body, **extend):
+def get_hook_ctx(headers, body, **extend):
     event = headers.get('X-Github-Event')
     if event == 'pull_request':
         if body['action'] not in ('opened', 'reopened', 'synchronize'):
-            return {}
+            return
         ref = 'pull/%s' % body['number']
         sha = body['pull_request']['head']['sha']
     elif event == 'push':
         sha = body['after']
         ref = re.sub('^refs/', '', body['ref'])
     else:
-        return {}
+        return
 
     # mean it has been deleted
     if sha == '0000000000000000000000000000000000000000':
-        return {}
+        return
 
-    repo_name = body['repository']['full_name']
-    return await get_ctx(repo_name, ref, sha, **extend)
+    repo = body['repository']['full_name']
+    scope = [i.name for i in scopes if i.repo == repo]
+    if not scope:
+        return
+
+    ref = Ref(scope[0], ref, '<sha>')
+    log_path = (
+        'hooks/{time:%Y%m%d-%H%M%S}-{event}-{uid}-{sha}.json'
+        .format(uid=ref.uid, time=dt.datetime.now(), sha=sha, event=event)
+    )
+    log_file = Path(conf['log_root']) / log_path
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    log_file.write_text(pretty_json([headers, body]))
+    log_url = conf['log_url'] + log_path
+    log.info('%s request=%s', ref, log_url)
+    return ref
 
 
 async def hook(request):
     body = await request.read()
     check_signature = hmac.compare_digest(
-        utils.get_signature(body),
+        get_signature(body),
         request.headers.get('X-Hub-Signature', '')
     )
     if not check_signature:
@@ -160,46 +192,36 @@ async def hook(request):
     body = await request.json()
     headers = dict(request.headers.items())
     del headers['X-Hub-Signature']
-    log.info('%s\n\n%s', utils.pretty_json(headers), utils.pretty_json(body))
-    ctx = await get_hook_ctx(headers, body, clean=True)
-    if ctx:
-        os.makedirs(ctx['logpath'], exist_ok=True)
-        with open(ctx['path'] + '/request.json', 'w') as f:
-            f.write(utils.pretty_json([headers, body]))
-        # async with async_open(ctx['path'] + '/request.json', 'w') as f:
-        #     await f.write(pretty_json([headers, body]))
-
-        request.app.loop.create_task(build(ctx))
-    return web.json_response(ctx)
+    ref = get_hook_ctx(headers, body, clean=True)
+    if ref:
+        request.app.loop.create_task(ci(ref))
+    return web.json_response(ref)
 
 
 async def restart(request):
     prefix = request.match_info['prefix']
     try:
-        repo_name = Repo[prefix].value
-    except KeyError:
+        repo = getattr(scopes, prefix).name
+    except AttributeError:
         return web.HTTPNotFound()
 
     ref = request.match_info['ref']
-    sha = request.GET.get('sha')
-    clean = request.GET.get('clean', False)
+    ref = Ref(repo, ref, '<sha>')
 
-    ctx = await get_ctx(repo_name, ref, sha, clean=clean)
-    if not ctx:
-        return web.HTTPBadRequest()
-
-    request.app.loop.create_task(build(ctx))
-    return web.HTTPFound(ctx['logurl'])
+    request.app.loop.create_task(ci(ref))
+    await asyncio.sleep(2)
+    log_url = '%slatest/%s/' % (conf['log_url'], ref.uid)
+    return web.HTTPFound(log_url)
 
 
 async def index(request):
-    ctx = {'repo': [{'prefix': i.name, 'name': i.value} for i in Repo]}
+    ctx = {'repos': [{'short': i.name, 'name': i.repo} for i in scopes]}
     return render_tpl(index_tpl, ctx)
 index_tpl = '''
 <ul>
-{{#repo}}
-    <li><a href="{{prefix}}">{{name}}</a></li>
-{{/repo}}
+{{#repos}}
+    <li><a href="{{short}}">{{name}}</a></li>
+{{/repos}}
 </ul>
 '''
 
@@ -207,8 +229,8 @@ index_tpl = '''
 async def repo(request):
     prefix = request.match_info['prefix']
     try:
-        repo_name = Repo[prefix].value
-    except KeyError:
+        repo_name = getattr(scopes, prefix).repo
+    except AttributeError:
         return web.HTTPNotFound()
 
     def info(name, pr=False):
@@ -225,7 +247,7 @@ async def repo(request):
             'name': name,
             'gh_url': gh_url,
             'url': 'https://%s.%s' % (subdomain, conf['domain']),
-            'restart_url': utils.get_restart_url(prefix, ref),
+            'restart_url': get_restart_url(prefix, ref),
         }
 
     resp, body = await gh_api('repos/%s/pulls' % repo_name)
@@ -261,6 +283,23 @@ repo_tpl = '''
 {{/branches}}
 </ul>
 '''
+
+
+async def ci(ref):
+    cmd = (
+        'cd {root} && FIRE_UID={uid} ./fire2 ci {ref.scope.name} {ref.val}'
+        .format(root=root, ref=ref, uid=str(uuid.uuid4().hex[:8]))
+    )
+    log.info(cmd)
+    proc = await asyncio.create_subprocess_shell(cmd, executable='/bin/bash')
+    code = await proc.wait()
+    log.info('code=%s: %s', code, cmd)
+    return code
+
+
+def get_signature(body):
+    sha1 = hmac.new(conf['secret'].encode(), body, hashlib.sha1).hexdigest()
+    return 'sha1=' + sha1
 
 
 def init_loop(loop=None):

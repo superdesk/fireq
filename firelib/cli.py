@@ -10,8 +10,7 @@ from pathlib import Path
 
 from pystache import Renderer
 
-from . import gh
-from api import log, conf
+from . import log, conf, pretty_json, gh
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
@@ -52,6 +51,12 @@ class Ref(namedtuple('Ref', 'scope, val, uid, sha')):
             sha = gh.get_sha(ref)
             ref = ref._replace(sha=sha)
         return ref
+
+    def __str__(self):
+        return 'Ref(uid=%s ref=%r sha=%s)' % (self.uid, self.val, self.sha)
+
+    def __repr__(self):
+        return str(self)
 
     @property
     def is_pr(self):
@@ -283,7 +288,7 @@ def run_jobs(scope_name, ref_name, targets):
         try:
             code = f.result()
         except Exception as exc:
-            log.exception('%s ctx=%s', exc, gh.pretty_json(ctx))
+            log.exception('%s ctx=%s', exc, pretty_json(ctx))
         else:
             codes.append((target, code))
 

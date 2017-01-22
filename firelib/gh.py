@@ -3,15 +3,7 @@ import json
 import urllib.error
 import urllib.request
 
-from api import conf, log
-
-
-def pretty_json(obj):
-    if isinstance(obj, bytes):
-        obj = obj.decode()
-    if isinstance(obj, str):
-        obj = json.loads(obj)
-    return json.dumps(obj, indent=2, sort_keys=True)
+from . import conf, log, pretty_json
 
 
 class Error(Exception):

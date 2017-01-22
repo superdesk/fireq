@@ -23,7 +23,10 @@ def pytest_configure():
     }
     conf = (root / 'config.json').read_text()
     conf = json.loads(conf)
-    conf = {k: v for k, v in conf.items() if k.startswith('github_')}
+    conf = {
+        k: v for k, v in conf.items()
+        if k.startswith('github_') or k == 'secret'
+    }
 
     conf_tmp = tmp / 'config.json'
     conf_tmp.write_text(json.dumps(conf, indent=2, sort_keys=True))

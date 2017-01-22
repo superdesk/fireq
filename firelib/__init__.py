@@ -1,22 +1,10 @@
 import json
 import logging
 import os
-from enum import Enum
 from pathlib import Path
 
 log = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    datefmt='%H:%M:%S',
-    format='%(asctime)s %(message)s'
-)
 root = Path(__file__).resolve().parent.parent
-
-
-class Repo(Enum):
-    sd = 'superdesk/superdesk'
-    sds = 'superdesk/superdesk-core'
-    sdc = 'superdesk/superdesk-client-core'
 
 
 def get_conf():
@@ -28,7 +16,7 @@ def get_conf():
         conf = {}
 
     defaults = [
-        ('debug', False),
+        ('debug', True),
         ('debug_aio', False),
         ('lxc_base', 'base-sd'),
         ('lxc_data', 'data-sd'),
@@ -53,7 +41,40 @@ def get_conf():
         if callable(value):
             value = value(conf)
         conf.setdefault(key, value)
+
+    # FIRE_UID is specified in web
+    uid = os.environ.get('FIRE_UID')
+    fmt = (
+        '[%(asctime)s]{} %(levelname).3s %(message)s'
+        .format(' [%s]' % uid if uid else '')
+    )
+    logging.basicConfig(
+        level=logging.DEBUG if conf['debug'] else logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S %Z',
+        format=fmt
+    )
     return conf
 
 
 conf = get_conf()
+
+
+def pretty_json(obj):
+    if isinstance(obj, bytes):
+        obj = obj.decode()
+    if isinstance(obj, str):
+        obj = json.loads(obj)
+    return json.dumps(obj, indent=2, sort_keys=True)
+
+
+def get_restart_url(short_name, ref):
+    # TODO: should use cli.Ref
+    return (
+        'https://{domain}{url_prefix}/{short_name}/{ref}/restart'
+        .format(
+            domain=conf['domain'],
+            url_prefix=conf['url_prefix'],
+            short_name=short_name,
+            ref=ref
+        )
+    )

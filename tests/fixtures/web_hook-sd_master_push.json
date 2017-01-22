@@ -1,0 +1,227 @@
+[
+  {
+    "Accept": "*/*",
+    "Connection": "close",
+    "Content-Length": "8049",
+    "Content-Type": "application/json",
+    "Host": "test.superdesk.org",
+    "User-Agent": "GitHub-Hookshot/b831b17",
+    "X-Github-Delivery": "3d041780-d668-11e6-8a89-b5453d286a55",
+    "X-Github-Event": "push"
+  },
+  {
+    "after": "044b063b1ad55c9742b8bbaec5d6db10a473e690",
+    "base_ref": null,
+    "before": "aac3cfbec388f1dbade7c3b67f7715f9eca932d1",
+    "commits": [
+      {
+        "added": [],
+        "author": {
+          "email": "jasekpetr@gmail.com",
+          "name": "Petr Jasek",
+          "username": "petrjasek"
+        },
+        "committer": {
+          "email": "jasekpetr@gmail.com",
+          "name": "Petr Jasek",
+          "username": "petrjasek"
+        },
+        "distinct": true,
+        "id": "f332e3d71bdd0fd1cabe65f1bcf3cddd44214f5c",
+        "message": "update cores",
+        "modified": [
+          "client/package.json",
+          "server/requirements.txt"
+        ],
+        "removed": [],
+        "timestamp": "2017-01-09T13:19:04+01:00",
+        "tree_id": "3ec5c6bab4bd5ccc0edc0ada4d9cb509991fb8ec",
+        "url": "https://github.com/superdesk/superdesk/commit/f332e3d71bdd0fd1cabe65f1bcf3cddd44214f5c"
+      },
+      {
+        "added": [],
+        "author": {
+          "email": "jasekpetr@gmail.com",
+          "name": "Petr Ja\u0161ek",
+          "username": "petrjasek"
+        },
+        "committer": {
+          "email": "noreply@github.com",
+          "name": "GitHub",
+          "username": "web-flow"
+        },
+        "distinct": true,
+        "id": "7c2d0a940aa3434ef19ce66bf7aa8f7e358ef806",
+        "message": "Merge branch 'master' into master",
+        "modified": [],
+        "removed": [],
+        "timestamp": "2017-01-09T13:27:31+01:00",
+        "tree_id": "3ec5c6bab4bd5ccc0edc0ada4d9cb509991fb8ec",
+        "url": "https://github.com/superdesk/superdesk/commit/7c2d0a940aa3434ef19ce66bf7aa8f7e358ef806"
+      },
+      {
+        "added": [],
+        "author": {
+          "email": "jasekpetr@gmail.com",
+          "name": "Petr Ja\u0161ek",
+          "username": "petrjasek"
+        },
+        "committer": {
+          "email": "noreply@github.com",
+          "name": "GitHub",
+          "username": "web-flow"
+        },
+        "distinct": true,
+        "id": "044b063b1ad55c9742b8bbaec5d6db10a473e690",
+        "message": "Merge pull request #2450 from petrjasek/master\n\nupdate cores",
+        "modified": [
+          "client/package.json"
+        ],
+        "removed": [],
+        "timestamp": "2017-01-09T13:36:26+01:00",
+        "tree_id": "3ec5c6bab4bd5ccc0edc0ada4d9cb509991fb8ec",
+        "url": "https://github.com/superdesk/superdesk/commit/044b063b1ad55c9742b8bbaec5d6db10a473e690"
+      }
+    ],
+    "compare": "https://github.com/superdesk/superdesk/compare/aac3cfbec388...044b063b1ad5",
+    "created": false,
+    "deleted": false,
+    "forced": false,
+    "head_commit": {
+      "added": [],
+      "author": {
+        "email": "jasekpetr@gmail.com",
+        "name": "Petr Ja\u0161ek",
+        "username": "petrjasek"
+      },
+      "committer": {
+        "email": "noreply@github.com",
+        "name": "GitHub",
+        "username": "web-flow"
+      },
+      "distinct": true,
+      "id": "044b063b1ad55c9742b8bbaec5d6db10a473e690",
+      "message": "Merge pull request #2450 from petrjasek/master\n\nupdate cores",
+      "modified": [
+        "client/package.json"
+      ],
+      "removed": [],
+      "timestamp": "2017-01-09T13:36:26+01:00",
+      "tree_id": "3ec5c6bab4bd5ccc0edc0ada4d9cb509991fb8ec",
+      "url": "https://github.com/superdesk/superdesk/commit/044b063b1ad55c9742b8bbaec5d6db10a473e690"
+    },
+    "organization": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/5527298?v=3",
+      "description": "Home of the Superdesk project, an end-to-end platform for news.",
+      "events_url": "https://api.github.com/orgs/superdesk/events",
+      "hooks_url": "https://api.github.com/orgs/superdesk/hooks",
+      "id": 5527298,
+      "issues_url": "https://api.github.com/orgs/superdesk/issues",
+      "login": "superdesk",
+      "members_url": "https://api.github.com/orgs/superdesk/members{/member}",
+      "public_members_url": "https://api.github.com/orgs/superdesk/public_members{/member}",
+      "repos_url": "https://api.github.com/orgs/superdesk/repos",
+      "url": "https://api.github.com/orgs/superdesk"
+    },
+    "pusher": {
+      "email": "jasekpetr@gmail.com",
+      "name": "petrjasek"
+    },
+    "ref": "refs/heads/master",
+    "repository": {
+      "archive_url": "https://api.github.com/repos/superdesk/superdesk/{archive_format}{/ref}",
+      "assignees_url": "https://api.github.com/repos/superdesk/superdesk/assignees{/user}",
+      "blobs_url": "https://api.github.com/repos/superdesk/superdesk/git/blobs{/sha}",
+      "branches_url": "https://api.github.com/repos/superdesk/superdesk/branches{/branch}",
+      "clone_url": "https://github.com/superdesk/superdesk.git",
+      "collaborators_url": "https://api.github.com/repos/superdesk/superdesk/collaborators{/collaborator}",
+      "comments_url": "https://api.github.com/repos/superdesk/superdesk/comments{/number}",
+      "commits_url": "https://api.github.com/repos/superdesk/superdesk/commits{/sha}",
+      "compare_url": "https://api.github.com/repos/superdesk/superdesk/compare/{base}...{head}",
+      "contents_url": "https://api.github.com/repos/superdesk/superdesk/contents/{+path}",
+      "contributors_url": "https://api.github.com/repos/superdesk/superdesk/contributors",
+      "created_at": 1409644577,
+      "default_branch": "master",
+      "deployments_url": "https://api.github.com/repos/superdesk/superdesk/deployments",
+      "description": "Superdesk is an end-to-end news creation, production, curation, distribution, and publishing platform.",
+      "downloads_url": "https://api.github.com/repos/superdesk/superdesk/downloads",
+      "events_url": "https://api.github.com/repos/superdesk/superdesk/events",
+      "fork": false,
+      "forks": 74,
+      "forks_count": 74,
+      "forks_url": "https://api.github.com/repos/superdesk/superdesk/forks",
+      "full_name": "superdesk/superdesk",
+      "git_commits_url": "https://api.github.com/repos/superdesk/superdesk/git/commits{/sha}",
+      "git_refs_url": "https://api.github.com/repos/superdesk/superdesk/git/refs{/sha}",
+      "git_tags_url": "https://api.github.com/repos/superdesk/superdesk/git/tags{/sha}",
+      "git_url": "git://github.com/superdesk/superdesk.git",
+      "has_downloads": true,
+      "has_issues": true,
+      "has_pages": false,
+      "has_wiki": true,
+      "homepage": "http://www.superdesk.org/",
+      "hooks_url": "https://api.github.com/repos/superdesk/superdesk/hooks",
+      "html_url": "https://github.com/superdesk/superdesk",
+      "id": 23570030,
+      "issue_comment_url": "https://api.github.com/repos/superdesk/superdesk/issues/comments{/number}",
+      "issue_events_url": "https://api.github.com/repos/superdesk/superdesk/issues/events{/number}",
+      "issues_url": "https://api.github.com/repos/superdesk/superdesk/issues{/number}",
+      "keys_url": "https://api.github.com/repos/superdesk/superdesk/keys{/key_id}",
+      "labels_url": "https://api.github.com/repos/superdesk/superdesk/labels{/name}",
+      "language": "Python",
+      "languages_url": "https://api.github.com/repos/superdesk/superdesk/languages",
+      "master_branch": "master",
+      "merges_url": "https://api.github.com/repos/superdesk/superdesk/merges",
+      "milestones_url": "https://api.github.com/repos/superdesk/superdesk/milestones{/number}",
+      "mirror_url": null,
+      "name": "superdesk",
+      "notifications_url": "https://api.github.com/repos/superdesk/superdesk/notifications{?since,all,participating}",
+      "open_issues": 13,
+      "open_issues_count": 13,
+      "organization": "superdesk",
+      "owner": {
+        "email": "contact@sourcefabric.org",
+        "name": "superdesk"
+      },
+      "private": false,
+      "pulls_url": "https://api.github.com/repos/superdesk/superdesk/pulls{/number}",
+      "pushed_at": 1483965387,
+      "releases_url": "https://api.github.com/repos/superdesk/superdesk/releases{/id}",
+      "size": 69964,
+      "ssh_url": "git@github.com:superdesk/superdesk.git",
+      "stargazers": 264,
+      "stargazers_count": 264,
+      "stargazers_url": "https://api.github.com/repos/superdesk/superdesk/stargazers",
+      "statuses_url": "https://api.github.com/repos/superdesk/superdesk/statuses/{sha}",
+      "subscribers_url": "https://api.github.com/repos/superdesk/superdesk/subscribers",
+      "subscription_url": "https://api.github.com/repos/superdesk/superdesk/subscription",
+      "svn_url": "https://github.com/superdesk/superdesk",
+      "tags_url": "https://api.github.com/repos/superdesk/superdesk/tags",
+      "teams_url": "https://api.github.com/repos/superdesk/superdesk/teams",
+      "trees_url": "https://api.github.com/repos/superdesk/superdesk/git/trees{/sha}",
+      "updated_at": "2017-01-09T10:19:08Z",
+      "url": "https://github.com/superdesk/superdesk",
+      "watchers": 264,
+      "watchers_count": 264
+    },
+    "sender": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/179249?v=3",
+      "events_url": "https://api.github.com/users/petrjasek/events{/privacy}",
+      "followers_url": "https://api.github.com/users/petrjasek/followers",
+      "following_url": "https://api.github.com/users/petrjasek/following{/other_user}",
+      "gists_url": "https://api.github.com/users/petrjasek/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/petrjasek",
+      "id": 179249,
+      "login": "petrjasek",
+      "organizations_url": "https://api.github.com/users/petrjasek/orgs",
+      "received_events_url": "https://api.github.com/users/petrjasek/received_events",
+      "repos_url": "https://api.github.com/users/petrjasek/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/petrjasek/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/petrjasek/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/petrjasek"
+    }
+  }
+]
