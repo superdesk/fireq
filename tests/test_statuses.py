@@ -35,7 +35,7 @@ def test_base(_call, _sha, sp, main):
         'repos/superdesk/superdesk-core/statuses/<sha>',
         {
             'description': '',
-            'target_url': logs + '-sds-master/build.log',
+            'target_url': logs + '-sds-master/build.log.htm',
             'context': 'fire:build',
             'state': 'success'
         }
@@ -82,7 +82,7 @@ def test_base(_call, _sha, sp, main):
         'repos/superdesk/superdesk/statuses/<sha>',
         {
             'description': '',
-            'target_url': logs + '-sd-master/www.log',
+            'target_url': logs + '-sd-master/www.log.htm',
             'context': 'fire:www',
             'state': 'failure'
         }

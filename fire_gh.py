@@ -56,6 +56,7 @@ def post_status(target, ctx, *, code=None):
         0: 'success',
         1: 'failure'
     }[code and 1]
+    url = url if state == 'pending' else url + '.htm'
     if target == 'www' and code == 0:
         url = 'http://' + ctx['host']
         desc = 'Click "Details" to see the test instance'

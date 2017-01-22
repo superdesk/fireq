@@ -201,11 +201,12 @@ def run_job(target, tpl, ctx):
     cmd = endpoint(tpl, expand=ctx)
     logs = ctx['host_logs']
     log_file = logs.file(target + '.log')
-    log.info('log=%s url=%s', log_file, logs.url(target + '.log'))
+    log_url = logs.url(target + '.log')
+    log.info('pending url=%s', log_url)
     logs.file(target + '.sh').write_text(cmd)
     try:
         code = sh(cmd, log_file, exit=False, quiet=True)
-        log.info('code=%s log=%s', code, log_file)
+        log.info('code=%s url=%s', code, log_url)
     except Exception as e:
         log.error(e)
         code = 1
