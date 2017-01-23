@@ -115,7 +115,7 @@ def update_nginx(path, names=None, ssl=False, live=False):
 
     cmd = '\n'.join(
         'name={name} host={name}.{domain} '
-        '. endpoints/superdesk-dev/nginx.tpl;'
+        '. bin/nginx.conf.sh;'
         .format(name=name, domain=conf['domain'])
         for name in names
     )

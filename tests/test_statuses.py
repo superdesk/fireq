@@ -111,7 +111,8 @@ def test_base(_call, _sha, sp, main, raises):
     }
 
 
-def test_base__real_http(sp, capfd, real_http, main):
+def test_base__real_http(sp, capfd, real_http, gh_call, main):
+    gh_call._stop()
     main('ci sd naspeh')
     out, err = capfd.readouterr()
     assert 9 == err.count("201 url='https://api.github.com/repos/")

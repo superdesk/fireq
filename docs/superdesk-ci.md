@@ -17,7 +17,6 @@ For example: the list for [superdesk-client-core][4] (click on green tick):
 ├─ fire:!restart
 ├─ fire:build
 ├─ fire:check-docs
-├─ fire:check-e2e
 ├─ fire:check-e2e--part1
 ├─ fire:check-e2e--part2
 ├─ fire:check-npmtest

@@ -126,6 +126,7 @@ def endpoint(tpl, scope=None, *, expand=None):
         dev = val('dev', True)
         host = val('host', 'localhost')
         host_ssl = val('host_ssl', False) and 1 or ''
+        host_url = 'http%s://%s/' % (host_ssl and 's', host)
         db_host = val('db_host', 'localhost')
         db_name = name
         db_optimize = val('db_optimize', dev)
@@ -154,7 +155,6 @@ def endpoint(tpl, scope=None, *, expand=None):
         ctx = {
             'repo_core': repo,
             'repo_server': repo,
-            'db_host': 'localhost',
         }
     elif scope == scopes.sdc:
         repo = '/opt/superdesk/client-core'
@@ -201,10 +201,9 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
     return code
 
 
-def run_job(target, tpl, ctx):
+def run_job(target, tpl, ctx, logs):
     # TODO: add github statuses here
     cmd = endpoint(tpl, expand=ctx)
-    logs = ctx['host_logs']
     log_file = logs.file(target + '.log')
     log_url = logs.url(target + '.log')
     log.info('pending url=%s', log_url)
@@ -213,25 +212,26 @@ def run_job(target, tpl, ctx):
         code = sh(cmd, log_file, exit=False, quiet=True)
         log.info('code=%s url=%s', code, log_url)
     except Exception as e:
+        logs.file(target + '.exception').write_text(e)
         log.error(e)
         code = 1
 
-    gh.post_status(target, ctx, code=code)
+    gh.post_status(target, ctx, logs, code=code)
     return code
 
 
 def run_jobs(scope_name, ref_name, targets):
-    def ctx():
-        uid = ref.uid
-        scope = ref.scope.name
-        repo_ref = ref.val
-        repo_name = ref.scope.repo
-        repo_sha = ref.sha
+    def ctx(_ref, _logs):
+        uid = _ref.uid
+        scope = _ref.scope.name
+        repo_ref = _ref.val
+        repo_name = _ref.scope.repo
+        repo_sha = _ref.sha
         lxc_base = conf['lxc_base']
         lxc_build = '%s--build' % uid
         host = '%s.%s' % (uid, conf['domain'])
         host_ssl = 1
-        host_logs = Logs(uid)
+        host_logs = _logs.www
         db_host = conf['lxc_data']
         db_name = uid
         test_data = 1
@@ -241,29 +241,35 @@ def run_jobs(scope_name, ref_name, targets):
             .format(
                 domain=conf['domain'],
                 url_prefix=conf['url_prefix'],
-                ref=ref
+                ref=_ref
             )
         )
+        del _ref, _logs
         return locals()
 
     scope_name = scope_name or scopes[0].name
     ref = Ref(scope_name, ref_name)
-    ctx = ctx()
+    logs = Logs(ref.uid)
+    ctx = ctx(ref, logs)
     codes = []
 
+    default_targets = (
+        ['build', 'www'] +
+        ['check-' + i for i in checks.get(scope_name, ())]
+    )
     if targets is None:
-        targets = (
-            ['build', 'www'] +
-            ['check-' + i for i in checks.get(scope_name, ())]
-        )
+        targets = default_targets
+    else:
+        targets = [t for t in targets if t in default_targets]
 
-    for target in targets:
-        gh.post_status(target, ctx)
+    if not dry_run:
+        for target in targets:
+            gh.post_status(target, ctx, logs)
 
     target = 'build'
     if target in targets:
         targets.remove(target)
-        code = run_job(target, '{{>ci-build.sh}}', ctx)
+        code = run_job(target, '{{>ci-build.sh}}', ctx, logs)
         if code != 0:
             log.error('%s %s', target, ctx['uid'])
             raise SystemExit(code)
@@ -274,13 +280,19 @@ def run_jobs(scope_name, ref_name, targets):
         target = 'www'
         if target in targets:
             targets.remove(target)
-            j = pool.submit(run_job, target, '{{>ci-www.sh}}', ctx)
+            j = pool.submit(run_job, target, '{{>ci-www.sh}}', ctx, logs)
             jobs[j] = target
 
         for target in targets:
+            # TODO: it should be moved to a better place
+            if ref.scope == scopes.sds:
+                db_host = 'localhost'
+            else:
+                db_host = conf['lxc_data'] + '--tests'
+            ctx = dict(ctx, db_host=db_host)
             inner = endpoint('{{>%s.sh}}' % target, expand=ctx)
             c = dict(ctx, target=target, inner=inner)
-            j = pool.submit(run_job, target, '{{>ci-check.sh}}', c)
+            j = pool.submit(run_job, target, '{{>ci-check.sh}}', c, logs)
             jobs[j] = target
 
     for f in futures.as_completed(jobs):
@@ -357,6 +369,7 @@ def main(args=None):
 
     args = parser.parse_args(args)
     dry_run = getattr(args, 'dry_run', dry_run)
+
     if not hasattr(args, 'exe'):
         parser.print_usage()
     else:

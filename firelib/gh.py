@@ -40,8 +40,8 @@ def call(url, data=None):
         raise Error(e)
 
 
-def post_status(target, ctx, *, code=None):
-    url = ctx['host_logs'].url(target + '.log')
+def post_status(target, ctx, logs, *, code=None):
+    url = logs.url(target + '.log')
     desc = ''
     state = {
         None: 'pending',
@@ -54,7 +54,7 @@ def post_status(target, ctx, *, code=None):
         desc = 'Click "Details" to see the test instance'
 
     elif target == 'build' and code is None:
-        post_status('!restart', ctx, code=0)
+        post_status('!restart', ctx, logs, code=0)
 
     elif target == '!restart':
         url = ctx['restart_url']
@@ -67,7 +67,8 @@ def post_status(target, ctx, *, code=None):
         'description': desc,
         'context': conf['status_prefix'] + target
     }
-    call(statuses_url, data)
+    resp = call(statuses_url, data)
+    logs.file(target + ('-%s.json' % state)).write_text(pretty_json(resp))
     return url, desc
 
 

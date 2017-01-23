@@ -1,6 +1,7 @@
 import datetime as dt
 import json
 import os
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -64,7 +65,7 @@ def real_http(request):
 
 
 @pytest.fixture
-def setup(sp):
+def setup(sp, gh_call):
     pass
 
 
@@ -73,6 +74,26 @@ def sp():
     with patch('firelib.cli.subprocess') as sp:
         sp.call.return_value = 0
         yield sp
+
+
+@pytest.fixture
+def gh_call(load_json):
+    def fn(url, *a, **kw):
+        # it uses in gh.get_sha
+        if re.findall(r'git/refs/', url):
+            return load_json('gh_sha-sds_master.json')
+        elif re.findall(r'/statuses/', url):
+            return {}
+        return
+
+    p = patch('firelib.gh.call', wraps=fn)
+    gh = p.start()
+    gh._stop = p.stop
+    yield gh
+    try:
+        gh._stop()
+    except RuntimeError:
+        pass
 
 
 @pytest.fixture

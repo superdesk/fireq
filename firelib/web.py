@@ -67,20 +67,6 @@ def get_app():
     return app
 
 
-async def gh_api(url, data=None):
-    if not url.startswith('https://'):
-        url = 'https://api.github.com/' + url
-
-    async with ClientSession(headers=gh.auth()) as s:
-        if data is None:
-            method = 'GET'
-        else:
-            method = 'POST'
-            data = json.dumps(data)
-        async with s.request(method, url, data=data) as resp:
-            return resp, await resp.json()
-
-
 async def auth_middleware(app, handler):
     """ Login via Github """
     def gh_client(**kw):
@@ -206,8 +192,9 @@ async def restart(request):
 
     ref = request.match_info['ref']
     ref = Ref(repo, ref, '<sha>')
+    targets = request.GET.get('t', '').split(',')
 
-    request.app.loop.create_task(ci(ref))
+    request.app.loop.create_task(ci(ref, targets))
     await asyncio.sleep(2)
     log_url = '%slatest/%s/' % (conf['log_url'], ref.uid)
     return web.HTTPFound(log_url)
@@ -240,7 +227,7 @@ async def repo(request):
         else:
             name_cleaned = re.sub('[^a-z0-9]', '', name)
             subdomain = '%s-%s' % (prefix, name_cleaned)
-            gh_url = 'https://github.com/%s/tree/%s' % (repo_name, ref)
+            gh_url = 'https://github.com/%s/commits/%s' % (repo_name, ref)
 
         return {
             'name': name,
@@ -255,45 +242,59 @@ async def repo(request):
     resp, body = await gh_api('repos/%s/branches' % repo_name)
     branches = [info(i['name']) for i in body]
 
-    ctx = {'pulls': pulls, 'branches': branches}
-    return render_tpl(repo_tpl, ctx)
+    refs = [
+        {'title': 'Pull requests', 'items': pulls},
+        {'title': 'Branches', 'items': branches}
+    ]
+    return render_tpl(repo_tpl, {'refs': refs})
 repo_tpl = '''
-<b>Pull requests</b>
+{{#refs}}
+<h3>{{title}}</h3>
 <ul>
-{{#pulls}}
+{{#items}}
     <li>
-        <a href="{{url}}">{{name}}</a>
-        <a href="{{gh_url}}" title="Github">[gh]</a>
-        <a href="{{restart_url}}" style="color:red" title="Restart">[r]</a>
-        <a href="{{restart_url}}?clean=1" title="Clean and Restart">[cr]</a>
+        <b>{{name}}</b>
+        <a href="{{url}}" style="color:green">[instance]</a>
+        <a href="{{gh_url}}" style="color:gray">[github]</a>
+        <a href="{{restart_url}}" style="color:black">[restart]</a>
     </li>
-{{/pulls}}
+{{/items}}
 </ul>
-
-<b>Branches</b>
-<ul>
-{{#branches}}
-    <li>
-        <a href="{{url}}">{{name}}</a>
-        <a href="{{gh_url}}" title="Github">[gh]</a>
-        <a href="{{restart_url}}" style="color:red" title="Restart">[r]</a>
-        <a href="{{restart_url}}?clean=1" title="Clean and Restart">[cr]</a>
-    </li>
-{{/branches}}
-</ul>
+{{/refs}}
 '''
 
 
-async def ci(ref):
+async def ci(ref, targets=None):
+    targets = ' '.join('-t %s' % t for t in targets or [] if t)
     cmd = (
-        'cd {root} && FIRE_UID={uid} ./fire2 ci {ref.scope.name} {ref.val}'
-        .format(root=root, ref=ref, uid=str(uuid.uuid4().hex[:8]))
+        'cd {root} && '
+        'FIRE_UID={uid} ./fire2 ci {ref.scope.name} {ref.val} {targets}'
+        .format(
+            root=root,
+            ref=ref,
+            uid=str(uuid.uuid4().hex[:8]),
+            targets=targets
+        )
     )
     log.info(cmd)
     proc = await asyncio.create_subprocess_shell(cmd, executable='/bin/bash')
     code = await proc.wait()
     log.info('code=%s: %s', code, cmd)
     return code
+
+
+async def gh_api(url, data=None):
+    if not url.startswith('https://'):
+        url = 'https://api.github.com/' + url
+
+    async with ClientSession(headers=gh.auth()) as s:
+        if data is None:
+            method = 'GET'
+        else:
+            method = 'POST'
+            data = json.dumps(data)
+        async with s.request(method, url, data=data) as resp:
+            return resp, await resp.json()
 
 
 def get_signature(body):
