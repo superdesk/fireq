@@ -89,7 +89,7 @@ class Logs(namedtuple('Logs', 'path, www')):
     def file(self, target):
         return Path(conf['log_root']) / self.path / target
 
-    def url(self, target):
+    def url(self, target=''):
         return conf['log_url'] + self.path + target
 
 
@@ -202,7 +202,7 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
 
 
 def run_job(target, tpl, ctx, logs):
-    # TODO: add github statuses here
+    gh.post_status(target, ctx, logs)
     cmd = endpoint(tpl, expand=ctx)
     log_file = logs.file(target + '.log')
     log_url = logs.url(target + '.log')
@@ -264,7 +264,7 @@ def run_jobs(scope_name, ref_name, targets):
 
     if not dry_run:
         for target in targets:
-            gh.post_status(target, ctx, logs)
+            gh.post_status(target, ctx, logs, pending_url=logs.url())
 
     target = 'build'
     if target in targets:

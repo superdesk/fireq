@@ -40,20 +40,24 @@ def call(url, data=None):
         raise Error(e)
 
 
-def post_status(target, ctx, logs, *, code=None):
-    url = logs.url(target + '.log')
+def post_status(target, ctx, logs, *, code=None, pending_url=None):
     desc = ''
     state = {
         None: 'pending',
         0: 'success',
         1: 'failure'
     }[code and 1]
-    url = url if state == 'pending' else url + '.htm'
+    if pending_url and state == 'pending':
+        url = pending_url
+        desc = 'Waiting for start'
+    else:
+        url = logs.url(target + '.log')
+        url = url if state == 'pending' else url + '.htm'
     if target == 'www' and code == 0:
         url = 'http://' + ctx['host']
         desc = 'Click "Details" to see the test instance'
 
-    elif target == 'build' and code is None:
+    elif target == 'build' and pending_url:
         post_status('!restart', ctx, logs, code=0)
 
     elif target == '!restart':
