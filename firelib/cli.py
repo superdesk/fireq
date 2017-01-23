@@ -262,9 +262,8 @@ def run_jobs(scope_name, ref_name, targets):
     else:
         targets = [t for t in targets if t in default_targets]
 
-    if not dry_run:
-        for target in targets:
-            gh.post_status(target, ctx, logs, pending_url=logs.url())
+    for target in targets:
+        gh.post_status(target, ctx, logs, pending_url=logs.url())
 
     target = 'build'
     if target in targets:
@@ -369,6 +368,8 @@ def main(args=None):
 
     args = parser.parse_args(args)
     dry_run = getattr(args, 'dry_run', dry_run)
+    if dry_run:
+        conf['no_statuses'] = True
 
     if not hasattr(args, 'exe'):
         parser.print_usage()

@@ -82,16 +82,14 @@ def gh_call(load_json):
         # it uses in gh.get_sha
         if re.findall(r'git/refs/', url):
             return load_json('gh_sha-sds_master.json')
-        elif re.findall(r'/statuses/', url):
-            return {}
-        return
+        return mok
 
     p = patch('firelib.gh.call', wraps=fn)
-    gh = p.start()
-    gh._stop = p.stop
-    yield gh
+    mok = p.start()
+    mok._stop = p.stop
+    yield mok
     try:
-        gh._stop()
+        mok._stop()
     except RuntimeError:
         pass
 

@@ -24,7 +24,7 @@ def get_conf():
         ('logurl', lambda c: 'http://%s/' % c['domain']),
         ('e2e_chunks', 1),
         ('use_cpus', ''),
-        ('no_statuses', False),
+        ('no_statuses', True),
         ('url_prefix', ''),
         ('status_prefix', 'fire:'),
 

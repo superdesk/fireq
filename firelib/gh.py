@@ -1,9 +1,12 @@
 import base64
 import json
+import time
 import urllib.error
 import urllib.request
 
 from . import conf, log, pretty_json
+
+started = {}
 
 
 class Error(Exception):
@@ -41,28 +44,34 @@ def call(url, data=None):
 
 
 def post_status(target, ctx, logs, *, code=None, pending_url=None):
-    desc = ''
+    global started
     state = {
         None: 'pending',
         0: 'success',
         1: 'failure'
     }[code and 1]
-    if pending_url and state == 'pending':
-        url = pending_url
-        desc = 'Waiting for start'
+
+    desc = ''
+    url = logs.url(target + '.log')
+    if state == 'pending':
+        started[target] = time.time()
+        if pending_url:
+            desc = 'Waiting for start'
+            url = pending_url
     else:
-        url = logs.url(target + '.log')
-        url = url if state == 'pending' else url + '.htm'
+        if started.get(target):
+            elapsed = (time.time() - started[target])
+            desc = 'elapsed: %dm%ds' % (elapsed // 60, elapsed % 60)
+        url = url + '.htm'
+
     if target == 'www' and code == 0:
         url = 'http://' + ctx['host']
-        desc = 'Click "Details" to see the test instance'
-
+        desc = 'click "Details" to see the test instance'
     elif target == 'build' and pending_url:
-        post_status('!restart', ctx, logs, code=0)
-
-    elif target == '!restart':
+        post_status('restart', ctx, logs, code=0)
+    elif target == 'restart':
         url = ctx['restart_url']
-        desc = 'Click "Details" to restart the build'
+        desc = 'click "Details" to restart the build'
 
     statuses_url = 'repos/{repo_name}/statuses/{repo_sha}'.format(**ctx)
     data = {
@@ -71,8 +80,11 @@ def post_status(target, ctx, logs, *, code=None, pending_url=None):
         'description': desc,
         'context': conf['status_prefix'] + target
     }
-    resp = call(statuses_url, data)
-    logs.file(target + ('-%s.json' % state)).write_text(pretty_json(resp))
+    if conf['no_statuses']:
+        data.update({'!': 'wasn\'t sent to Github'})
+    else:
+        data = call(statuses_url, data)
+    logs.file('!%s-%s.json' % (state, target)).write_text(pretty_json(data))
     return url, desc
 
 

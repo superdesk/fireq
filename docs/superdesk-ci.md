@@ -14,15 +14,15 @@ During the build there are many statuses posted via [Github API][3].
 
 For example: the list for [superdesk-client-core][4] (click on green tick):
 ```
-├─ fire:!restart
 ├─ fire:build
 ├─ fire:check-docs
 ├─ fire:check-e2e--part1
 ├─ fire:check-e2e--part2
 ├─ fire:check-npmtest
+├─ fire:restart
 ├─ fire:www
 ```
-- `fire:!restart` is just status for restarting the build from github interface
+- `fire:restart` is just status for restarting the build from github interface
 - `fire:www` if successful has link to test instance for particular PR or branch
 
 # Fire:www
