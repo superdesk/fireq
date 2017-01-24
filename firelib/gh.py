@@ -56,12 +56,12 @@ def post_status(target, ctx, logs, *, code=None, pending_url=None):
     if state == 'pending':
         started[target] = time.time()
         if pending_url:
-            desc = 'Waiting for start'
+            desc = 'waiting for start'
             url = pending_url
     else:
         if started.get(target):
             elapsed = (time.time() - started[target])
-            desc = 'elapsed: %dm%ds' % (elapsed // 60, elapsed % 60)
+            desc = 'duration: %dm%ds' % (elapsed // 60, elapsed % 60)
         url = url + '.htm'
 
     if target == 'www' and code == 0:

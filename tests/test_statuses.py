@@ -24,7 +24,7 @@ def test_base(gh_call, sp, main, raises):
     assert a2[0] == (
         'repos/superdesk/superdesk-core/statuses/<sha>',
         {
-            'description': 'Waiting for start',
+            'description': 'waiting for start',
             'target_url': logs + '-sds-master/',
             'context': 'fire:build',
             'state': 'pending'
@@ -42,7 +42,7 @@ def test_base(gh_call, sp, main, raises):
     assert a4[0] == (
         'repos/superdesk/superdesk-core/statuses/<sha>',
         {
-            'description': 'elapsed: 0m0s',
+            'description': 'duration: 0m0s',
             'target_url': logs + '-sds-master/build.log.htm',
             'context': 'fire:build',
             'state': 'success'
@@ -56,7 +56,7 @@ def test_base(gh_call, sp, main, raises):
     assert a1[0] == (
         'repos/superdesk/superdesk/statuses/<sha>',
         {
-            'description': 'Waiting for start',
+            'description': 'waiting for start',
             'target_url': logs + '-sd-master/',
             'context': 'fire:www',
             'state': 'pending'
@@ -90,7 +90,7 @@ def test_base(gh_call, sp, main, raises):
     assert a1[0] == (
         'repos/superdesk/superdesk/statuses/<sha>',
         {
-            'description': 'Waiting for start',
+            'description': 'waiting for start',
             'target_url': logs + '-sd-master/',
             'context': 'fire:www',
             'state': 'pending'
@@ -108,7 +108,7 @@ def test_base(gh_call, sp, main, raises):
     assert a3[0] == (
         'repos/superdesk/superdesk/statuses/<sha>',
         {
-            'description': 'elapsed: 0m0s',
+            'description': 'duration: 0m0s',
             'target_url': logs + '-sd-master/www.log.htm',
             'context': 'fire:www',
             'state': 'failure'
