@@ -13,7 +13,7 @@ python manage.py app:initialize_data $sample_data
 python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 {{/test_data}}
 {{#test_data}}
-if ! curl -sI {{db_host}}:9200/{{db_name}} | grep -q 404; then
+if curl -sI {{db_host}}:9200/{{db_name}} | grep -q 404; then
     _sample_data
     # add default vocabularies
     ./manage.py app:initialize_data --entity-name vocabularies
