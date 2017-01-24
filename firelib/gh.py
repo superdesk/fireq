@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 import time
 import urllib.error
 import urllib.request
@@ -43,6 +44,27 @@ def call(url, data=None):
         raise Error(e)
 
 
+def get_sha(ref):
+    repo = ref.scope.repo
+    ref = ref.val + ('/head' if ref.is_pr else '')
+    resp = call('repos/{0}/git/refs/{1}'.format(repo, ref))
+    return resp['object']['sha']
+
+
+def _post_status(url, context, state, target_url, desc, logs):
+    data = {
+        'context': conf['status_prefix'] + context,
+        'state': state,
+        'target_url': target_url,
+        'description': desc,
+    }
+    if conf['no_statuses']:
+        data.update({'!': 'wasn\'t sent to Github'})
+    else:
+        data = call(url, data)
+    logs.file('!%s-%s.json' % (state, context)).write_text(pretty_json(data))
+
+
 def post_status(target, ctx, logs, *, code=None, pending_url=None):
     global started
     state = {
@@ -73,23 +95,24 @@ def post_status(target, ctx, logs, *, code=None, pending_url=None):
         url = ctx['restart_url']
         desc = 'click "Details" to restart the build'
 
-    statuses_url = 'repos/{repo_name}/statuses/{repo_sha}'.format(**ctx)
-    data = {
-        'state': state,
-        'target_url': url,
-        'description': desc,
-        'context': conf['status_prefix'] + target
-    }
+    _post_status(
+        'repos/{repo_name}/statuses/{repo_sha}'.format(**ctx),
+        target, state, url, desc, logs
+    )
+
+
+def clean_statuses(ref, targets, logs):
     if conf['no_statuses']:
-        data.update({'!': 'wasn\'t sent to Github'})
-    else:
-        data = call(statuses_url, data)
-    logs.file('!%s-%s.json' % (state, target)).write_text(pretty_json(data))
-    return url, desc
-
-
-def get_sha(ref):
-    repo = ref.scope.repo
-    ref = ref.val + ('/head' if ref.is_pr else '')
-    resp = call('repos/{0}/git/refs/{1}'.format(repo, ref))
-    return resp['object']['sha']
+        return
+    targets = targets + ['restart']
+    body = call('repos/{0.scope.repo}/commits/{0.sha}/status'.format(ref))
+    url = 'repos/{0.scope.repo}/statuses/{0.sha}'.format(ref)
+    for s in body['statuses']:
+        pattern = r'^%s' % re.escape(conf['status_prefix'])
+        if not re.search(pattern, s['context']):
+            continue
+        context = re.sub(pattern, '', s['context'])
+        if context in targets:
+            continue
+        desc = 'cleaned, is not presented anymore'
+        _post_status(url, context, 'success', logs.url(), desc, logs)

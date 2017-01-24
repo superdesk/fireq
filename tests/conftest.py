@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import os
 import re
+import shlex
 import sys
 import unittest
 from pathlib import Path
@@ -40,6 +41,9 @@ def pytest_configure():
     _dt = patch('firelib.cli.dt.datetime').start()
     _dt.now.return_value = now
 
+    # lock is working when running from shell
+    patch('firelib.lock').start()
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -71,7 +75,7 @@ def setup(sp, gh_call):
 
 @pytest.fixture
 def sp():
-    with patch('firelib.cli.subprocess') as sp:
+    with patch('firelib.cli.sp') as sp:
         sp.call.return_value = 0
         yield sp
 
@@ -98,7 +102,10 @@ def gh_call(load_json):
 def main():
     from firelib.cli import main
 
-    return main
+    def inner(str_args):
+        args = shlex.split(str_args)
+        return main(args)
+    return inner
 
 
 @pytest.fixture

@@ -6,6 +6,7 @@ logs = 'http://localhost/logs/all/20170101-000000-00'
 
 @patch.dict('firelib.cli.conf', {'no_statuses': False})
 @patch('firelib.gh.get_sha', lambda *a: '<sha>')
+@patch('firelib.gh.clean_statuses', lambda *a: None)
 def test_base(gh_call, sp, main, raises):
     gh_call.return_value = {}
 
@@ -161,13 +162,46 @@ def test_base__real_http(sp, capfd, real_http, gh_call, main):
     with patch.dict('firelib.cli.conf', {'no_statuses': False}):
         main('ci sd naspeh')
         out, err = capfd.readouterr()
-        # 1: restart;
-        # 2,3,4,5: pending with general log directory
-        # 6,7,8,9: pending with particular log file
-        # 10,11,12,13: success
-        assert 13 == err.count("201 url='https://api.github.com/repos/")
+        #  1: clean "!restart" is not presented anymore
+        #  2: success "restart"
+        #  3, 4, 5, 6: pending with general log directory
+        #  7, 8, 9,10: pending with particular log file
+        # 11,12,13,14: success
+        assert 14 == err.count("201 url='https://api.github.com/repos/")
 
     # no statuses
     main('ci sd naspeh')
     out, err = capfd.readouterr()
     assert 0 == err.count("201 url='https://api.github.com/repos/")
+
+
+@patch.dict('firelib.cli.conf', {'no_statuses': False})
+@patch('firelib.gh.get_sha', lambda *a: '<sha>')
+def test_cleaning(gh_call, main, load_json):
+    gh_call.return_value = load_json('status-sdcpr_1282.json')
+    main('ci sdc pull/1282')
+
+    def call_args(context):
+        return ('repos/superdesk/superdesk-client-core/statuses/<sha>', {
+            'description': 'cleaned, is not presented anymore',
+            'target_url': logs + '-sdcpr-1282/',
+            'context': context,
+            'state': 'success'
+        })
+
+    a1, a2, a3, a4, a5 = gh_call.call_args_list[:5]
+    assert a1[0] == (
+        'repos/superdesk/superdesk-client-core/commits/<sha>/status',
+    )
+    assert a2[0] == call_args('fire:check-docs')
+    assert a3[0] == call_args('fire:check-e2e')
+    assert a4[0] == call_args('fire:!restart')
+    assert a5[0] == (
+        'repos/superdesk/superdesk-client-core/statuses/<sha>',
+        {
+            'description': 'click "Details" to restart the build',
+            'target_url': 'http://localhost/sdc/pull/1282/restart',
+            'context': 'fire:restart',
+            'state': 'success'
+        }
+    )

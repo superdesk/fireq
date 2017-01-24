@@ -2,15 +2,14 @@ import argparse
 import datetime as dt
 import random
 import re
-import shlex
-import subprocess
+import subprocess as sp
 from concurrent import futures
 from collections import namedtuple
 from pathlib import Path
 
 from pystache import Renderer
 
-from . import log, conf, pretty_json, gh
+from . import log, conf, pretty_json, gh, lock
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
@@ -196,7 +195,7 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
         log.info('Dry run!')
         return 0
 
-    code = subprocess.call(cmd, executable='/bin/bash', shell=True)
+    code = sp.call(cmd, executable='/bin/bash', shell=True)
     if exit and code:
         raise SystemExit(code)
     return code
@@ -221,7 +220,14 @@ def run_job(target, tpl, ctx, logs):
     return code
 
 
-def run_jobs(scope_name, ref_name, targets):
+def run_jobs_with_lock(scope, ref, targets):
+    ref = Ref(scope, ref)
+
+    with lock.kill_previous('fire_run_jobs:{0.uid}:'.format(ref)):
+        run_jobs(ref, targets)
+
+
+def run_jobs(ref, targets):
     def ctx(_ref, _logs):
         uid = _ref.uid
         scope = _ref.scope.name
@@ -248,18 +254,17 @@ def run_jobs(scope_name, ref_name, targets):
         del _ref, _logs
         return locals()
 
-    scope_name = scope_name or scopes[0].name
-    ref = Ref(scope_name, ref_name)
     logs = Logs(ref.uid)
     ctx = ctx(ref, logs)
     codes = []
 
     default_targets = (
         ['build', 'www'] +
-        ['check-' + i for i in checks.get(scope_name, ())]
+        ['check-' + i for i in checks.get(ref.scope.name, ())]
     )
     if targets is None:
         targets = default_targets
+        gh.clean_statuses(ref, targets, logs)
     else:
         targets = [t for t in targets if t in default_targets]
 
@@ -364,10 +369,7 @@ def main(args=None):
         .arg('scope', choices=scopes._fields)\
         .arg('ref')\
         .arg('-t', '--target', action='append', default=None)\
-        .exe(lambda a: run_jobs(a.scope, a.ref, a.target))
-
-    if isinstance(args, str):
-        args = shlex.split(args)
+        .exe(lambda a: run_jobs_with_lock(a.scope, a.ref, a.target))
 
     args = parser.parse_args(args)
     dry_run = getattr(args, 'dry_run', dry_run)
