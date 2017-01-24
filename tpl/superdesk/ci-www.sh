@@ -1,5 +1,21 @@
 lxc="{{uid}}--www";
 ./fire lxc-copy -cs -b {{lxc_build}} $lxc
+
+# env config
+(
+[ ! -f etc/{{name}}.sh ] || cat etc/{{name}}.sh
+[ ! -f etc/{{uid}}.sh ] || cat etc/{{uid}}.sh
+cat <<EOF
+{{>deploy-config.sh}}
+EOF
+) | {{ssh}} $lxc "cat > {{config}}"
+
+# config.js
+configjs={{repo_client}}/dist/config.*.js
+[ ! -f etc/{{name}}.js ] || cat etc/{{name}}.js\
+    | {{ssh}} $lxc "[ -f $configjs ] && cat > $configjs || cat /dev/null"
+unset configjs
+
 cat <<"EOF2" | {{ssh}} $lxc
 {{>header.sh}}
 

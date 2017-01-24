@@ -1,5 +1,6 @@
 *.pyc
 .cache
-config.json
 env
-etc
+config.json
+etc/superdesk.sh
+etc/liveblog.sh

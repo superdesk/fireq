@@ -1,6 +1,6 @@
 ### deploy
 # env.sh
-envfile={{repo_env}}.sh
+envfile={{repo}}/.env
 cat <<"EOF" > $envfile
 {{>deploy-env.sh}}
 EOF
@@ -8,20 +8,7 @@ EOF
 # write config if not exist
 config={{config}}
 [ -f $config ] || cat <<EOF > $config
-HOST=${HOST:-'{{host}}'}
-HOST_SSL=${HOST_SSL:-'{{host_ssl}}'}
-DB_HOST=${DB_HOST:-'{{db_host}}'}
-DB_NAME=${DB_NAME:-'{{db_name}}'}
-SUPERDESK_TESTING=${SUPERDESK_TESTING:-''}
-
-MONGO_URI=mongodb://\${DB_HOST}/\${DB_NAME}
-LEGAL_ARCHIVE_URI=\${MONGO_URI}_la
-ARCHIVED_URI=\${MONGO_URI}_ar
-CONTENTAPI_MONGO_URI=\${MONGO_URI}_ca
-
-ELASTICSEARCH_URL=http://\${DB_HOST}:9200
-ELASTICSEARCH_INDEX=\${DB_NAME}
-CONTENTAPI_ELASTICSEARCH_INDEX=\${ELASTICSEARCH_INDEX}_ca
+{{>deploy-config.sh}}
 EOF
 
 # load env.sh and config in activation script

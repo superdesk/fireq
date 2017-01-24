@@ -123,7 +123,8 @@ def endpoint(tpl, scope=None, *, expand=None):
         repo_server = val('repo_server', '%s/server' % repo)
         repo_client = val('repo_client', '%s/client' % repo)
 
-        dev = val('dev', True)
+        dev = val('dev', True) and 1 or ''
+        testing = val('testing') and 1 or ''
         host = val('host', 'localhost')
         host_ssl = val('host_ssl', False) and 1 or ''
         host_url = 'http%s://%s/' % (host_ssl and 's', host)
@@ -286,9 +287,11 @@ def run_jobs(scope_name, ref_name, targets):
             # TODO: it should be moved to a better place
             if ref.scope == scopes.sds:
                 db_host = 'localhost'
+                db_name = 'superdesk'
             else:
                 db_host = conf['lxc_data'] + '--tests'
-            ctx = dict(ctx, db_host=db_host)
+                db_name = '%s--%s' % (ref.uid, target)
+            ctx = dict(ctx, db_host=db_host, db_name=db_name, testing=1)
             inner = endpoint('{{>%s.sh}}' % target, expand=ctx)
             c = dict(ctx, target=target, inner=inner)
             j = pool.submit(run_job, target, '{{>ci-check.sh}}', c, logs)

@@ -177,7 +177,7 @@ unset config
 
 ### deploy
 # env.sh
-envfile=/opt/liveblog/env.sh
+envfile=/opt/liveblog/.env
 cat <<"EOF" > $envfile
 LANG=en_US.UTF-8
 LANGUAGE=en_US:en

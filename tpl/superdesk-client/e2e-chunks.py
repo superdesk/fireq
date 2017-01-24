@@ -26,7 +26,7 @@ def chunked_specs(sizes, n):
     for i in range(n):
         res = chunk(names, n - i)
         if res:
-            yield res
+            yield sorted(res)
 
 
 part = '/var/tmp/specs-part'
