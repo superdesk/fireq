@@ -7,8 +7,8 @@ if [ ! -d $repo ]; then
     git init
     git remote add origin $github/superdesk.git
 
-    git fetch origin master
-    git checkout origin/master
+    git fetch origin 1.4
+    git checkout 1.4
     sed -i 's/.*superdesk-core.git.*/-e ..\/server-core/' server/requirements.txt
     sed -i -re 's/("superdesk-core":).*/\1 "file:..\/client-core"/' client/package.json
 
