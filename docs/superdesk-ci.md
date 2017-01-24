@@ -12,20 +12,17 @@ Logs can be found here: https://test.superdesk.org/logs/
 
 During the build there are many statuses posted via [Github API][3].
 
-For example: the tree for [superdesk-client-core][4] (click on green tick):
+For example: the list for [superdesk-client-core][4] (click on green tick):
 ```
-├─ fire:!restart
 ├─ fire:build
-│   ├─ fire:check-docs
-│   ├─ fire:check-e2e
-│       ├─ fire:check-e2e--part1
-│       ├─ fire:check-e2e--part1
-│   ├─ fire:check-npmtest
-│   ├─ fire:www
+├─ fire:check-docs
+├─ fire:check-e2e--part1
+├─ fire:check-e2e--part2
+├─ fire:check-npmtest
+├─ fire:restart
+├─ fire:www
 ```
-- `fire:!restart` is just status for restarting the build from github interface
-- `fire:build` is root status, if some of his children fail it also fails
-- `fire:check-e2e` has two children, so if one of them fails it also fails
+- `fire:restart` is just status for restarting the build from github interface
 - `fire:www` if successful has link to test instance for particular PR or branch
 
 # Fire:www

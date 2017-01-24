@@ -2,7 +2,7 @@
 
 ## Fresh Ubuntu 16.04
 ```sh
-curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/files/superdesk-10.sh | sudo sh
+curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/files/superdesk/install | sudo bash
 ```
 
 ## LXC container
@@ -10,19 +10,12 @@ curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/files/superdesk-1
 apt-get install lxc
 
 ./fire lxc-init -n sd0
-./fire i --lxc-name=sd0 --services --prepopulate
-
-# more options
-./fire -h
+./fire2 run superdesk/install | ./fire lxc-ssh sd0
 ```
 
 # Install a Liveblog
 
 ## Fresh Ubuntu 16.04
 ```sh
-curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/files/liveblog.sh | sudo sh
-```
-# Run github integration server
-```sh
-gunicorn web:app --bind localhost:8080 --worker-class aiohttp.worker.GunicornWebWorker --reload
+curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/files/liveblog/install | sudo bash
 ```

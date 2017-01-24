@@ -1,0 +1,9 @@
+{
+  "ref": "refs/pull/1991/head",
+  "url": "https://api.github.com/repos/superdesk/superdesk/git/refs/pull/1991/head",
+  "object": {
+    "sha": "1c709766c81ed534f0291a2304280d6427adcd01",
+    "type": "commit",
+    "url": "https://api.github.com/repos/superdesk/superdesk/git/commits/1c709766c81ed534f0291a2304280d6427adcd01"
+  }
+}
