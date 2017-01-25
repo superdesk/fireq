@@ -16,11 +16,11 @@ python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 if curl -sI {{db_host}}:9200/{{db_name}} | grep -q 404; then
     _sample_data
     # add default vocabularies
-    ./manage.py app:initialize_data --entity-name vocabularies
+    python manage.py app:initialize_data --entity-name vocabularies
     # add Forbes ingest source
-    ./manage.py app:initialize_data --entity-name ingest_providers $sample_data
+    python manage.py app:initialize_data --entity-name ingest_providers $sample_data
     # Use data from e2e tests
-    ./manage.py app:prepopulate
+    python manage.py app:prepopulate
 fi
 {{/test_data}}
 unset sample_data
