@@ -153,6 +153,9 @@ def get_hook_ctx(headers, body, **extend):
         return
 
     ref = Ref(scope[0], ref, '<sha>')
+    if not [1 for p in ('heads/', 'pull/') if ref.val.startswith(p)]:
+        log.info('Skip ref: %s', ref)
+        return
     log_path = (
         'hooks/{time:%Y%m%d-%H%M%S}-{event}-{uid}-{sha}.json'
         .format(uid=ref.uid, time=dt.datetime.now(), sha=sha, event=event)

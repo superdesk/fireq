@@ -37,7 +37,7 @@ def run_async(fn, *a, **kw):
 
 
 def gh_request(path):
-    path = Path(path) / 'request.json'
+    path = Path(path)
     req = json.loads(path.read_text())
 
     if isinstance(req, dict):

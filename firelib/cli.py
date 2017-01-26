@@ -42,9 +42,8 @@ class Ref(namedtuple('Ref', 'scope, val, uid, sha')):
             ref = re.sub('^heads/', '', ref)
             uid = ('', ref)
             ref = 'heads/' + ref
-        uid = '%s%s-%s' % (scope.name, uid[0], re.sub('[^a-z0-9]', '', uid[1]))
-        # uid = 'dev-' + uid
 
+        uid = '%s%s-%s' % (scope.name, uid[0], re.sub('[^a-z0-9]', '', uid[1]))
         ref = super().__new__(cls, scope, ref, uid, sha)
         if not sha:
             sha = gh.get_sha(ref)
