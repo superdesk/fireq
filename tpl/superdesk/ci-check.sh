@@ -3,3 +3,4 @@ lxc="{{uid}}--{{target}}";
 cat <<"EOF2" | {{ssh}} $lxc
 {{{inner}}}
 EOF2
+./fire lxc-rm $lxc
