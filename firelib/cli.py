@@ -3,6 +3,7 @@ import datetime as dt
 import random
 import re
 import subprocess as sp
+import time
 from concurrent import futures
 from collections import namedtuple
 from pathlib import Path
@@ -201,21 +202,29 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
 
 
 def run_job(target, tpl, ctx, logs):
+    started = time.time()
     gh.post_status(target, ctx, logs)
     cmd = endpoint(tpl, expand=ctx)
     log_file = logs.file(target + '.log')
     log_url = logs.url(target + '.log')
-    log.info('pending url=%s', log_url)
+    log.info('pending: url=%s', log_url)
     logs.file(target + '.sh').write_text(cmd)
     try:
         code = sh(cmd, log_file, exit=False, quiet=True)
-        log.info('code=%s url=%s', code, log_url)
+        error = None if code == 0 else 'failure: code=%s' % code
     except Exception as e:
         logs.file(target + '.exception').write_text(e)
-        log.error(e)
-        code = 1
+        error = e
+    finally:
+        duration = time.time() - started
+        duration = '%dm%ds' % (duration // 60, duration % 60)
+        info = 'duration=%s url=%s' % (duration, log_url)
+        if error:
+            log.error('%s %s', error, info)
+        else:
+            log.info('success: %s', info)
 
-    gh.post_status(target, ctx, logs, code=code)
+    gh.post_status(target, ctx, logs, code=code, duration=duration)
     return code
 
 
@@ -228,6 +237,7 @@ def run_jobs_with_lock(scope, ref, targets):
 
 def run_jobs(ref, targets):
     def ctx(_ref, _logs):
+        started = time.time()
         uid = _ref.uid
         scope = _ref.scope.name
         repo_ref = _ref.val
@@ -268,7 +278,9 @@ def run_jobs(ref, targets):
         targets = [t for t in targets if t in default_targets]
 
     for target in targets:
-        gh.post_status(target, ctx, logs, pending_url=logs.url())
+        if target == 'build':
+            continue
+        gh.post_status(target, ctx, logs, started=False)
 
     target = 'build'
     if target in targets:

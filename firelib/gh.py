@@ -1,7 +1,6 @@
 import base64
 import json
 import re
-import time
 import urllib.error
 import urllib.request
 
@@ -65,8 +64,7 @@ def _post_status(url, context, state, target_url, desc, logs):
     logs.file('!%s-%s.json' % (state, context)).write_text(pretty_json(data))
 
 
-def post_status(target, ctx, logs, *, code=None, pending_url=None):
-    global started
+def post_status(target, ctx, logs, *, started=True, code=None, duration=None):
     state = {
         None: 'pending',
         0: 'success',
@@ -76,21 +74,18 @@ def post_status(target, ctx, logs, *, code=None, pending_url=None):
     desc = ''
     url = logs.url(target + '.log')
     if state == 'pending':
-        started[target] = time.time()
-        if pending_url:
+        if target == 'build':
+            post_status('restart', ctx, logs, code=0)
+        elif not started:
             desc = 'waiting for start'
-            url = pending_url
+            url = logs.url()
     else:
-        if started.get(target):
-            elapsed = (time.time() - started[target])
-            desc = 'duration: %dm%ds' % (elapsed // 60, elapsed % 60)
+        desc = 'duration: %s' % duration if duration else ''
         url = url + '.htm'
 
     if target == 'www' and code == 0:
         url = 'http://' + ctx['host']
         desc = 'click "Details" to see the test instance'
-    elif target == 'build' and pending_url:
-        post_status('restart', ctx, logs, code=0)
     elif target == 'restart':
         url = ctx['restart_url']
         desc = 'click "Details" to restart the build'
