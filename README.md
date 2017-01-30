@@ -2,6 +2,10 @@
 
 ## Fresh Ubuntu 16.04
 ```sh
+# Replace <you_ip_or_domain> with domain where Superdesk will be accessible
+# for example test.superdesk.org
+echo "HOST=<you_ip_or_domain>" > /etc/superdesk.sh
+
 curl https://raw.githubusercontent.com/naspeh-sf/deploy/master/files/superdesk/install | sudo bash
 ```
 
