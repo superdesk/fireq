@@ -4,6 +4,10 @@
 HOST=localhost
 HOST_SSL=
 SUPERDESK_TESTING=True
+
+# TODO: update superdesk-core to check elastic instead of directory
+ELASTICSEARCH_BACKUPS_PATH=/tmp/es-backups
+mkdir -p $ELASTICSEARCH_BACKUPS_PATH
 {{>deploy.sh}}
 
 cat <<"EOF" > /etc/supervisor/conf.d/superdesk.conf
