@@ -20,6 +20,7 @@ scopes = [
     Scope('sd', 'superdesk', 'superdesk/superdesk'),
     Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
     Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
+    Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
 ]
@@ -164,6 +165,11 @@ def endpoint(tpl, scope=None, *, expand=None):
             'repo_core': repo,
             'repo_client': repo,
             'repo_server': '%s/test-server' % repo,
+        }
+    elif scope == scopes.sdp:
+        repo = '/opt/superdesk/planning'
+        ctx = {
+            'repo_core': repo,
         }
     elif scope == scopes.ntb:
         ctx = {
