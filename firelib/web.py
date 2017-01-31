@@ -134,6 +134,7 @@ def get_hook_ctx(headers, body, **extend):
     event = headers.get('X-Github-Event')
     if event == 'pull_request':
         if body['action'] not in ('opened', 'reopened', 'synchronize'):
+            log.info('skip %s:%s', event, body['action'])
             return
         ref = 'pull/%s' % body['number']
         sha = body['pull_request']['head']['sha']
@@ -141,21 +142,25 @@ def get_hook_ctx(headers, body, **extend):
         sha = body['after']
         ref = re.sub('^refs/', '', body['ref'])
     else:
+        log.info('skip %s', event)
         return
 
     # mean it has been deleted
     if sha == '0000000000000000000000000000000000000000':
+        log.info('skip %s: %s deleted', event, ref.uid)
         return
 
     repo = body['repository']['full_name']
     scope = [i.name for i in scopes if i.repo == repo]
     if not scope:
+        log.info('skip %s: repo=%s', event, repo)
         return
 
     ref = Ref(scope[0], ref, '<sha>')
     if not [1 for p in ('heads/', 'pull/') if ref.val.startswith(p)]:
         log.info('Skip ref: %s', ref)
         return
+
     log_path = (
         'hooks/{time:%Y%m%d-%H%M%S}-{event}-{uid}-{sha}.json'
         .format(uid=ref.uid, time=dt.datetime.now(), sha=sha, event=event)
@@ -176,9 +181,6 @@ async def hook(request):
     )
     if not check_signature:
         return web.HTTPBadRequest()
-
-    if request.headers.get('X-Github-Event') == 'ping':
-        return web.json_response('pong')
 
     body = await request.json()
     headers = dict(request.headers.items())
@@ -245,7 +247,7 @@ async def repo(request):
     resp, body = await gh_api('repos/%s/pulls' % repo_name)
     pulls = [info(i['number'], True) for i in body]
 
-    resp, body = await gh_api('repos/%s/branches' % repo_name)
+    resp, body = await gh_api('repos/%s/branches?per_page=100' % repo_name)
     branches = [info(i['name']) for i in body]
 
     refs = [

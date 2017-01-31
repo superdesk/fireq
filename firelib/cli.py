@@ -138,6 +138,7 @@ def endpoint(tpl, scope=None, *, expand=None):
 
         is_pr = re.match('^pull/\d*$', repo_ref)
         is_superdesk = name == 'superdesk'
+        is_ntb = scope == scopes.ntb
         logs = '/var/log/%s' % name
         config = '/etc/%s.sh' % name
         return locals()
@@ -166,7 +167,8 @@ def endpoint(tpl, scope=None, *, expand=None):
         }
     elif scope == scopes.ntb:
         ctx = {
-            'repo_remote': 'https://github.com/superdesk/superdesk-ntb.git'
+            'repo_remote': 'https://github.com/superdesk/superdesk-ntb.git',
+            'test_data': 0,
         }
     elif scope == scopes.lb:
         name = 'liveblog'
