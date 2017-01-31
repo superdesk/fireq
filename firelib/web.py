@@ -177,6 +177,9 @@ async def hook(request):
     if not check_signature:
         return web.HTTPBadRequest()
 
+    if request.headers.get('X-Github-Event') == 'ping':
+        return web.json_response('pong')
+
     body = await request.json()
     headers = dict(request.headers.items())
     del headers['X-Hub-Signature']
@@ -235,7 +238,7 @@ async def repo(request):
         return {
             'name': name,
             'gh_url': gh_url,
-            'url': 'https://%s.%s' % (subdomain, conf['domain']),
+            'url': 'http://%s.%s' % (subdomain, conf['domain']),
             'restart_url': get_restart_url(prefix, ref),
         }
 

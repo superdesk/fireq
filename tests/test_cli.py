@@ -16,18 +16,18 @@ def startswith(cmd, txt):
 
 def test_fire_wrapper():
     startswith('./fire2 -h', (
-        'usage: fire [-h] {gen-files,run,r,ci}'
+        'usage: fire [-h] {gen-files,run,r,ci,nginx}'
     ))
     startswith('./fire2 gen-files -h', (
         'usage: fire gen-files [-h] [--dry-run]'
     ))
 
     startswith('./fire2 ci -h', (
-        'usage: fire ci [-h] [--dry-run] [-t TARGET] {sd,sds,sdc,lb} ref'
+        'usage: fire ci [-h] [--dry-run] [-t TARGET] {sd,sds,sdc,ntb,lb} ref'
     ))
 
     startswith('./fire2 run -h', '''
-    usage: fire run [-h] [--dry-run] [--scope {sd,sds,sdc,lb}] [--dev DEV]
+    usage: fire run [-h] [--dry-run] [--scope {sd,sds,sdc,ntb,lb}] [--dev DEV]
                     [--host HOST]
                     name
     ''')

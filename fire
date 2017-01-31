@@ -89,43 +89,6 @@ def gh_clean():
     sh('\n%s;\n./fire nginx' % cmd)
 
 
-def update_nginx(path, names=None, ssl=False, live=False):
-    cmd = ''
-    if not names:
-        names = [name for name in lxc_ls(www=True)]
-        # move sd-master, the first name uses for cert filename
-        names.insert(0, names.pop(names.index('sd-master')))
-
-    if ssl:
-        domains = ','.join('%s.%s' % (n, conf['domain']) for n in names)
-        staging = (
-            '' if live
-            else '--server https://acme-staging.api.letsencrypt.org/directory'
-        )
-        sh(
-            'time su - -c "'
-            '  /opt/scripts/certbot-auto certonly '
-            '   --agree-tos --non-interactive --expand'
-            '   --email=support@sourcefabric.org'
-            '   --webroot -w /var/tmp -d {domains}'
-            '   {staging}'
-            '"'.format(domains=domains, staging=staging),
-            exit=False
-        )
-
-    cmd = '\n'.join(
-        'name={name} host={name}.{domain} '
-        '. bin/nginx.conf.sh;'
-        .format(name=name, domain=conf['domain'])
-        for name in names
-    )
-    sh(
-        '({cmd}) > {path};'
-        'nginx -s reload'
-        .format(cmd=cmd, path=path)
-    )
-
-
 def gh_api(url, exc=True):
     if not url.startswith('https://'):
         url = 'https://api.github.com/repos/' + url
@@ -173,13 +136,6 @@ def main():
 
     cmd('gh-clean', help='remove unused containers')\
         .exe(lambda a: gh_clean())
-
-    cmd('nginx', help='update nginx config')\
-        .arg('-p', '--path', default='/etc/nginx/sites-enabled/sd')\
-        .arg('-n', '--name', action='append')\
-        .arg('--ssl', action='store_true')\
-        .arg('--live', action='store_true')\
-        .exe(lambda a: update_nginx(a.path, a.name, a.ssl, a.live))
 
     cmd('lxc-init')\
         .arg('-n', '--name', default='sd0')\

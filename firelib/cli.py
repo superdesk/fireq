@@ -20,6 +20,7 @@ scopes = [
     Scope('sd', 'superdesk', 'superdesk/superdesk'),
     Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
     Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
+    Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
@@ -163,6 +164,10 @@ def endpoint(tpl, scope=None, *, expand=None):
             'repo_client': repo,
             'repo_server': '%s/test-server' % repo,
         }
+    elif scope == scopes.ntb:
+        ctx = {
+            'repo_remote': 'https://github.com/superdesk/superdesk-ntb.git'
+        }
     elif scope == scopes.lb:
         name = 'liveblog'
         ctx = {
@@ -246,7 +251,7 @@ def run_jobs(ref, targets):
         lxc_base = conf['lxc_base']
         lxc_build = '%s--build' % uid
         host = '%s.%s' % (uid, conf['domain'])
-        host_ssl = 1
+        host_ssl = not _ref.is_pr
         host_logs = _logs.www
         db_host = conf['lxc_data']
         db_name = uid
@@ -347,6 +352,27 @@ def gen_files():
         gen(name)
 
 
+def lxc_ls(opts):
+    names = sp.check_output('lxc-ls -1 %s' % opts, shell=True)
+    return names.decode().split()
+
+
+def nginx(scope, ssl, live):
+    scope = scope.split('-', 1)[0]
+    names = lxc_ls('--filter="^%s-[a-z0-9]*$" --running' % scope)
+    hosts = [{
+        'name': n,
+        'host': '%s.%s' % (n, conf['domain'])
+    } for n in names]
+    txt = render_tpl('{{>superdesk/ci-nginx.sh}}', {
+        'scope': scope,
+        'ssl': ssl,
+        'live': live and 1 or '',
+        'hosts': hosts,
+    })
+    sh(txt, quiet=True)
+
+
 def main(args=None):
     global dry_run
 
@@ -362,7 +388,7 @@ def main(args=None):
         p.arg('--dry-run', action='store_true')
         return p
 
-    cmd('gen-files')\
+    cmd('gen-files', help='generate install scripts, etc.')\
         .exe(lambda a: gen_files())
 
     cmd('run', aliases=['r'])\
@@ -381,6 +407,15 @@ def main(args=None):
         .arg('ref')\
         .arg('-t', '--target', action='append', default=None)\
         .exe(lambda a: run_jobs_with_lock(a.scope, a.ref, a.target))
+
+    cmd('nginx', help='update nginx sites for CI')\
+        .arg('scope', default='sd', help=(
+            'scope or lxc name, if lxc name is given then '
+            'it\'ll be used to get a scope name'
+        ))\
+        .arg('--ssl', action='store_true')\
+        .arg('--live', action='store_true')\
+        .exe(lambda a: nginx(a.scope, a.ssl, a.live))
 
     args = parser.parse_args(args)
     dry_run = getattr(args, 'dry_run', dry_run)
