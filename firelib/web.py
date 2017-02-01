@@ -147,7 +147,7 @@ def get_hook_ctx(headers, body, **extend):
 
     # mean it has been deleted
     if sha == '0000000000000000000000000000000000000000':
-        log.info('skip %s: %s deleted', event, ref.uid)
+        log.info('skip %s: %s deleted', event, ref)
         return
 
     repo = body['repository']['full_name']
