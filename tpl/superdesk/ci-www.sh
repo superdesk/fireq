@@ -17,6 +17,15 @@ configjs={{repo_client}}/dist/config.*.js
 unset configjs
 
 cat <<"EOF2" | {{ssh}} $lxc
+cat <<"EOF" > /etc/nginx/conf.d/logs.inc
+location /logs {
+    return 302 {{logs_url}}/;
+}
+location /logs/ {
+    return 302 {{logs_url}}/;
+}
+EOF
+
 {{>header.sh}}
 
 {{>add-dbs.sh}}
