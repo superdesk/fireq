@@ -17,10 +17,14 @@ if curl -sI {{db_host}}:9200/{{db_name}} | grep -q 404; then
     _sample_data
     # add default vocabularies
     python manage.py app:initialize_data --entity-name vocabularies
+    # add default validators
+    python manage.py app:initialize_data --entity-name validators
     # add Forbes ingest source
     python manage.py app:initialize_data --entity-name ingest_providers $sample_data
     # Use data from e2e tests
     python manage.py app:prepopulate
+else
+    python manage.py app:initialize_data
 fi
 {{/test_data}}
 unset sample_data
