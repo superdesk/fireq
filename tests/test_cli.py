@@ -8,6 +8,7 @@ def check_output(cmd):
 
 def startswith(cmd, txt):
     txt = textwrap.dedent(txt).strip()
+    txt = txt % {'scopes': '{sd,sds,sdc,sdp,ntb,lb}'}
     out = check_output(cmd)
     if out.startswith('Running with sudo...\n'):
         out = out.split('\n', 1)[1]
@@ -23,11 +24,11 @@ def test_fire_wrapper():
     ))
 
     startswith('./fire2 ci -h', (
-        'usage: fire ci [-h] [--dry-run] [-t TARGET] {sd,sds,sdc,ntb,lb} ref'
+        'usage: fire ci [-h] [--dry-run] [-t TARGET] %(scopes)s ref'
     ))
 
     startswith('./fire2 run -h', '''
-    usage: fire run [-h] [--dry-run] [--scope {sd,sds,sdc,ntb,lb}] [--dev DEV]
+    usage: fire run [-h] [--dry-run] [--scope %(scopes)s] [--dev DEV]
                     [--host HOST]
                     name
     ''')
