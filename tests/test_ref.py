@@ -1,5 +1,5 @@
-from firelib.cli import Ref, scopes
-from firelib.gh import Error
+from fireq.cli import Ref, scopes
+from fireq.gh import Error
 
 
 def test_base():

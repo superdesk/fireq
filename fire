@@ -10,8 +10,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from firelib import log, conf, gh
-from firelib.cli import scopes
+from fireq import log, conf, gh
+from fireq.cli import scopes
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
@@ -49,7 +49,7 @@ def gh_request(path):
 
 
 def gh_hook(path, url):
-    from firelib import web
+    from fireq import web
 
     headers, body = gh_request(path)
     data = json.dumps(body, indent=2, sort_keys=True).encode()

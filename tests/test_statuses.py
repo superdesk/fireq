@@ -4,9 +4,9 @@ from unittest.mock import patch
 logs = 'http://localhost/logs/all/20170101-000000-00'
 
 
-@patch.dict('firelib.cli.conf', {'no_statuses': False})
-@patch('firelib.gh.get_sha', lambda *a: '<sha>')
-@patch('firelib.gh.clean_statuses', lambda *a: None)
+@patch.dict('fireq.cli.conf', {'no_statuses': False})
+@patch('fireq.gh.get_sha', lambda *a: '<sha>')
+@patch('fireq.gh.clean_statuses', lambda *a: None)
 def test_base(gh_call, sp, main, raises):
     gh_call.return_value = {}
 
@@ -137,19 +137,19 @@ def test_base(gh_call, sp, main, raises):
     }
 
 
-@patch('firelib.gh.get_sha', lambda *a: '<sha>')
+@patch('fireq.gh.get_sha', lambda *a: '<sha>')
 def test_no_statuses(main, raises, capsys, gh_call):
     main('ci sd naspeh')
     assert not gh_call.called
 
-    with patch.dict('firelib.cli.conf', {'no_statuses': False}):
+    with patch.dict('fireq.cli.conf', {'no_statuses': False}):
         main('ci sd naspeh --dry-run')
         assert not gh_call.called
 
 
 def test_base__real_http(sp, capfd, real_http, gh_call, main):
     gh_call._stop()
-    with patch.dict('firelib.cli.conf', {'no_statuses': False}):
+    with patch.dict('fireq.cli.conf', {'no_statuses': False}):
         main('ci sd naspeh')
         out, err = capfd.readouterr()
         #  1: clean "!restart" is not presented anymore
@@ -165,8 +165,8 @@ def test_base__real_http(sp, capfd, real_http, gh_call, main):
     assert 0 == err.count("201 url='https://api.github.com/repos/")
 
 
-@patch.dict('firelib.cli.conf', {'no_statuses': False})
-@patch('firelib.gh.get_sha', lambda *a: '<sha>')
+@patch.dict('fireq.cli.conf', {'no_statuses': False})
+@patch('fireq.gh.get_sha', lambda *a: '<sha>')
 def test_cleaning(gh_call, main, load_json):
     gh_call.return_value = load_json('status-sdcpr_1282.json')
     main('ci sdc pull/1282')

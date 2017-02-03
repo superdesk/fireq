@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
-from firelib import web
+from fireq import web
 
 
-@patch('firelib.gh.call')
+@patch('fireq.gh.call')
 def test_hook_ctx(_gh, load_json):
     push = load_json('web_hook-sd_master_push.json')
     assert web.get_hook_ctx(*push)

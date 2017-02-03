@@ -34,15 +34,15 @@ def pytest_configure():
     conf_tmp.write_text(json.dumps(conf, indent=2, sort_keys=True))
     os.environ['FIRE_CONFIG'] = str(conf_tmp)
 
-    _rand = patch('firelib.cli.random').start()
+    _rand = patch('fireq.cli.random').start()
     _rand.randint.return_value = 0
 
     now = dt.datetime(2017, 1, 1)
-    _dt = patch('firelib.cli.dt.datetime').start()
+    _dt = patch('fireq.cli.dt.datetime').start()
     _dt.now.return_value = now
 
     # lock is working when running from shell
-    patch('firelib.lock').start()
+    patch('fireq.lock').start()
 
 
 def pytest_addoption(parser):
@@ -75,7 +75,7 @@ def setup(sp, gh_call):
 
 @pytest.fixture
 def sp():
-    with patch('firelib.cli.sp') as sp:
+    with patch('fireq.cli.sp') as sp:
         sp.call.return_value = 0
         yield sp
 
@@ -88,7 +88,7 @@ def gh_call(load_json):
             return load_json('gh_sha-sds_master.json')
         return mok
 
-    p = patch('firelib.gh.call', wraps=fn)
+    p = patch('fireq.gh.call', wraps=fn)
     mok = p.start()
     mok._stop = p.stop
     yield mok
@@ -100,7 +100,7 @@ def gh_call(load_json):
 
 @pytest.fixture
 def main():
-    from firelib.cli import main
+    from fireq.cli import main
 
     def inner(str_args):
         args = shlex.split(str_args)
