@@ -1,6 +1,6 @@
 ### deploy
 # env.sh
-envfile={{repo}}/.env
+envfile={{repo}}/env.sh
 cat <<"EOF" > $envfile
 {{>deploy-env.sh}}
 EOF

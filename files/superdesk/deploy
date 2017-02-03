@@ -16,11 +16,11 @@ _activate() {
 }
 
 _skip_install() {
-    dpkg -l | grep '^ii.*'$1 && [ -z "${pkg_upgrade:-''}" ]
+    dpkg -l | grep '^ii.*'$1 && [ -z ${pkg_upgrade:-''} ]
 }
 ### deploy
 # env.sh
-envfile=/opt/superdesk/.env
+envfile=/opt/superdesk/env.sh
 cat <<"EOF" > $envfile
 LANG=en_US.UTF-8
 LANGUAGE=en_US:en
@@ -85,6 +85,7 @@ NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
 if [ -n "${SUPERDESK_TESTING:-}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
+    ELASTICSEARCH_BACKUPS_PATH=/tmp/es-backups
 fi
 EOF
 
@@ -215,6 +216,7 @@ server {
         proxy_set_header Host $HOST;
         expires epoch;
     }
+
 
     location /.well-known {
         root /var/tmp;
