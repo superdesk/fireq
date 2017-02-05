@@ -7,8 +7,6 @@ npm i bower
 time npm install
 time bower --allow-root install
 
-# export VIEW_DATE_FORMAT='<VIEW_DATE_FORMAT>'
-# export VIEW_TIME_FORMAT='<VIEW_TIME_FORMAT>'
 time \
 SUPERDESK_URL='<SUPERDESK_URL>' \
 SUPERDESK_WS_URL='<SUPERDESK_WS_URL>' \

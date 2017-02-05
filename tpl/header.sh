@@ -2,7 +2,6 @@
 {{{header_doc}}}
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -exuo pipefail
-# IFS=$'\n\t'
 
 DEBIAN_FRONTEND=noninteractive
 DBUS_SESSION_BUS_ADDRESS=/dev/null
