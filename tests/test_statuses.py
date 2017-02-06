@@ -179,7 +179,8 @@ def test_cleaning(gh_call, main, load_json):
             'state': 'success'
         })
 
-    a1, a2, a3, a4, a5 = gh_call.call_args_list[:5]
+    assert 7 == gh_call.call_count
+    a1, a2, a3, a4, a5, a6, a7 = gh_call.call_args_list
     assert a1[0] == (
         'repos/superdesk/superdesk-client-core/commits/<sha>/status',
     )
@@ -191,7 +192,60 @@ def test_cleaning(gh_call, main, load_json):
         {
             'description': 'waiting for start',
             'state': 'pending',
-            'context': 'fire:www',
+            'context': 'fire:check-e2e--part2',
             'target_url': logs + '-sdcpr-1282/',
         }
     )
+    assert a6[0] == (
+        'repos/superdesk/superdesk-client-core/statuses/<sha>',
+        {
+            'description': '',
+            'state': 'pending',
+            'context': 'fire:check-e2e--part2',
+            'target_url': logs + '-sdcpr-1282/check-e2e--part2.log',
+        }
+    )
+    assert a7[0] == (
+        'repos/superdesk/superdesk-client-core/statuses/<sha>',
+        {
+            'description': 'duration: 0m0s',
+            'state': 'success',
+            'context': 'fire:check-e2e--part2',
+            'target_url': logs + '-sdcpr-1282/check-e2e--part2.log.htm',
+        }
+    )
+
+    # run all default targets
+    gh_call.reset_mock()
+    main('ci sdc pull/1282 --all')
+    assert gh_call.call_count == 19
+    s = [
+        (i[0][1]['context'], i[0][1]['state'])
+        for i in gh_call.call_args_list[1:]
+    ]
+    assert s[:9] == [
+        # cleaned
+        ('fire:check-docs', 'success'),
+        ('fire:check-e2e', 'success'),
+        ('fire:!restart', 'success'),
+        # waiting statuses
+        ('fire:www', 'pending'),
+        ('fire:check-npmtest', 'pending'),
+        ('fire:check-e2e--part1', 'pending'),
+        ('fire:check-e2e--part2', 'pending'),
+
+        ('fire:restart', 'success'),
+        ('fire:build', 'pending'),
+    ]
+    assert set(s[9:]) == {
+        ('fire:www', 'pending'),
+        ('fire:check-npmtest', 'pending'),
+        ('fire:check-e2e--part1', 'pending'),
+        ('fire:check-e2e--part2', 'pending'),
+
+        ('fire:build', 'success'),
+        ('fire:www', 'success'),
+        ('fire:check-npmtest', 'success'),
+        ('fire:check-e2e--part1', 'success'),
+        ('fire:check-e2e--part2', 'success'),
+    }

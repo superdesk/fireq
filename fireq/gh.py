@@ -99,6 +99,7 @@ def post_status(target, ctx, logs, *, started=True, code=None, duration=None):
 def clean_statuses(ref, targets, logs):
     if conf['no_statuses']:
         return
+    failed = []
     targets = targets + ['restart']
     body = call('repos/{0.scope.repo}/commits/{0.sha}/status'.format(ref))
     url = 'repos/{0.scope.repo}/statuses/{0.sha}'.format(ref)
@@ -108,6 +109,9 @@ def clean_statuses(ref, targets, logs):
             continue
         context = re.sub(pattern, '', s['context'])
         if context in targets:
+            if s['state'] != 'success' and context != 'restart':
+                failed.append(context)
             continue
         desc = 'cleaned, is not presented anymore'
         _post_status(url, context, 'success', logs.url(), desc, logs)
+    return failed

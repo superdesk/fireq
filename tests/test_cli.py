@@ -24,7 +24,7 @@ def test_fire_wrapper():
     ))
 
     startswith('./fire2 ci -h', (
-        'usage: fire ci [-h] [--dry-run] [-t TARGET] %(scopes)s ref'
+        'usage: fire ci [-h] [--dry-run] [-t TARGET] [-a] %(scopes)s ref'
     ))
 
     startswith('./fire2 run -h', '''

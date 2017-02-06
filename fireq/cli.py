@@ -241,14 +241,14 @@ def run_job(target, tpl, ctx, logs):
     return code
 
 
-def run_jobs_with_lock(scope, ref, targets):
+def run_jobs_with_lock(scope, ref, targets, all=False):
     ref = Ref(scope, ref)
 
     with lock.kill_previous('fire_run_jobs:{0.uid}:'.format(ref)):
-        run_jobs(ref, targets)
+        run_jobs(ref, targets, all)
 
 
-def run_jobs(ref, targets):
+def run_jobs(ref, targets, all=False):
     def ctx(_ref, _logs):
         started = time.time()
         uid = _ref.uid
@@ -286,8 +286,9 @@ def run_jobs(ref, targets):
         ['check-' + i for i in checks.get(ref.scope.name, ())]
     )
     if targets is None:
-        targets = default_targets
-        gh.clean_statuses(ref, targets, logs)
+        failed_targets = gh.clean_statuses(ref, default_targets, logs)
+        targets = default_targets if all else failed_targets
+        targets = targets or default_targets
     else:
         targets = [t for t in targets if t in default_targets]
 
@@ -415,7 +416,8 @@ def main(args=None):
         .arg('scope', choices=scopes._fields)\
         .arg('ref')\
         .arg('-t', '--target', action='append', default=None)\
-        .exe(lambda a: run_jobs_with_lock(a.scope, a.ref, a.target))
+        .arg('-a', '--all', action='store_true')\
+        .exe(lambda a: run_jobs_with_lock(a.scope, a.ref, a.target, a.all))
 
     cmd('nginx', help='update nginx sites for CI')\
         .arg('scope', default='sd', help=(

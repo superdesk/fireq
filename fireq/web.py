@@ -201,8 +201,9 @@ async def restart(request):
     ref = request.match_info['ref']
     ref = Ref(repo, ref, '<sha>')
     targets = request.GET.get('t', '').split(',')
+    all = request.GET.get('all')
 
-    request.app.loop.create_task(ci(ref, targets))
+    request.app.loop.create_task(ci(ref, targets, all))
     await asyncio.sleep(2)
     log_url = '%slatest/%s/' % (conf['log_url'], ref.uid)
     return web.HTTPFound(log_url)
@@ -265,6 +266,7 @@ repo_tpl = '''
         <a href="{{url}}" style="color:green">[instance]</a>
         <a href="{{gh_url}}" style="color:gray">[github]</a>
         <a href="{{restart_url}}" style="color:black">[restart]</a>
+        <a href="{{restart_url}}?all=1" style="color:black">[restart all]</a>
     </li>
 {{/items}}
 </ul>
@@ -272,16 +274,17 @@ repo_tpl = '''
 '''
 
 
-async def ci(ref, targets=None):
+async def ci(ref, targets=None, all=False):
     targets = ' '.join('-t %s' % t for t in targets or [] if t)
     cmd = (
         'cd {root} && '
-        'FIRE_UID={uid} ./fire2 ci {ref.scope.name} {ref.val} {targets}'
+        'FIRE_UID={uid} ./fire2 ci {ref.scope.name} {ref.val} {all} {targets}'
         .format(
             root=root,
             ref=ref,
             uid=str(uuid.uuid4().hex[:8]),
-            targets=targets
+            targets=targets,
+            all=(all and '--all' or '')
         )
     )
     log.info(cmd)
