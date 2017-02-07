@@ -42,7 +42,7 @@ else
 fi
 
 cd $repo
-repo_ref=heads/master
+repo_ref=heads/1.0
 repo_sha=
 git fetch origin $repo_ref:
 git checkout ${repo_sha:-FETCH_HEAD}
@@ -68,7 +68,7 @@ time pip install -U -r requirements.txt
 ## client part
 # node & npm
 if ! _skip_install nodejs; then
-    curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
+    curl -sL https://deb.nodesource.com/setup_7.x | bash -
     apt-get install -y nodejs
 fi
 

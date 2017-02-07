@@ -9,7 +9,7 @@ sleep 5
 lxc-attach --clear-env -n $name -- /bin/sh -c "
     DEBIAN_FRONTEND=noninteractive
     apt-get update;
-    apt-get install -y --no-install-recommends openssh-server rsync curl wget
+    apt-get install -y --no-install-recommends openssh-server openssl curl
 "
 cat ${keys:-"/root/.ssh/id_rsa.pub"} | lxc-attach --clear-env -n $name -- /bin/sh -c "
     /bin/mkdir -p /root/.ssh;

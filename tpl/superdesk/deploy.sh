@@ -1,14 +1,14 @@
 ### deploy
-# env.sh
-envfile={{repo}}/env.sh
-cat <<"EOF" > $envfile
-{{>deploy-env.sh}}
-EOF
-
 # write config if not exist
 config={{config}}
 [ -f $config ] || cat <<EOF > $config
 {{>deploy-config.sh}}
+EOF
+
+# env.sh
+envfile={{repo}}/env.sh
+cat <<"EOF" > $envfile
+{{>deploy-env.sh}}
 EOF
 
 # load env.sh and config in activation script

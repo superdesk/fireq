@@ -42,7 +42,7 @@ else
 fi
 
 cd $repo
-repo_ref=heads/master
+repo_ref=heads/1.0
 repo_sha=
 git fetch origin $repo_ref:
 git checkout ${repo_sha:-FETCH_HEAD}
@@ -68,7 +68,7 @@ time pip install -U -r requirements.txt
 ## client part
 # node & npm
 if ! _skip_install nodejs; then
-    curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
+    curl -sL https://deb.nodesource.com/setup_7.x | bash -
     apt-get install -y nodejs
 fi
 
@@ -151,7 +151,7 @@ wait_elastic() {
     done
 }
 if ! _skip_install elasticsearch; then
-    wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+    curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
     echo "deb http://packages.elastic.co/elasticsearch/1.7/debian stable main" \
         > /etc/apt/sources.list.d/elastic.list
 
@@ -177,6 +177,18 @@ unset config
 
 
 ### deploy
+# write config if not exist
+config=/etc/superdesk.sh
+[ -f $config ] || cat <<EOF > $config
+HOST=${HOST:-'localhost'}
+HOST_SSL=${HOST_SSL:-''}
+
+DB_HOST=${DB_HOST:-'localhost'}
+DB_NAME=${DB_NAME:-'superdesk'}
+
+SUPERDESK_TESTING=${SUPERDESK_TESTING:-''}
+EOF
+
 # env.sh
 envfile=/opt/superdesk/env.sh
 cat <<"EOF" > $envfile
@@ -187,6 +199,8 @@ PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
 
 HOST=${HOST:-localhost}
+DB_HOST=${DB_HOST:-localhost}
+DB_NAME=${DB_NAME:-'superdesk'}
 [ -n "${HOST_SSL:-}" ] && [ "$HOST" != 'localhost' ] && SSL='s' || SSL=''
 
 # TODO: need to get rid this for proper SaaS
@@ -200,17 +214,18 @@ SUPERDESK_URL=${SUPERDESK_URL:-"http$SSL://$HOST/api"}
 CONTENTAPI_URL=${CONTENTAPI_URL:-"http$SSL://$HOST/contentapi"}
 
 
-MONGO_URI=${MONGO_URI:-"mongodb://localhost/superdesk"}
-LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://localhost/superdesk_la"}
-ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://localhost/superdesk_ar"}
-CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"mongodb://localhost/superdesk_pa"}
-ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://localhost:9200"}
-ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"superdesk"}
-CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"superdesk_capi"}
+MONGO_URI=${MONGO_URI:-"mongodb://$DB_HOST/$DB_NAME"}
+LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://$DB_HOST/${DB_NAME}_la"}
+ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://$DB_HOST/${DB_NAME}_ar"}
+ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://$DB_HOST:9200"}
+ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"$DB_NAME"}
+
+CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${DB_NAME}_ca"}
 # TODO: fix will be in 1.6 release, keep it for a while
 CONTENTAPI_ELASTIC_INDEX=$CONTENTAPI_ELASTICSEARCH_INDEX
+CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"mongodb://$DB_HOST/${CONTENTAPI_ELASTICSEARCH_INDEX}"}
 
-REDIS_URL=${REDIS_URL:-redis://localhost:6379/1}
+REDIS_URL=${REDIS_URL:-redis://$DB_HOST:6379/1}
 
 C_FORCE_ROOT=1
 CELERYBEAT_SCHEDULE_FILENAME=${CELERYBEAT_SCHEDULE_FILENAME:-/tmp/celerybeatschedule}
@@ -247,25 +262,6 @@ if [ -n "${SUPERDESK_TESTING:-}" ]; then
 fi
 EOF
 
-# write config if not exist
-config=/etc/superdesk.sh
-[ -f $config ] || cat <<EOF > $config
-HOST=${HOST:-'localhost'}
-HOST_SSL=${HOST_SSL:-''}
-DB_HOST=${DB_HOST:-'localhost'}
-DB_NAME=${DB_NAME:-'superdesk'}
-SUPERDESK_TESTING=${SUPERDESK_TESTING:-''}
-
-MONGO_URI=mongodb://\${DB_HOST}/\${DB_NAME}
-LEGAL_ARCHIVE_URI=\${MONGO_URI}_la
-ARCHIVED_URI=\${MONGO_URI}_ar
-CONTENTAPI_MONGO_URI=\${MONGO_URI}_ca
-
-ELASTICSEARCH_URL=http://\${DB_HOST}:9200
-ELASTICSEARCH_INDEX=\${DB_NAME}
-CONTENTAPI_ELASTICSEARCH_INDEX=\${ELASTICSEARCH_INDEX}_ca
-EOF
-
 # load env.sh and config in activation script
 activate=/opt/superdesk/env/bin/activate
 grep "$envfile" $activate || cat <<EOF >> $activate
@@ -296,7 +292,7 @@ unset dist_orig dist
 
 # nginx
 if ! _skip_install nginx; then
-    wget -qO - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
+    curl http://nginx.org/keys/nginx_signing.key | apt-key add -
     echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
         > /etc/apt/sources.list.d/nginx.list
 
