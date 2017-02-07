@@ -1,3 +1,4 @@
+# put your variables here!
 HOST=${HOST:-'{{host}}'}
 HOST_SSL=${HOST_SSL:-'{{host_ssl}}'}
 

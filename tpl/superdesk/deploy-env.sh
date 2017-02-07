@@ -1,3 +1,8 @@
+# don't change this file
+# variables are loading in {{repo_env}}/bin/activate by the next order
+# 1. /etc/{{name}}.sh
+# 2. this file
+# so rewrite you variables in /etc/{{name}}.sh
 LANG=en_US.UTF-8
 LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8

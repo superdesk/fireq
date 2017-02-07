@@ -30,7 +30,6 @@ fi
 
 # mongo
 if ! _skip_install mongodb-org-server; then
-
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
     echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" \
         > /etc/apt/sources.list.d/mongodb-org-3.2.list
@@ -178,6 +177,7 @@ grunt build --force
 # write config if not exist
 config=/etc/superdesk.sh
 [ -f $config ] || cat <<EOF > $config
+# put your variables here!
 HOST=${HOST:-'localhost'}
 HOST_SSL=${HOST_SSL:-''}
 
@@ -190,6 +190,11 @@ EOF
 # env.sh
 envfile=/opt/superdesk/env.sh
 cat <<"EOF" > $envfile
+# don't change this file
+# variables are loading in /opt/superdesk/env/bin/activate by the next order
+# 1. /etc/superdesk.sh
+# 2. this file
+# so rewrite you variables in /etc/superdesk.sh
 LANG=en_US.UTF-8
 LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8
