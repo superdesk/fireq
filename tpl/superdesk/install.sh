@@ -1,7 +1,7 @@
-{{>build.sh}}
-
-
 {{>add-dbs.sh}}
+
+
+{{>build.sh}}
 
 
 {{>deploy.sh}}

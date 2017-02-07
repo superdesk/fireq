@@ -82,8 +82,6 @@ time npm install
 
 # TODO: maybe remove "--force" later
 # vars are used in "webpack.config.js"
-# export VIEW_DATE_FORMAT='<VIEW_DATE_FORMAT>'
-# export VIEW_TIME_FORMAT='<VIEW_TIME_FORMAT>'
 time \
 SUPERDESK_URL='<SUPERDESK_URL>' \
 SUPERDESK_WS_URL='<SUPERDESK_WS_URL>' \
