@@ -1,3 +1,9 @@
+lxc={{lxc_build}}
+
+# exit if cleaning is not needed and build container stopped
+# stopped should mean that previous build was successful
+[ -z "{{clean_build}}" ] && [ $(lxc-info -n $lxc -sH) == 'STOPPED' ] && exit 0
+
 # clean previous containers
 (lxc-ls -1\
     | grep "^{{uid}}--"\
@@ -7,7 +13,6 @@
 ./fire lxc-rm {{lxc_build}} || true
 
 # create new container and build code
-lxc={{lxc_build}}
 ./fire lxc-copy -sc -b {{lxc_base}} $lxc
 cat <<"EOF2" | {{ssh}} $lxc
 {{>header.sh}}
