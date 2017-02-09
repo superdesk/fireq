@@ -137,20 +137,6 @@ def main():
     cmd('gh-clean', help='remove unused containers')\
         .exe(lambda a: gh_clean())
 
-    cmd('lxc-init')\
-        .arg('-n', '--name', default='sd0')\
-        .arg('--rm', action='store_true')\
-        .arg('-k', '--keys', default='/root/.ssh/id_rsa.pub')\
-        .arg('-o', '--opts', default='')\
-        .exe(lambda a: sh(
-            'name={name} '
-            'rm={rm} '
-            'keys={keys} '
-            'opts={opts!r} '
-            'bin/lxc-init.sh'
-            .format(name=a.name, rm=a.rm or '', opts=a.opts, keys=a.keys)
-        ))
-
     cmd('lxc-base')\
         .arg('-n', '--name', default=conf['lxc_base'])\
         .arg('-p', '--path', default='/opt/superdesk')\
@@ -167,18 +153,6 @@ def main():
                 name=a.name, path=a.path, opts=a.opts,
                 services='' if a.no_services else '--services'
             )
-        ))
-
-    cmd('lxc-data')\
-        .arg('-n', '--name', default=conf['lxc_data'])\
-        .arg('-o', '--opts', default='')\
-        .exe(lambda a: sh(
-            'set -ex;'
-            'tmp={name}--tmp; '
-            './fire lxc-init -n $tmp --rm -o {opts!r};'
-            './fire r --lxc-name=$tmp -e superdesk-dev/master -a do_services;'
-            './fire lxc-copy -rcs --no-snapshot -b $tmp {name};'
-            .format(name=a.name, opts=a.opts)
         ))
 
     cmd('lxc-expose')\

@@ -30,6 +30,7 @@ cat <<EOF > $config
 network.bind_host: 0.0.0.0
 node.local: true
 discovery.zen.ping.multicast: false
+index.number_of_replicas: 0
 EOF
 systemctl restart elasticsearch
 wait_elastic
@@ -49,7 +50,6 @@ path.repo: $es_backups
 
 index.refresh_interval: 30s
 index.store.type: memory
-index.number_of_replicas: 0
 
 # Next setting break behave tests
 # index.number_of_shards: 1

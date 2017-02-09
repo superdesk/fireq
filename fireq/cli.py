@@ -370,7 +370,14 @@ def gen_files():
 
 def lxc_ls(opts):
     names = sp.check_output('lxc-ls -1 %s' % opts, shell=True)
-    return names.decode().split()
+    return sorted(names.decode().split())
+
+def mongo_ls(pattern):
+    c = '''
+    echo "show databases" | mongo --host data-sd | grep -oE "%s" || true
+    ''' % pattern
+    names = sp.check_output(c, shell=True)
+    return sorted(set(names.decode().split()))
 
 
 def nginx(scope, ssl, live):
@@ -387,6 +394,46 @@ def nginx(scope, ssl, live):
         'hosts': hosts,
     })
     sh(txt, quiet=True)
+
+
+def gh_clean(scope, using_mongo=False):
+    """
+    Remove contaner and related databases if
+    - pull request was closed
+    - branch was removed
+    otherwise keep container and related databases alive
+    """
+    def skip(prefix, ref):
+        name = re.sub('[^a-z0-9]', '', str(ref))
+        name = '%s-%s' % (prefix, name)
+        skips.append('^%s$' % name)
+
+    def ls_names(scope):
+        pattern = '^%s(pr)?-[a-z0-9-]*' % scope
+        if using_mongo:
+            return mongo_ls(pattern)
+        else:
+            return lxc_ls('--filter="%s"' % pattern)
+
+    scopes_ = [getattr(scopes, s) for s in scope] if scope else scopes
+    for s in scopes_:
+        skips = []
+        for i in gh.call('repos/%s/branches' % s.repo):
+            skip(s.name, i['name'])
+        for i in gh.call('repos/%s/pulls?state=open' % s.repo):
+            skip(s.name + 'pr', i['number'])
+
+        skips = '(%s)' % '|'.join(skips)
+        clean = [n for n in ls_names(s.name) if not re.match(skips, n)]
+        if not clean:
+            log.info('%s: nothing to clean', s.name)
+            continue
+
+        sh('''
+        ./fire2 lxc-rm {0}
+        ./fire2 nginx {1} --ssl
+        ./fire2 nginx {1}pr
+        '''.format(' '.join(clean), s.name))
 
 
 def main(args=None):
@@ -433,6 +480,38 @@ def main(args=None):
         .arg('--ssl', action='store_true')\
         .arg('--live', action='store_true')\
         .exe(lambda a: nginx(a.scope, a.ssl, a.live))
+
+    cmd('gh-clean', help=(
+            'remove unused containers and databases using info from Github'
+        ))\
+        .arg('-s', '--scope', choices=scopes._fields, action='append')\
+        .arg('--using-mongo', action='store_true')\
+        .exe(lambda a: gh_clean(a.scope, a.using_mongo))
+
+    cmd('lxc-init')\
+        .arg('name')\
+        .arg('-k', '--keys', default='/root/.ssh/id_rsa.pub')\
+        .arg('-o', '--opts', default='-B zfs')\
+        .exe(lambda a: sh(render_tpl('{{>lxc-init.sh}}', {
+            'name': a.name,
+            'keys': a.keys,
+            'opts': a.opts,
+        })))
+
+    cmd('lxc-data')\
+        .arg('name')\
+        .arg('--tests', action='store_true')\
+        .exe(lambda a: sh('''
+        ./fire2 lxc-init {0}
+        ./fire2 run add-dbs --dev={1} | ./fire lxc-ssh {0}
+        '''.format(a.name, a.tests and 1 or '')))
+
+    cmd('lxc-rm')\
+        .arg('n', nargs='+')\
+        .exe(lambda a: sh(render_tpl('{{>lxc-rm.sh}}', {
+            'names': a.n,
+            'db_host': conf['lxc_data']
+        }), quiet=True))
 
     args = parser.parse_args(args)
     dry_run = getattr(args, 'dry_run', dry_run)
