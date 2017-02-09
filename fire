@@ -1,17 +1,10 @@
 #!/usr/bin/env python3
 import argparse
-import asyncio
-import json
 import os
-import re
 import subprocess
 import sys
-import urllib.error
-import urllib.request
-from pathlib import Path
 
-from fireq import log, conf, gh
-from fireq.cli import scopes
+from fireq import log, conf
 
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
@@ -29,91 +22,6 @@ def sh(cmd, exit=True):
     return code
 
 
-def run_async(fn, *a, **kw):
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(fn(*a, **kw))
-    loop.close()
-    return result
-
-
-def gh_request(path):
-    path = Path(path)
-    req = json.loads(path.read_text())
-
-    if isinstance(req, dict):
-        # TODO: remove it later
-        # this format was used at the begining
-        return req['headers'], req['json']
-    else:
-        return req
-
-
-def gh_hook(path, url):
-    from fireq import web
-
-    headers, body = gh_request(path)
-    data = json.dumps(body, indent=2, sort_keys=True).encode()
-    headers['X-Hub-Signature'] = web.get_signature(data)
-    headers['Content-Length'] = len(data)
-    req = urllib.request.Request(url, data, headers)
-    try:
-        resp = urllib.request.urlopen(req)
-        log.info('%s: %s', resp.status, resp.reason)
-    except Exception as e:
-        log.error(e)
-
-
-def gh_clean():
-    """
-    Remove contaner if
-    - pull request was closed
-    - branch was removed
-    otherwise keep container alive
-    """
-    def skip(prefix, ref, sha):
-        name = re.sub('[^a-z0-9]', '', str(ref))
-        name = '%s-%s' % (prefix, name)
-        skips.append('^%s$' % name)
-        skips.append('^%s-%s' % (name, sha[:10]))
-
-    skips = []
-    for s in scopes:
-        for i in gh_api('%s/branches' % s.repo):
-            skip(s.name, i['name'], i['commit']['sha'])
-        for i in gh_api('%s/pulls?state=open' % s.repo):
-            skip(s.name + 'pr', i['number'], i['head']['sha'])
-
-    skips = '(%s)' % '|'.join(skips)
-    clean = [n for n in lxc_ls() if not re.match(skips, n)]
-    cmd = ';\n'.join('./fire lxc-rm %s' % n for n in clean)
-    sh('\n%s;\n./fire nginx' % cmd)
-
-
-def gh_api(url, exc=True):
-    if not url.startswith('https://'):
-        url = 'https://api.github.com/repos/' + url
-    try:
-        req = urllib.request.Request(url, headers=gh.auth())
-        res = urllib.request.urlopen(req)
-        log.info('%s: %s', url, res.status)
-        return json.loads(res.read().decode())
-    except urllib.error.URLError as e:
-        log.info('%s: %s', url, e)
-        if exc:
-            raise
-    return None
-
-
-def lxc_ls(*, www=False):
-    opts = '--running' if www else ''
-    names = subprocess.check_output('lxc-ls -1 %s' % opts, shell=True)
-    names = names.decode().split()
-    pattern = '^sd[a-z]*-[a-z0-9]+'
-    if www:
-        pattern += '$'
-    return [n for n in names if re.match(pattern, n)]
-
-
 def main():
     global dry_run
 
@@ -128,14 +36,6 @@ def main():
 
         p.arg('--dry-run', action='store_true')
         return p
-
-    cmd('gh-build')\
-        .arg('path')\
-        .arg('url', nargs='?', default='http://localhost:8081/dev/hook')\
-        .exe(lambda a: gh_hook(a.path, a.url))
-
-    cmd('gh-clean', help='remove unused containers')\
-        .exe(lambda a: gh_clean())
 
     cmd('lxc-base')\
         .arg('-n', '--name', default=conf['lxc_base'])\
@@ -153,73 +53,6 @@ def main():
                 name=a.name, path=a.path, opts=a.opts,
                 services='' if a.no_services else '--services'
             )
-        ))
-
-    cmd('lxc-expose')\
-        .arg('-n', '--name', default='sd0')\
-        .arg('-d', '--domain', required=True)\
-        .arg('-c', '--clean', action='store_true')\
-        .exe(lambda a: sh(
-            'name={name} '
-            'domain={domain} '
-            'clean={clean} '
-            'bin/lxc-expose.sh'
-            .format(name=a.name, domain=a.domain, clean=a.clean or '')
-        ))
-
-    cmd('lxc-copy')\
-        .arg('name')\
-        .arg('-b', '--base', default=conf['lxc_base'])\
-        .arg('--cpus', default='')\
-        .arg('-c', '--clean', action='store_true')\
-        .arg('-s', '--start', action='store_true')\
-        .arg('-r', '--rename', action='store_true')\
-        .arg('--no-snapshot', action='store_true')\
-        .exe(lambda a: sh(
-            'name={name} '
-            'rename={rename} '
-            'clean={clean} '
-            'start={start} '
-            'base={base} '
-            'cpus={cpus} '
-            'snapshot={snapshot} '
-            'bin/lxc-copy.sh'
-            .format(
-                name=a.name,
-                base=a.base,
-                cpus=a.cpus,
-                start=a.start or '',
-                clean=a.clean or '',
-                rename=a.rename or '',
-                snapshot='' if a.no_snapshot else 1,
-            )
-        ))
-
-    cmd('lxc-rm')\
-        .arg('name', nargs='+')\
-        .exe(lambda a: sh('; '.join(
-            'lxc-destroy -f -n {name}'
-            .format(name=name)
-            for name in a.name if name
-        )))
-
-    cmd('lxc-ssh')\
-        .arg('name')\
-        .arg('-c', '--cmd', default='')\
-        .exe(lambda a: sh(
-            'ssh {ssh_opts} $(lxc-info -n {name} -iH) {cmd}'
-            .format(ssh_opts=ssh_opts, name=a.name, cmd=a.cmd)
-        ))
-
-    cmd('lxc-wait')\
-        .arg('name')\
-        .exe(lambda a: sh(
-            'sleep 3 && '
-            'lxc-wait -n {name} -s RUNNING && '
-            'while ! $(./fire lxc-ssh {name} -c true > /dev/null);'
-            '   do sleep 1; '
-            'done'
-            .format(name=a.name)
         ))
 
     cmd('lxc-clean')\

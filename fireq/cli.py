@@ -1,9 +1,11 @@
 import argparse
 import datetime as dt
+import json
 import random
 import re
 import subprocess as sp
 import time
+import urllib.request
 from concurrent import futures
 from collections import namedtuple
 from pathlib import Path
@@ -372,6 +374,7 @@ def lxc_ls(opts):
     names = sp.check_output('lxc-ls -1 %s' % opts, shell=True)
     return sorted(names.decode().split())
 
+
 def mongo_ls(pattern):
     c = '''
     echo "show databases" | mongo --host data-sd | grep -oE "%s" || true
@@ -436,6 +439,22 @@ def gh_clean(scope, using_mongo=False):
         '''.format(' '.join(clean), s.name))
 
 
+def gh_hook(path, url):
+    from fireq import web
+
+    path = Path(path)
+    headers, body = json.loads(path.read_text())
+    data = json.dumps(body, indent=2, sort_keys=True).encode()
+    headers['X-Hub-Signature'] = web.get_signature(data)
+    headers['Content-Length'] = len(data)
+    req = urllib.request.Request(url, data, headers)
+    try:
+        resp = urllib.request.urlopen(req)
+        log.info('%s: %s', resp.status, resp.reason)
+    except Exception as e:
+        log.error(e)
+
+
 def main(args=None):
     global dry_run
 
@@ -488,6 +507,27 @@ def main(args=None):
         .arg('--using-mongo', action='store_true')\
         .exe(lambda a: gh_clean(a.scope, a.using_mongo))
 
+    cmd('gh-hook')\
+        .arg('path')\
+        .arg('url', nargs='?', default='http://localhost:8081/dev/hook')\
+        .exe(lambda a: gh_hook(a.path, a.url))
+
+    cmd('lxc-ssh')\
+        .arg('name')\
+        .arg('-c', '--cmd', default='')\
+        .exe(lambda a: sh(
+            'ssh {ssh_opts} $(lxc-info -n {name} -iH) {cmd}'
+            .format(ssh_opts=ssh_opts, name=a.name, cmd=a.cmd)
+        ))
+
+    cmd('lxc-wait')\
+        .arg('name')\
+        .arg('--start', action='store_true')\
+        .exe(lambda a: sh(render_tpl('{{>lxc-wait.sh}}', {
+            'name': a.name,
+            'start': a.start and 1 or ''
+        })))
+
     cmd('lxc-init')\
         .arg('name')\
         .arg('-k', '--keys', default='/root/.ssh/id_rsa.pub')\
@@ -503,7 +543,7 @@ def main(args=None):
         .arg('--tests', action='store_true')\
         .exe(lambda a: sh('''
         ./fire2 lxc-init {0}
-        ./fire2 run add-dbs --dev={1} | ./fire lxc-ssh {0}
+        ./fire2 run add-dbs --dev={1} | ./fire2 lxc-ssh {0}
         '''.format(a.name, a.tests and 1 or '')))
 
     cmd('lxc-rm')\
@@ -512,6 +552,16 @@ def main(args=None):
             'names': a.n,
             'db_host': conf['lxc_data']
         }), quiet=True))
+
+    cmd('lxc-expose')\
+        .arg('name')\
+        .arg('domain')\
+        .arg('-c', '--clean', action='store_true')\
+        .exe(lambda a: sh(render_tpl('{{>lxc-expose.sh}}', {
+            'name': a.name,
+            'domain': a.domain,
+            'clean': a.clean and 1 or ''
+        })))
 
     args = parser.parse_args(args)
     dry_run = getattr(args, 'dry_run', dry_run)

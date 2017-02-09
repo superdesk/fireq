@@ -16,9 +16,6 @@ def startswith(cmd, txt):
 
 
 def test_fire_wrapper():
-    startswith('./fire2 -h', (
-        'usage: fire [-h] {gen-files,run,r,ci,nginx}'
-    ))
     startswith('./fire2 gen-files -h', (
         'usage: fire gen-files [-h] [--dry-run]'
     ))

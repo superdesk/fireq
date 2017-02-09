@@ -1,5 +1,8 @@
 lxc="{{uid}}--www";
-./fire lxc-copy -cs -b {{lxc_build}} $lxc
+
+lxc-destroy -fn $lxc || true
+lxc-copy -s -n {{lxc_build}} -N $lxc
+./fire2 lxc-wait --start $lxc
 
 # env config
 (
@@ -34,7 +37,10 @@ EOF
 
 {{>prepopulate.sh}}
 EOF2
-./fire lxc-copy --no-snapshot -rc -b $lxc {{uid}}
+
+lxc-stop -n $lxc
+lxc-destroy -fn {{uid}} || true
+lxc-copy -n $lxc -N {{uid}} -R
 
 # mount logs directory
 mkdir -p {{host_logs}}

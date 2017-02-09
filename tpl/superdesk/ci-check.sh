@@ -1,6 +1,9 @@
 lxc="{{uid}}--{{target}}";
-./fire lxc-copy --cpu="0-5" -cs -b {{lxc_build}} $lxc
+lxc-destroy -fn $lxc || true
+lxc-copy -s -n {{lxc_build}} -N $lxc
+echo "lxc.cgroup.cpuset.cpus = 0-5" >> /var/lib/lxc/$lxc/config
+./fire2 lxc-wait --start $lxc
 cat <<"EOF2" | {{ssh}} $lxc
 {{{inner}}}
 EOF2
-./fire lxc-rm $lxc
+lxc-destroy -fn $lxc
