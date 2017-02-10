@@ -390,7 +390,7 @@ def nginx(scope, ssl, live):
         'name': n,
         'host': '%s.%s' % (n, conf['domain'])
     } for n in names]
-    txt = render_tpl('{{>superdesk/ci-nginx.sh}}', {
+    txt = render_tpl('{{>ci-nginx.sh}}', {
         'scope': scope,
         'ssl': ssl,
         'live': live and 1 or '',

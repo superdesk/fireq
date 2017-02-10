@@ -14,6 +14,6 @@ cat {{keys}} | lxc-attach --clear-env -n $name -- /bin/sh -c "
 cat <<EOF
 **********************************************************************
 Go to container:
-$ ssh -o 'StrictHostKeyChecking no' root@$(lxc-info -n $name -iH)
+$ ssh -o StrictHostKeyChecking=no root@$(lxc-info -n $name -iH)
 **********************************************************************
 EOF
