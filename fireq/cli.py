@@ -433,9 +433,9 @@ def gh_clean(scope, using_mongo=False):
             continue
 
         sh('''
-        ./fire2 lxc-rm {0}
-        ./fire2 nginx {1} --ssl
-        ./fire2 nginx {1}pr
+        ./fire lxc-rm {0}
+        ./fire nginx {1} --ssl
+        ./fire nginx {1}pr
         '''.format(' '.join(clean), s.name))
 
 
@@ -542,8 +542,8 @@ def main(args=None):
         .arg('name')\
         .arg('--tests', action='store_true')\
         .exe(lambda a: sh('''
-        ./fire2 lxc-init {0}
-        ./fire2 run add-dbs --dev={1} | ./fire2 lxc-ssh {0}
+        ./fire lxc-init {0}
+        ./fire run add-dbs --dev={1} | ./fire lxc-ssh {0}
         '''.format(a.name, a.tests and 1 or '')))
 
     cmd('lxc-rm')\

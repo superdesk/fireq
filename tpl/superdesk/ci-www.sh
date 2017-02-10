@@ -2,7 +2,7 @@ lxc="{{uid}}--www";
 
 lxc-destroy -fn $lxc || true
 lxc-copy -s -n {{lxc_build}} -N $lxc
-./fire2 lxc-wait --start $lxc
+./fire lxc-wait --start $lxc
 
 # env config
 (
@@ -49,4 +49,4 @@ cat <<EOF >> /var/lib/lxc/{{uid}}/config;
 lxc.mount.entry = {{host_logs}} ${logs:1} none bind,create=dir
 EOF
 lxc-start -n {{uid}};
-./fire2 nginx {{#host_ssl}}--ssl{{/host_ssl}} {{uid}} || true
+./fire nginx {{#host_ssl}}--ssl{{/host_ssl}} {{uid}} || true

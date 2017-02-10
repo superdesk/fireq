@@ -278,7 +278,7 @@ async def ci(ref, targets=None, all=False):
     targets = ' '.join('-t %s' % t for t in targets or [] if t)
     cmd = (
         'cd {root} && '
-        'FIRE_UID={uid} ./fire2 ci {ref.scope.name} {ref.val} {all} {targets}'
+        'FIRE_UID={uid} ./fire ci {ref.scope.name} {ref.val} {all} {targets}'
         .format(
             root=root,
             ref=ref,

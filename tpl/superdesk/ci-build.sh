@@ -14,7 +14,7 @@ lxc-destroy -fn $lxc || true
 
 # create new container and build code
 lxc-copy -s -n {{lxc_base}} -N $lxc
-./fire2 lxc-wait --start $lxc
+./fire lxc-wait --start $lxc
 cat <<"EOF2" | {{ssh}} $lxc
 {{>header.sh}}
 {{>build.sh}}
