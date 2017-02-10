@@ -9,7 +9,7 @@ lxc={{lxc_build}}
     | grep "^{{uid}}--"\
     | grep -v "^$lxc$"\
     | sort -r\
-    | xargs -r lxc-destroy -fn) || true
+    | xargs -r -L1 lxc-destroy -fn) || true
 lxc-destroy -fn $lxc || true
 
 # create new container and build code
