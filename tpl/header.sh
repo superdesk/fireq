@@ -3,8 +3,8 @@
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -exuo pipefail
 
-DEBIAN_FRONTEND=noninteractive
-DBUS_SESSION_BUS_ADDRESS=/dev/null
+export DEBIAN_FRONTEND=noninteractive
+export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
