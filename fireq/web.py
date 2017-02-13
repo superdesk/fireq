@@ -245,7 +245,7 @@ async def repo(request):
             'restart_url': get_restart_url(prefix, ref),
         }
 
-    resp, body = await gh_api('repos/%s/pulls' % repo_name)
+    resp, body = await gh_api('repos/%s/pulls?per_page=100' % repo_name)
     pulls = [info(i['number'], True) for i in body]
 
     resp, body = await gh_api('repos/%s/branches?per_page=100' % repo_name)

@@ -421,9 +421,9 @@ def gh_clean(scope, using_mongo=False):
     scopes_ = [getattr(scopes, s) for s in scope] if scope else scopes
     for s in scopes_:
         skips = []
-        for i in gh.call('repos/%s/branches' % s.repo):
+        for i in gh.call('repos/%s/branches?per_page=100' % s.repo):
             skip(s.name, i['name'])
-        for i in gh.call('repos/%s/pulls?state=open' % s.repo):
+        for i in gh.call('repos/%s/pulls?state=open&per_page=100' % s.repo):
             skip(s.name + 'pr', i['number'])
 
         skips = '(%s)' % '|'.join(skips)
