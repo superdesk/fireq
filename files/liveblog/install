@@ -5,8 +5,8 @@
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -exuo pipefail
 
-DEBIAN_FRONTEND=noninteractive
-DBUS_SESSION_BUS_ADDRESS=/dev/null
+export DEBIAN_FRONTEND=noninteractive
+export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
@@ -93,6 +93,7 @@ cat <<EOF > $config
 network.bind_host: 0.0.0.0
 node.local: true
 discovery.zen.ping.multicast: false
+index.number_of_replicas: 0
 EOF
 systemctl restart elasticsearch
 wait_elastic
@@ -416,9 +417,9 @@ directory=/opt/liveblog/server
 
 [program:work]
 command=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec celery -A worker worker --loglevel=DEBUG'
-user=nobody
 autostart=true
 autorestart=true
+#user=nobody
 #startsecs=10
 #killasgroup=true
 stdout_logfile=/var/log/liveblog/work.log
@@ -427,9 +428,9 @@ directory=/opt/liveblog/server
 
 [program:beat]
 command=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec celery -A worker beat --loglevel=DEBUG --pid='
-user=nobody
 autostart=true
 autorestart=true
+#user=nobody
 #startsecs=10
 stdout_logfile=/var/log/liveblog/beat.log
 redirect_stderr=true
@@ -443,10 +444,15 @@ supervisorctl restart all
 ### prepopulate
 _activate
 cd /opt/liveblog/server
-python manage.py app:initialize_data
+if curl -sI localhost:9200/liveblog | grep -q 404; then
+    python manage.py app:initialize_data
 
-# for master it should be '--admin=true' for devel just '--admin'
-python manage.py users:create --help | grep -- '-a ADMIN' && admin='--admin=true' || admin='--admin'
-python manage.py users:create -u admin -p admin -e 'admin@example.com' $admin
+    # for master it should be '--admin=true' for devel just '--admin'
+    python manage.py users:create --help | grep -- '-a ADMIN' && admin='--admin=true' || admin='--admin'
+    python manage.py users:create -u admin -p admin -e 'admin@example.com' $admin
 
-python manage.py register_local_themes
+    python manage.py register_local_themes
+else
+    python manage.py app:initialize_data
+    python manage.py register_local_themes
+fi

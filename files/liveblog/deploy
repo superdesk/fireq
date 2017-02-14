@@ -5,8 +5,8 @@
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -exuo pipefail
 
-DEBIAN_FRONTEND=noninteractive
-DBUS_SESSION_BUS_ADDRESS=/dev/null
+export DEBIAN_FRONTEND=noninteractive
+export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
@@ -260,9 +260,9 @@ directory=/opt/liveblog/server
 
 [program:work]
 command=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec celery -A worker worker --loglevel=DEBUG'
-user=nobody
 autostart=true
 autorestart=true
+#user=nobody
 #startsecs=10
 #killasgroup=true
 stdout_logfile=/var/log/liveblog/work.log
@@ -271,9 +271,9 @@ directory=/opt/liveblog/server
 
 [program:beat]
 command=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec celery -A worker beat --loglevel=DEBUG --pid='
-user=nobody
 autostart=true
 autorestart=true
+#user=nobody
 #startsecs=10
 stdout_logfile=/var/log/liveblog/beat.log
 redirect_stderr=true
