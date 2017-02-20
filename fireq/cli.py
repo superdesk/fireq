@@ -197,7 +197,7 @@ def endpoint(tpl, scope=None, *, expand=None):
 
 def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
     if header:
-        cmd = 'set -eux; %s' % cmd
+        cmd = 'set -eux\n%s' % cmd
     if log_file:
         cmd = (
             '(time ({cmd})) 2>&1'
@@ -383,7 +383,14 @@ def mongo_ls(pattern):
     return sorted(set(names.decode().split()))
 
 
-def nginx(scope, ssl, live):
+def nginx(scope, ssl=False, live=False, reload=True):
+    if not scope:
+        for scope in scopes:
+            nginx(scope.name, ssl=True, live=live, reload=False)
+            nginx(scope.name + 'pr', reload=False)
+        sh('nginx -s reload')
+        return
+
     scope = scope.split('-', 1)[0]
     names = lxc_ls('--filter="^%s-[a-z0-9]*$" --running' % scope)
     hosts = [{
@@ -395,6 +402,7 @@ def nginx(scope, ssl, live):
         'ssl': ssl,
         'live': live and 1 or '',
         'hosts': hosts,
+        'reload': reload,
     })
     sh(txt, quiet=True)
 
@@ -410,6 +418,7 @@ def gh_clean(scope, using_mongo=False):
         name = re.sub('[^a-z0-9]', '', str(ref))
         name = '%s-%s' % (prefix, name)
         skips.append('^%s$' % name)
+        # sh('lxc-start -n %s || true' % name)
 
     def ls_names(scope):
         pattern = '^%s(pr)?-[a-z0-9-]*' % scope
@@ -492,7 +501,7 @@ def main(args=None):
         .exe(lambda a: run_jobs_with_lock(a.scope, a.ref, a.target, a.all))
 
     cmd('nginx', help='update nginx sites for CI')\
-        .arg('scope', default='sd', help=(
+        .arg('scope', nargs='?', help=(
             'scope or lxc name, if lxc name is given then '
             'it\'ll be used to get a scope name'
         ))\

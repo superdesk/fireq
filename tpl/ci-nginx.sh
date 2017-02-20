@@ -63,4 +63,6 @@ server {
 }
 {{/hosts}}
 EOF
+{{#reload}}
 nginx -s reload
+{{/reload}}
