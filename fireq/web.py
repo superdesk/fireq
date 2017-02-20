@@ -47,6 +47,7 @@ def get_app():
         return app.router.add_route(method, path, handler, **kw)
 
     url('/', index)
+    url('/login', login)
     url('/logs/{path:.*}', logs)
     url('/hook', hook, method='POST')
 
@@ -93,6 +94,7 @@ async def auth_middleware(app, handler):
         if user.get('login') in users:
             session['login'] = user.get('login')
             session.pop('github_state', None)
+            session.pop('github_url', None)
             location = session.pop('location')
             return web.HTTPFound(location)
         return web.HTTPForbidden()
@@ -107,8 +109,9 @@ async def auth_middleware(app, handler):
             state = str(uuid.uuid4())
             url = gh.get_authorize_url(scope='', state=state)
             session['github_state'] = state
+            session['github_url'] = url
             session['location'] = request.path
-            return web.HTTPFound(url)
+            return web.HTTPFound(conf['url_prefix'] + '/login')
         return await handler(request)
 
     async def inner(request):
@@ -116,10 +119,28 @@ async def auth_middleware(app, handler):
             return await callback(request)
         elif request.path == (conf['url_prefix'] + '/hook'):
             return await handler(request)
+        elif request.path == (conf['url_prefix'] + '/login'):
+            return await handler(request)
         else:
             return await check_auth(request)
 
     return inner
+
+
+async def login(request):
+    session = await get_session(request)
+    if 'github_url' not in session:
+        return web.HTTPFound(conf['url_prefix'])
+
+    ctx = {'login_url': session['github_url']}
+    return render_tpl(login_tpl, ctx)
+login_tpl = '''
+<p>
+You should be a member of
+<a href="https://github.com/orgs/superdesk/people">Superdesk Organization</a>
+</p>
+<p><a href="{{login_url}}">Login via Github</a></p>
+'''
 
 
 async def logs(request):
@@ -265,6 +286,7 @@ repo_tpl = '''
         <b>{{name}}</b>
         <a href="{{url}}" style="color:green">[instance]</a>
         <a href="{{gh_url}}" style="color:gray">[github]</a>
+        <a href="{{restart_url}}?t=www" style="color:black">[deploy]</a>
         <a href="{{restart_url}}" style="color:black">[restart]</a>
         <a href="{{restart_url}}?all=1" style="color:black">[restart all]</a>
     </li>
