@@ -130,7 +130,7 @@ async def auth_middleware(app, handler):
 async def login(request):
     session = await get_session(request)
     if 'github_url' not in session:
-        return web.HTTPFound(conf['url_prefix'])
+        return web.HTTPFound(conf['url_prefix'] + '/')
 
     ctx = {'login_url': session['github_url']}
     return render_tpl(login_tpl, ctx)
