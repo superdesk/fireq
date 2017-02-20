@@ -5,19 +5,18 @@ lxc-copy -s -n {{lxc_build}} -N $lxc
 ./fire lxc-wait --start $lxc
 
 # env config
-(
-[ ! -f etc/{{name}}.sh ] || cat etc/{{name}}.sh
-[ ! -f etc/{{uid}}.sh ] || cat etc/{{uid}}.sh
-cat <<EOF
+cat <<EOF | {{ssh}} $lxc "cat > {{config}}"
 {{>deploy-config.sh}}
 EOF
-) | {{ssh}} $lxc "cat > {{config}}"
 
-# config.js
-configjs={{repo_client}}/dist/config.*.js
-[ ! -f etc/{{name}}.js ] || cat etc/{{name}}.js\
-    | {{ssh}} $lxc "[ -f $configjs ] && cat > $configjs || cat /dev/null"
-unset configjs
+# run init
+if [ -f tpl/init/{{uid}}.sh ]; then
+    cfg={{uid}}
+else
+    cfg={{scope}}
+fi
+./fire run init/$cfg | {{ssh}} $lxc
+unset cfg
 
 cat <<"EOF2" | {{ssh}} $lxc
 cat <<"EOF" > /etc/nginx/conf.d/logs.inc

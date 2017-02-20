@@ -117,7 +117,7 @@ def endpoint(tpl, scope=None, *, expand=None):
             return expand.pop(name)
         return default
 
-    def get_ctx(name):
+    def get_ctx(name, scope):
         repo = '/opt/%s' % name
         repo_env = '%s/env' % repo
         repo_core = val('repo_core', '')
@@ -144,7 +144,6 @@ def endpoint(tpl, scope=None, *, expand=None):
 
         is_pr = re.match('^pull/\d*$', repo_ref)
         is_superdesk = name == 'superdesk'
-        is_ntb = scope == scopes.ntb
         logs = '/var/log/%s' % name
         config = '/etc/%s.sh' % name
         return locals()
@@ -188,7 +187,7 @@ def endpoint(tpl, scope=None, *, expand=None):
         }
 
     expand = dict(expand or {}, **ctx)
-    ctx = get_ctx(name)
+    ctx = get_ctx(name, scope.name)
     if expand:
         ctx.update(expand)
     tpl = '{{>header.sh}}\n' + tpl

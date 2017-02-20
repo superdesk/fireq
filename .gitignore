@@ -2,5 +2,4 @@
 .cache
 env
 config.json
-etc/superdesk.sh
-etc/liveblog.sh
+tpl/init/.*
