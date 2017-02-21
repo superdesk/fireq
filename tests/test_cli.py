@@ -10,8 +10,8 @@ def startswith(cmd, txt):
     txt = textwrap.dedent(txt).strip()
     txt = txt % {'scopes': '{sd,sds,sdc,sdp,ntb,lb}'}
     out = check_output(cmd)
-    if out.startswith('Running with sudo...\n'):
-        out = out.split('\n', 1)[1]
+    if out.startswith('running with sudo...\n\n'):
+        out = out.split('\n\n', 1)[1]
     assert out.startswith(txt)
 
 

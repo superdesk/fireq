@@ -15,20 +15,21 @@ sys.path.insert(0, str(root))
 
 
 def pytest_configure():
-    tmp = Path('/tmp/fire')
+    tmp = Path('/tmp/fireq')
     tmp.mkdir(exist_ok=True)
-    conf = {
-        'log_root': str(tmp / 'logs'),
-        'log_url': 'http://localhost/logs/',
-        'domain': 'localhost',
-        'url_prefix': ''
-    }
-    conf = (root / 'config.json').read_text()
-    conf = json.loads(conf)
-    conf = {
-        k: v for k, v in conf.items()
-        if k.startswith('github_') or k == 'secret'
-    }
+    conf = root / 'config.json'
+    if conf.exists():
+        conf = conf.read_text()
+        conf = json.loads(conf)
+        conf = {
+            k: v for k, v in conf.items()
+            if k.startswith('github_') or k == 'secret'
+        }
+    else:
+        conf = {
+            'secret': '11111111111111111111111111111111',
+            'github_auth': '',
+        }
 
     conf_tmp = tmp / 'config.json'
     conf_tmp.write_text(json.dumps(conf, indent=2, sort_keys=True))

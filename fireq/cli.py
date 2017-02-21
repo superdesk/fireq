@@ -442,8 +442,8 @@ def gh_clean(scope, using_mongo=False):
 
         sh('''
         ./fire lxc-rm {0}
-        ./fire nginx {1} --ssl
-        ./fire nginx {1}pr
+        ./fire ci-nginx {1} --ssl
+        ./fire ci-nginx {1}pr
         '''.format(' '.join(clean), s.name))
 
 
@@ -466,10 +466,12 @@ def gh_hook(path, url):
 def main(args=None):
     global dry_run
 
-    parser = argparse.ArgumentParser('fire')
-    cmds = parser.add_subparsers(help='commands')
+    formatter = argparse.ArgumentDefaultsHelpFormatter
+    parser = argparse.ArgumentParser('fire', argparse.SUPPRESS, add_help=False)
+    cmds = parser.add_subparsers(prog='fire')
 
     def cmd(name, **kw):
+        kw.setdefault('formatter_class', formatter)
         p = cmds.add_parser(name, **kw)
         p.set_defaults(cmd=name)
         p.arg = lambda *a, **kw: p.add_argument(*a, **kw) and p
@@ -478,28 +480,38 @@ def main(args=None):
         p.arg('--dry-run', action='store_true')
         return p
 
-    cmd('gen-files', help='generate install scripts, etc.')\
+    def exit(code=0):
+        print('\n'.join(
+            ['commands:'] +
+            [
+                '  {:<12} {}'.format(a.dest, a.help)
+                for a in cmds._choices_actions
+            ]
+        ))
+        parser.exit(code)
+
+    cmd('gen-files', help='generate install scripts')\
         .exe(lambda a: gen_files())
 
-    cmd('run', aliases=['r'])\
+    cmd('run', help='run endpoint')\
         .arg('name')\
         .arg('--scope', choices=scopes._fields)\
-        .arg('--dev', type=bool, default=True)\
-        .arg('--host', default='localhost')\
+        .arg('--dev', type=bool, default=1)\
+        .arg('--host', default='localhost', help='host')\
         .exe(lambda a: print(endpoint('{{>%s.sh}}' % a.name, expand={
             'scope': a.scope,
             'dev': a.dev,
             'host': a.host
         })))
 
-    cmd('ci')\
+    cmd('ci', help='run CI targets')\
         .arg('scope', choices=scopes._fields)\
         .arg('ref')\
         .arg('-t', '--target', action='append', default=None)\
         .arg('-a', '--all', action='store_true')\
         .exe(lambda a: run_jobs_with_lock(a.scope, a.ref, a.target, a.all))
 
-    cmd('nginx', help='update nginx sites for CI')\
+    cmd('ci-nginx', help='update nginx sites for CI')\
         .arg('scope', nargs='?', help=(
             'scope or lxc name, if lxc name is given then '
             'it\'ll be used to get a scope name'
@@ -509,18 +521,18 @@ def main(args=None):
         .exe(lambda a: nginx(a.scope, a.ssl, a.live))
 
     cmd('gh-clean', help=(
-            'remove unused containers and databases using info from Github'
+            'clean containers and databases using info from Github'
         ))\
         .arg('-s', '--scope', choices=scopes._fields, action='append')\
         .arg('--using-mongo', action='store_true')\
         .exe(lambda a: gh_clean(a.scope, a.using_mongo))
 
-    cmd('gh-hook')\
+    cmd('gh-hook', help='run webhook with saved request from Github')\
         .arg('path')\
         .arg('url', nargs='?', default='http://localhost:8081/dev/hook')\
         .exe(lambda a: gh_hook(a.path, a.url))
 
-    cmd('lxc-ssh')\
+    cmd('lxc-ssh', help='login to LXC container via SSH')\
         .arg('name')\
         .arg('-c', '--cmd', default='')\
         .exe(lambda a: sh(
@@ -528,7 +540,7 @@ def main(args=None):
             .format(ssh_opts=ssh_opts, name=a.name, cmd=a.cmd)
         ))
 
-    cmd('lxc-wait')\
+    cmd('lxc-wait', help='wait when LXC container is ready for SSH login')\
         .arg('name')\
         .arg('--start', action='store_true')\
         .exe(lambda a: sh(render_tpl('{{>lxc-wait.sh}}', {
@@ -536,17 +548,22 @@ def main(args=None):
             'start': a.start and 1 or ''
         })))
 
-    cmd('lxc-init')\
+    cmd('lxc-init', help=(
+            'create minimal LXC container with SSH and root keys'
+        ))\
         .arg('name')\
-        .arg('-k', '--keys', default='/root/.ssh/id_rsa.pub')\
-        .arg('-o', '--opts', default='-B zfs')\
+        .arg(
+            '-k', '--keys', default='/root/.ssh/id_rsa.pub',
+            help='authorized keys'
+        )\
+        .arg('-o', '--opts', default='-B zfs', help='lxc-create options')\
         .exe(lambda a: sh(render_tpl('{{>lxc-init.sh}}', {
             'name': a.name,
             'keys': a.keys,
             'opts': a.opts,
         })))
 
-    cmd('lxc-data')\
+    cmd('lxc-data', help='create LXC container with data services')\
         .arg('name')\
         .arg('--tests', action='store_true')\
         .exe(lambda a: sh('''
@@ -554,14 +571,14 @@ def main(args=None):
         ./fire run add-dbs --dev={1} | ./fire lxc-ssh {0}
         '''.format(a.name, a.tests and 1 or '')))
 
-    cmd('lxc-rm')\
+    cmd('lxc-rm', help='remove LXC containers and related databases')\
         .arg('n', nargs='+')\
         .exe(lambda a: sh(render_tpl('{{>lxc-rm.sh}}', {
             'names': a.n,
             'db_host': conf['lxc_data']
         }), quiet=True))
 
-    cmd('lxc-expose')\
+    cmd('lxc-expose', help='expose 80 port from LXC container')\
         .arg('name')\
         .arg('domain')\
         .arg('-c', '--clean', action='store_true')\
@@ -571,15 +588,20 @@ def main(args=None):
             'clean': a.clean and 1 or ''
         })))
 
-    args = parser.parse_args(args)
+    args, extra = parser.parse_known_args(args)
+    if extra in (['-h'], ['--help']):
+        exit()
+    elif extra:
+        print('unrecognized arguments: %s\n' % ' '.join(extra))
+        exit(1)
+    elif not hasattr(args, 'exe'):
+        exit(1)
+
     dry_run = getattr(args, 'dry_run', dry_run)
     if dry_run:
         conf['no_statuses'] = True
 
-    if not hasattr(args, 'exe'):
-        parser.print_usage()
-    else:
-        args.exe(args)
+    args.exe(args)
 
 
 if __name__ == '__main__':

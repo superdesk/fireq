@@ -35,7 +35,7 @@ def get_conf():
         ('github_callback', '/oauth_callback/github'),
 
         ('log_url', lambda c: 'http://%s/logs/' % c['domain']),
-        ('log_root', '/tmp/fire/logs'),
+        ('log_root', '/tmp/fireq/logs'),
     ]
     for key, value in defaults:
         if callable(value):
