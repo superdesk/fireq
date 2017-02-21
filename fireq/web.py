@@ -75,6 +75,7 @@ async def auth_middleware(app, handler):
 
     async def callback(request):
         session = await get_session(request)
+        log.debug('callback: session=%s GET=%s', session, request.GET)
         if session.get('github_state') != request.GET.get('state'):
             return web.HTTPBadRequest()
         gh = gh_client()
@@ -104,13 +105,14 @@ async def auth_middleware(app, handler):
         login = session.get('login')
         if login:
             request['login'] = login
-        else:
+        elif 'github_state' not in session:
             gh = gh_client()
             state = str(uuid.uuid4())
             url = gh.get_authorize_url(scope='', state=state)
             session['github_state'] = state
             session['github_url'] = url
             session['location'] = request.path
+            log.debug('check_auth: %s', session)
             return web.HTTPFound(conf['url_prefix'] + '/login')
         return await handler(request)
 
@@ -129,6 +131,7 @@ async def auth_middleware(app, handler):
 
 async def login(request):
     session = await get_session(request)
+    log.debug('login: %s', session)
     if 'github_url' not in session:
         return web.HTTPFound(conf['url_prefix'] + '/')
 
