@@ -20,4 +20,4 @@ cat <<EOF > $path/default.conf
 {{>nginx.conf}}
 EOF
 unset path
-nginx -s reload
+nginx -s reload || systemctl restart nginx
