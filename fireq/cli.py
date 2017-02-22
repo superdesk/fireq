@@ -118,6 +118,7 @@ def endpoint(tpl, scope=None, *, expand=None):
         return default
 
     def get_ctx(name, scope):
+        # TODO: move superdesk based logic to separate file
         repo = '/opt/%s' % name
         repo_env = '%s/env' % repo
         repo_core = val('repo_core', '')
@@ -155,6 +156,7 @@ def endpoint(tpl, scope=None, *, expand=None):
     if scope != scopes[0]:
         search_dirs.insert(0, 'tpl/%s' % scope.tpldir)
 
+    # TODO: move superdesk based logic to separate file
     name = 'superdesk'
     ctx = {}
     if scope == scopes.sds:
@@ -245,11 +247,11 @@ def run_job(target, tpl, ctx, logs):
     return code
 
 
-def run_jobs_with_lock(scope, ref, targets, all=False):
+def run_jobs_with_lock(scope, ref, *a, **kw):
     ref = Ref(scope, ref)
 
     with lock.kill_previous('fire_run_jobs:{0.uid}:'.format(ref)):
-        run_jobs(ref, targets, all)
+        run_jobs(ref, *a, **kw)
 
 
 def run_jobs(ref, targets, all=False):
@@ -321,7 +323,7 @@ def run_jobs(ref, targets, all=False):
             jobs[j] = target
 
         for target in targets:
-            # TODO: it should be moved to a better place
+            # TODO: move superdesk based logic to separate file
             if ref.scope == scopes.sds:
                 db_host = 'localhost'
                 db_name = 'superdesk'
@@ -376,17 +378,17 @@ def lxc_ls(opts):
 
 def mongo_ls(pattern):
     c = '''
-    echo "show databases" | mongo --host data-sd | grep -oE "%s" || true
-    ''' % pattern
+    echo "show databases" | mongo --host {data} | grep -oE "{pattern}" || true
+    '''.format(data=conf['lxc_data'], pattern=pattern)
     names = sp.check_output(c, shell=True)
     return sorted(set(names.decode().split()))
 
 
-def nginx(scope, ssl=False, live=False, reload=True):
+def ci_nginx(scope, ssl=False, live=False, reload=True):
     if not scope:
         for scope in scopes:
-            nginx(scope.name, ssl=True, live=live, reload=False)
-            nginx(scope.name + 'pr', reload=False)
+            ci_nginx(scope.name, ssl=True, live=live, reload=False)
+            ci_nginx(scope.name + 'pr', reload=False)
         sh('nginx -s reload')
         return
 
@@ -511,7 +513,7 @@ def main(args=None):
         ))\
         .arg('--ssl', action='store_true')\
         .arg('--live', action='store_true')\
-        .exe(lambda a: nginx(a.scope, a.ssl, a.live))
+        .exe(lambda a: ci_nginx(a.scope, a.ssl, a.live))
 
     cmd('gh-clean')\
         .inf('clean containers and databases using info from Github')\

@@ -25,7 +25,7 @@ def test_fire_wrapper():
     ))
 
     startswith('./fire run -h', '''
-    usage: fire run [-h] [--dry-run] [--scope %(scopes)s] [--dev DEV]
+    usage: fire run [-h] [--dry-run] [-s %(scopes)s] [--dev DEV]
                     [--host HOST]
                     name
     ''')
