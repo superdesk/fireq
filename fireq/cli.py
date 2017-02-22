@@ -466,34 +466,25 @@ def gh_hook(path, url):
 def main(args=None):
     global dry_run
 
-    formatter = argparse.ArgumentDefaultsHelpFormatter
-    parser = argparse.ArgumentParser('fire', argparse.SUPPRESS, add_help=False)
-    cmds = parser.add_subparsers(prog='fire')
+    cmds = {}
 
-    def cmd(name, **kw):
-        kw.setdefault('formatter_class', formatter)
-        p = cmds.add_parser(name, **kw)
-        p.set_defaults(cmd=name)
+    def cmd(name, **a):
+        a.setdefault('formatter_class', argparse.ArgumentDefaultsHelpFormatter)
+        p = argparse.ArgumentParser('fire %s' % name, **a)
         p.arg = lambda *a, **kw: p.add_argument(*a, **kw) and p
         p.exe = lambda f: p.set_defaults(exe=f) and p
+        p.inf = lambda v: setattr(p, 'description', v) or p
 
         p.arg('--dry-run', action='store_true')
+        cmds[name] = p
         return p
 
-    def exit(code=0):
-        print('\n'.join(
-            ['commands:'] +
-            [
-                '  {:<12} {}'.format(a.dest, a.help)
-                for a in cmds._choices_actions
-            ]
-        ))
-        parser.exit(code)
-
-    cmd('gen-files', help='generate install scripts')\
+    cmd('gen-files')\
+        .inf('generate install scripts')\
         .exe(lambda a: gen_files())
 
-    cmd('run', help='run endpoint')\
+    cmd('run')\
+        .inf('run endpoint from "tpl" directory')\
         .arg('name')\
         .arg('-s', '--scope', choices=scopes._fields)\
         .arg('--dev', type=bool, default=1)\
@@ -504,14 +495,16 @@ def main(args=None):
             'host': a.host
         })))
 
-    cmd('ci', help='run CI targets')\
+    cmd('ci')\
+        .inf('run CI targets')\
         .arg('scope', choices=scopes._fields)\
         .arg('ref')\
         .arg('-t', '--target', action='append', default=None)\
         .arg('-a', '--all', action='store_true')\
         .exe(lambda a: run_jobs_with_lock(a.scope, a.ref, a.target, a.all))
 
-    cmd('ci-nginx', help='update nginx sites for CI')\
+    cmd('ci-nginx')\
+        .inf('update nginx sites for CI')\
         .arg('scope', nargs='?', help=(
             'scope or lxc name, if lxc name is given then '
             'it\'ll be used to get a scope name'
@@ -520,19 +513,20 @@ def main(args=None):
         .arg('--live', action='store_true')\
         .exe(lambda a: nginx(a.scope, a.ssl, a.live))
 
-    cmd('gh-clean', help=(
-            'clean containers and databases using info from Github'
-        ))\
+    cmd('gh-clean')\
+        .inf('clean containers and databases using info from Github')\
         .arg('-s', '--scope', choices=scopes._fields, action='append')\
         .arg('--using-mongo', action='store_true')\
         .exe(lambda a: gh_clean(a.scope, a.using_mongo))
 
-    cmd('gh-hook', help='run webhook with saved request from Github')\
+    cmd('gh-hook')\
+        .inf('run webhook with saved request from Github')\
         .arg('path')\
         .arg('url', nargs='?', default='http://localhost:8081/dev/hook')\
         .exe(lambda a: gh_hook(a.path, a.url))
 
-    cmd('lxc-ssh', help='login to LXC container via SSH')\
+    cmd('lxc-ssh')\
+        .inf('login to LXC container via SSH')\
         .arg('name')\
         .arg('-c', '--cmd', default='')\
         .exe(lambda a: sh(
@@ -540,7 +534,8 @@ def main(args=None):
             .format(ssh_opts=ssh_opts, name=a.name, cmd=a.cmd)
         ))
 
-    cmd('lxc-wait', help='wait when LXC container is ready for SSH login')\
+    cmd('lxc-wait')\
+        .inf('wait when LXC container is ready for SSH login')\
         .arg('name')\
         .arg('--start', action='store_true')\
         .exe(lambda a: sh(render_tpl('{{>lxc-wait.sh}}', {
@@ -548,9 +543,8 @@ def main(args=None):
             'start': a.start and 1 or ''
         })))
 
-    cmd('lxc-init', help=(
-            'create minimal LXC container with SSH and root keys'
-        ))\
+    cmd('lxc-init')\
+        .inf('create minimal LXC container with SSH and root keys')\
         .arg('name')\
         .arg(
             '-k', '--keys', default='/root/.ssh/id_rsa.pub',
@@ -563,7 +557,8 @@ def main(args=None):
             'opts': a.opts,
         })))
 
-    cmd('lxc-data', help='create LXC container with data services')\
+    cmd('lxc-data')\
+        .inf('create LXC container with data services')\
         .arg('name')\
         .arg('--tests', action='store_true')\
         .exe(lambda a: sh('''
@@ -571,14 +566,16 @@ def main(args=None):
         ./fire run add-dbs --dev={1} | ./fire lxc-ssh {0}
         '''.format(a.name, a.tests and 1 or '')))
 
-    cmd('lxc-rm', help='remove LXC containers and related databases')\
+    cmd('lxc-rm')\
+        .inf('remove LXC containers and related databases')\
         .arg('n', nargs='+')\
         .exe(lambda a: sh(render_tpl('{{>lxc-rm.sh}}', {
             'names': a.n,
             'db_host': conf['lxc_data']
         }), quiet=True))
 
-    cmd('lxc-expose', help='expose 80 port from LXC container')\
+    cmd('lxc-expose')\
+        .inf('expose 80 port from LXC container')\
         .arg('name')\
         .arg('domain')\
         .arg('-c', '--clean', action='store_true')\
@@ -588,14 +585,18 @@ def main(args=None):
             'clean': a.clean and 1 or ''
         })))
 
-    args, extra = parser.parse_known_args(args)
-    if extra in (['-h'], ['--help']):
-        exit()
-    elif extra:
-        print('unrecognized arguments: %s\n' % ' '.join(extra))
-        exit(1)
-    elif not hasattr(args, 'exe'):
-        exit(1)
+    usage = '\n'.join(
+        ['fire <cmd> ...\n\ncommands:'] +
+        [
+            '  {:<12} {}'.format(n, p.description)
+            for n, p in cmds.items()
+        ]
+    )
+    parser = argparse.ArgumentParser('fire', usage=usage)
+    parser.add_argument('cmd', type=lambda v: cmds.get(v) or int(v))
+    parser.add_argument('options', nargs=argparse.REMAINDER)
+    args = parser.parse_args(args)
+    args = args.cmd.parse_args(args.options)
 
     dry_run = getattr(args, 'dry_run', dry_run)
     if dry_run:
