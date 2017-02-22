@@ -495,7 +495,7 @@ def main(args=None):
 
     cmd('run', help='run endpoint')\
         .arg('name')\
-        .arg('--scope', choices=scopes._fields)\
+        .arg('-s', '--scope', choices=scopes._fields)\
         .arg('--dev', type=bool, default=1)\
         .arg('--host', default='localhost', help='host')\
         .exe(lambda a: print(endpoint('{{>%s.sh}}' % a.name, expand={

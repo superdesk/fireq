@@ -15,7 +15,7 @@ if [ -f tpl/init/{{uid}}.sh ]; then
 else
     cfg={{scope}}
 fi
-./fire run init/$cfg | {{ssh}} $lxc
+./fire run -s {{scope}} init/$cfg | {{ssh}} $lxc
 unset cfg
 
 cat <<"EOF2" | {{ssh}} $lxc
