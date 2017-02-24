@@ -2,6 +2,6 @@ cat <<"EOF" >> {{config}}
 {{>init/.liveblog.sh}}
 EOF
 
-[[ "$(hostname)" =~ ^lb-syndtest ]] && cat <<"EOF" >> {{config}}
-SYNDICATION=true
+cat <<EOF >> {{config}}
+SYNDICATION=$([[ "$(hostname)" =~ ^lb-syndtest ]] && echo true || echo)
 EOF
