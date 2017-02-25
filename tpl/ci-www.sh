@@ -15,7 +15,7 @@ if [ -f tpl/init/{{uid}}.sh ]; then
 else
     cfg={{scope}}
 fi
-./fire run -s {{scope}} init/$cfg | {{ssh}} $lxc
+./fire r -s {{scope}} init/$cfg | {{ssh}} $lxc
 unset cfg
 
 cat <<"EOF2" | {{ssh}} $lxc
@@ -33,8 +33,6 @@ EOF
 {{>add-dbs.sh}}
 
 {{>deploy.sh}}
-
-{{>prepopulate.sh}}
 EOF2
 
 lxc-stop -n $lxc

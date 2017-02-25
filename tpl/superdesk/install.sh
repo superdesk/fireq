@@ -5,6 +5,3 @@
 
 
 {{>deploy.sh}}
-
-
-{{>prepopulate.sh}}

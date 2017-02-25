@@ -1,20 +1,4 @@
-repo={{repo}}
-github=https://github.com/superdesk
-# rm -rf $repo
-if [ ! -d $repo ]; then
-    mkdir $repo
-    cd $repo
-    git init
-    git remote add origin $github/superdesk.git
-
-    git fetch origin 1.4
-    git checkout 1.4
-    sed -i 's/.*superdesk-core.git.*/-e ..\/server-core/' server/requirements.txt
-    sed -i -re 's/("superdesk-core":).*/\1 "file:..\/client-core"/' client/package.json
-
-    git submodule add -b master $github/superdesk-core.git server-core
-    git submodule add -b master $github/superdesk-client-core.git client-core
-fi
-unset repo github
+branch=1.4
+{{>superdesk-dev/build-repo.sh}}
 
 {{>superdesk/build-repo.sh}}

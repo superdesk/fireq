@@ -50,6 +50,9 @@ DB_HOST=${DB_HOST:-localhost}
 DB_NAME=${DB_NAME:-'superdesk'}
 [ -n "${HOST_SSL:-}" ] && [ "$HOST" != 'localhost' ] && SSL='s' || SSL=''
 
+# TODO: client related
+SUPERDESK_WS_URL=${SUPERDESK_WS_URL:-"ws$SSL://$HOST/ws"}
+
 # TODO: need to get rid this for proper SaaS
 SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-"http$SSL://$HOST"}
 
@@ -118,7 +121,7 @@ set -a
 set +a
 EOF
 unset envfile activate config
-
+_activate
 
 # prepare dist directory
 _activate
@@ -130,7 +133,6 @@ sed -i \
     -e "s|<SUPERDESK_URL>|http$SSL://$HOST/api|" \
     -e "s|<SUPERDESK_WS_URL>|ws$SSL://$HOST/ws|" \
     -e "s|<IFRAMELY_KEY>|${IFRAMELY_KEY:-}|" \
-    -e "s|<EMBEDLY_KEY>|${EMBEDLY_KEY:-}|" \
     -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
     -e "s|<PUBLISHER_API_DOMAIN>|${PUBLISHER_API_DOMAIN:-}|" \
     $dist/app.bundle.*
@@ -218,7 +220,6 @@ server {
         expires epoch;
     }
 
-
     location /.well-known {
         root /var/tmp;
     }
@@ -229,7 +230,7 @@ server {
 }
 EOF
 unset path
-nginx -s reload
+nginx -s reload || systemctl restart nginx
 
 
 # supervisor
@@ -290,3 +291,23 @@ directory=/opt/superdesk/server
 EOF
 supervisorctl update
 supervisorctl restart all
+
+
+### prepopulate
+_activate
+cd /opt/superdesk/server
+
+_sample_data() {
+    sample_data=${sample_data:-}
+    [ -z "$sample_data" ] || sample_data='--sample-data'
+    (python manage.py app:initialize_data --help | grep -- --sample-data) && sample_data=$sample_data || sample_data=
+}
+
+if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
+    _sample_data
+    python manage.py app:initialize_data $sample_data
+    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+else
+    python manage.py app:initialize_data
+fi
+unset sample_data
