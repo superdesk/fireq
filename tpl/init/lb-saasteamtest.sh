@@ -1,5 +1,5 @@
 {{>init/lb.sh}}
 
 cat <<"EOF" >> {{config}}
-SYNDICATION=true
+SUBSCRIPTION_LEVEL=team
 EOF
