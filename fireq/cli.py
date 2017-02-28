@@ -442,11 +442,14 @@ def gh_clean(scope, using_mongo=False):
             log.info('%s: nothing to clean', s.name)
             continue
 
+        # "*--build" containers should be removed in the end,
+        # snapshots based on them, so reverse sorting there
+        clean = ' '.join(sorted(clean, reverse=True))
         sh('''
         ./fire lxc-rm {0}
         ./fire ci-nginx {1} --ssl
         ./fire ci-nginx {1}pr
-        '''.format(' '.join(clean), s.name))
+        '''.format(clean, s.name))
 
 
 def gh_hook(path, url):
