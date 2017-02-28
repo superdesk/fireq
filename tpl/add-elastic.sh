@@ -10,8 +10,9 @@ wait_elastic() {
     done
 }
 if ! _skip_install elasticsearch; then
+    elastic_version=${elastic_version:-1.7}
     curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-    echo "deb http://packages.elastic.co/elasticsearch/1.7/debian stable main" \
+    echo "deb https://packages.elastic.co/elasticsearch/$elastic_version/debian stable main" \
         > /etc/apt/sources.list.d/elastic.list
 
     apt-get -y update
@@ -20,6 +21,7 @@ if ! _skip_install elasticsearch; then
         elasticsearch
 
     systemctl enable elasticsearch
+    unset elastic_version
 fi
 
 # tune elasticsearch

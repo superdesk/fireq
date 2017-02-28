@@ -443,11 +443,14 @@ def gh_clean(scope, using_mongo=False):
             log.info('%s: nothing to clean', s.name)
             continue
 
+        # "*--build" containers should be removed in the end,
+        # snapshots based on them, so reverse sorting there
+        clean = ' '.join(sorted(clean, reverse=True))
         sh('''
         ./fire lxc-rm {0}
         ./fire ci-nginx {1} --ssl
         ./fire ci-nginx {1}pr
-        '''.format(' '.join(clean), s.name))
+        '''.format(clean, s.name))
 
 
 def gh_hook(path, url):
@@ -579,10 +582,11 @@ def main(args=None):
         .inf('LXC: create container with data services')\
         .arg('name')\
         .arg('--tests', action='store_true')\
+        .arg('--env', default='')\
         .exe(lambda a: sh('''
-        ./fire lxc-init {0}
-        ./fire r add-dbs --dev={1} | ./fire lxc-ssh {0}
-        '''.format(a.name, a.tests and 1 or '')))
+        ./fire lxc-init {name}
+        (echo {env}; ./fire r add-dbs --dev={dev}) | ./fire lxc-ssh {name}
+        '''.format(name=a.name, dev=a.tests and 1 or '', env=a.env)))
 
     cmd('lxc-rm')\
         .inf('LXC: remove containers and related databases')\
