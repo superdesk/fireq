@@ -563,10 +563,11 @@ def main(args=None):
         .inf('create LXC container with data services')\
         .arg('name')\
         .arg('--tests', action='store_true')\
+        .arg('--env', default='')\
         .exe(lambda a: sh('''
-        ./fire lxc-init {0}
-        ./fire run add-dbs --dev={1} | ./fire lxc-ssh {0}
-        '''.format(a.name, a.tests and 1 or '')))
+        ./fire lxc-init {name}
+        (echo {env}; ./fire run add-dbs --dev={dev}) | ./fire lxc-ssh {name}
+        '''.format(name=a.name, dev=a.tests and 1 or '', env=a.env)))
 
     cmd('lxc-rm')\
         .inf('remove LXC containers and related databases')\
