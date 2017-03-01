@@ -1,15 +1,17 @@
 name=$name
 src=$src_dir
 cache=$cache_dir
+log=$cache/log/$name
 
 lxc-create -t download -n $name -- -d ubuntu -r xenial -a amd64
 
-mkdir -p $cache/{pip,npm,dpkg}
+mkdir -p $cache/{pip,npm,dpkg} $log
 cat <<EOF >> /var/lib/lxc/$name/config;
 lxc.mount.entry = $src opt/{{name}} none bind,create=dir
 lxc.mount.entry = $cache/pip root/.cache/pip/ none bind,create=dir
 lxc.mount.entry = $cache/npm root/.npm none bind,create=dir
 lxc.mount.entry = $cache/dpkg var/cache/apt/archives/ none bind,create=dir
+lxc.mount.entry = $log var/log/{{name}} none bind,create=dir
 EOF
 
 lxc-start -n $name
