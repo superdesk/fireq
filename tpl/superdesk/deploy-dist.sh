@@ -1,5 +1,4 @@
 # prepare dist directory
-_activate
 dist_orig={{repo_client}}/dist
 dist=${dist_orig}-deploy
 rm -rf $dist

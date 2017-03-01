@@ -12,8 +12,10 @@ EOF
 # run init
 if [ -f tpl/init/{{uid}}.sh ]; then
     cfg={{uid}}
-else
+elif [ -f tpl/init/{{scope}}.sh ]; then
     cfg={{scope}}
+else
+    cfg=sd
 fi
 ./fire r -s {{scope}} init/$cfg | {{ssh}} $lxc
 unset cfg
