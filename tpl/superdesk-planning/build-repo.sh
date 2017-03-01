@@ -15,8 +15,6 @@ if [ ! -d $repo ]; then
 
     sed -i -re 's/("superdesk-planning":).*/\1 "file:..\/planning",/' client/package.json
     cat client/package.json
-
-    git submodule add -b master $github/superdesk-planning.git planning
 fi
 unset repo github
 

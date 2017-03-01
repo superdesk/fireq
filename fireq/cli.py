@@ -159,6 +159,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None):
 
     # TODO: move superdesk based logic to separate file
     name = 'superdesk'
+    github = 'https://github.com/'
     ctx = {}
     if scope == scopes.sds:
         repo = '/opt/superdesk/server-core'
@@ -177,16 +178,17 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None):
         repo = '/opt/superdesk/planning'
         ctx = {
             'repo_core': repo,
+            'repo_remote': github + 'superdesk/superdesk-planning.git'
         }
     elif scope == scopes.ntb:
         ctx = {
-            'repo_remote': 'https://github.com/superdesk/superdesk-ntb.git',
+            'repo_remote': github + 'superdesk/superdesk-ntb.git',
             'test_data': 0,
         }
     elif scope == scopes.lb:
         name = 'liveblog'
         ctx = {
-            'repo_remote': 'https://github.com/liveblog/liveblog.git'
+            'repo_remote': github + 'liveblog/liveblog.git'
         }
 
     expand = dict(expand or {}, **ctx)
