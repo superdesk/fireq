@@ -20,6 +20,7 @@ set -a
 set +a
 EOF
 unset envfile activate config
+_activate
 
 {{>deploy-dist.sh}}
 
@@ -31,3 +32,6 @@ unset envfile activate config
 {{#dev}}
 {{>add-smtp.sh}}
 {{/dev}}
+
+
+{{>prepopulate.sh}}

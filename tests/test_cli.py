@@ -24,8 +24,8 @@ def test_fire_wrapper():
         'usage: fire ci [-h] [--dry-run] [-t TARGET] [-a] %(scopes)s ref'
     ))
 
-    startswith('./fire run -h', '''
-    usage: fire run [-h] [--dry-run] [-s %(scopes)s] [--dev DEV]
-                    [--host HOST]
-                    name
+    startswith('./fire r -h', '''
+    usage: fire render [-h] [--dry-run] [-s %(scopes)s] [-t TPLDIR]
+                       [--dev DEV] [--host HOST]
+                       name
     ''')

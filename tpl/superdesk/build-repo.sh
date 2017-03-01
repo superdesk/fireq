@@ -1,12 +1,10 @@
 ## prepare source code
 repo={{repo_core}}{{^repo_core}}{{repo}}{{/repo_core}}
-if [ ! -d $repo ]; then
-    mkdir $repo
-    cd $repo
+[ -d $repo ] || mkdir $repo
+cd $repo
+if [ ! -d $repo/.git ]; then
     git init
     git remote add origin {{repo_remote}}
-else
-    cd $repo
 fi
 
 cd $repo

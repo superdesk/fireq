@@ -14,6 +14,9 @@ DB_HOST=${DB_HOST:-localhost}
 DB_NAME=${DB_NAME:-'{{name}}'}
 [ -n "${HOST_SSL:-}" ] && [ "$HOST" != 'localhost' ] && SSL='s' || SSL=''
 
+# TODO: client related
+SUPERDESK_WS_URL=${SUPERDESK_WS_URL:-"ws$SSL://$HOST/ws"}
+
 # TODO: need to get rid this for proper SaaS
 SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-"http$SSL://$HOST"}
 
