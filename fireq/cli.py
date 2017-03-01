@@ -139,7 +139,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None):
         db_name = name
         db_optimize = val('db_optimize', dev)
         db_local = db_host == 'localhost'
-        test_data = val('test_data', dev) and 1 or ''
+        test_data = val('test_data') and 1 or ''
         pkg_upgrade = val('pkg_upgrade', False) and 1 or ''
         header_doc = val('header_doc', '')
 

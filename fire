@@ -1,16 +1,18 @@
-#!/bin/sh
-set -eu
+#!/bin/bash
+set -euo pipefail
 root=$(dirname $(realpath -s $0))
 cd $root
-[ -d env ] || virtualenv -p /usr/bin/python3 env
+if [ ! $(which pystache 2>&1 > /dev/null) ]; then
+    [ -d env ] || python3 -m venv env
+    set +u
+    . env/bin/activate
+    set -u
+    pip show -q pystache || pip install pystache
+fi
 
 if [ $(id -u) -ne 0 ]; then
     printf "### running with sudo...\n\n"
     sudo $0 "$@"
 else
-    set +u
-    . env/bin/activate
-    set -u
-    pip show -q pystache || pip install pystache
-    python -m fireq.cli "$@"
+    python3 -m fireq.cli "$@"
 fi
