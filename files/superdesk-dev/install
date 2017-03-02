@@ -17,6 +17,177 @@ _activate() {
 _skip_install() {
     dpkg -l | grep '^ii.*'$1 && [ -z ${pkg_upgrade:-''} ]
 }
+### databases
+# redis
+if ! _skip_install redis-server; then
+    apt-get -y install software-properties-common
+    add-apt-repository -y ppa:chris-lea/redis-server
+    apt-get -y install --no-install-recommends redis-server
+
+    systemctl enable redis-server
+    systemctl restart redis-server
+fi
+
+# mongo
+if ! _skip_install mongodb-org-server; then
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
+    echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" \
+        > /etc/apt/sources.list.d/mongodb-org-3.2.list
+
+    apt-get -y update
+    apt-get -y install --no-install-recommends mongodb-org-server
+
+    systemctl enable mongod
+fi
+
+# tune mongo
+config=/etc/mongod.conf
+[ -f "${config}.bak" ] || mv $config $config.bak
+cat <<EOF > $config
+storage:
+  dbPath: /var/lib/mongodb
+  journal:
+    enabled: true
+  engine: wiredTiger
+
+systemLog:
+  destination: file
+  logAppend: true
+  path: /var/log/mongodb/mongod.log
+
+net:
+  port: 27017
+  bindIp: 0.0.0.0
+EOF
+systemctl restart mongod
+
+
+# elasticsearch
+wait_elastic() {
+    elastic=0
+    while [ $elastic -eq 0 ]
+    do
+        curl -s "http://localhost:9200" 2>&1 > /dev/null \
+            && elastic=1 \
+            || echo "waiting for elastic..."
+        sleep 1
+    done
+}
+if ! _skip_install elasticsearch; then
+    elastic_version=${elastic_version:-1.7}
+    curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+    echo "deb https://packages.elastic.co/elasticsearch/$elastic_version/debian stable main" \
+        > /etc/apt/sources.list.d/elastic.list
+
+    apt-get -y update
+    apt-get -y install --no-install-recommends \
+        openjdk-8-jre-headless \
+        elasticsearch
+
+    systemctl enable elasticsearch
+    unset elastic_version
+fi
+
+# tune elasticsearch
+config='/etc/elasticsearch/elasticsearch.yml'
+[ -f "${config}.bak" ] || mv $config $config.bak
+es_backups=/var/tmp/elasticsearch
+if [ ! -d "$es_backups" ]; then
+    mkdir $es_backups
+    chown elasticsearch:elasticsearch $es_backups
+fi
+cat <<EOF > $config
+network.bind_host: 0.0.0.0
+node.local: true
+discovery.zen.ping.multicast: false
+path.repo: $es_backups
+index.number_of_replicas: 0
+#index.refresh_interval: 30s
+#index.store.type: memory
+
+# Next setting break behave tests
+# index.number_of_shards: 1
+EOF
+
+
+systemctl restart elasticsearch
+wait_elastic
+
+curl -XPUT 'http://localhost:9200/_snapshot/backups' \
+    -d '{"type": "fs", "settings": {"location": "'$es_backups'"}}'
+unset config es_backups
+
+
+### build
+locale-gen en_US.UTF-8
+
+apt-get update
+apt-get -y install --no-install-recommends \
+git python3 python3-dev python3-venv \
+build-essential libffi-dev \
+libtiff5-dev libjpeg8-dev zlib1g-dev \
+libfreetype6-dev liblcms2-dev libwebp-dev \
+curl libfontconfig libssl-dev \
+libxml2-dev libxslt1-dev
+
+
+repo=/opt/superdesk
+github=https://github.com/superdesk
+branch=${branch:-master}
+
+[ -d $repo ] || mkdir $repo
+cd $repo
+if [ ! -d $repo/.git ]; then
+    git init
+    git remote add origin $github/superdesk.git
+
+    git fetch origin $branch
+    git checkout $branch
+    sed -i 's/.*superdesk-core.git.*/-e ..\/server-core/' server/requirements.txt
+    sed -i -re 's/("superdesk-core":).*/\1 "file:..\/client-core"/' client/package.json
+
+    git clone $github/superdesk-core.git server-core
+    git clone $github/superdesk-client-core.git client-core
+fi
+unset repo github branch
+
+
+## server part
+# init virtualenv
+env=/opt/superdesk/env
+[ -d $env ] && rm -rf $env
+python3 -m venv $env
+echo 'export PATH=./node_modules/.bin/:$PATH' >> $env/bin/activate
+unset env
+
+_activate
+pip install -U pip wheel
+
+cd /opt/superdesk/server
+time pip install -U -r requirements.txt
+[ ! -f dev-requirements.txt ] || time pip install -r dev-requirements.txt
+
+cat <<EOF > /etc/profile.d/env.sh
+. /opt/superdesk/env/bin/activate
+EOF
+
+
+## client part
+# node & npm
+if ! _skip_install nodejs; then
+    curl -sL https://deb.nodesource.com/setup_7.x | bash -
+    apt-get install -y nodejs
+fi
+
+[ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
+npm --version
+node --version
+
+cd /opt/superdesk/client-core
+npm install grunt-cli
+time npm install
+
+
 ### deploy
 # write config if not exist
 config=/etc/superdesk.sh
@@ -29,6 +200,8 @@ DB_HOST=${DB_HOST:-'localhost'}
 DB_NAME=${DB_NAME:-'superdesk'}
 
 SUPERDESK_TESTING=${SUPERDESK_TESTING:-''}
+# keep using redis on localhost
+REDIS_URL=redis://localhost:6379/1
 EOF
 
 # env.sh
@@ -123,19 +296,7 @@ EOF
 unset envfile activate config
 _activate
 
-# prepare dist directory
-dist_orig=/opt/superdesk/client/dist
-dist=${dist_orig}-deploy
-rm -rf $dist
-cp -r $dist_orig $dist
-sed -i \
-    -e "s|<SUPERDESK_URL>|http$SSL://$HOST/api|" \
-    -e "s|<SUPERDESK_WS_URL>|ws$SSL://$HOST/ws|" \
-    -e "s|<IFRAMELY_KEY>|${IFRAMELY_KEY:-}|" \
-    -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
-    -e "s|<PUBLISHER_API_DOMAIN>|${PUBLISHER_API_DOMAIN:-}|" \
-    $dist/app.bundle.*
-unset dist_orig dist
+# empty deploy-dist.sh file
 
 
 # nginx
@@ -198,6 +359,7 @@ cat <<EOF > $path/default.conf
 server {
     listen 80 default;
 
+    include $path/*.inc;
     location /ws {
         proxy_pass http://localhost:5100;
         proxy_http_version 1.1;
@@ -224,7 +386,13 @@ server {
     }
 
     location / {
-        root /opt/superdesk/client/dist-deploy;
+        proxy_pass http://localhost:9000;
+
+        sub_filter_once off;
+        sub_filter_types application/javascript;
+        sub_filter 'http://localhost:9000' 'http://\$host';
+        sub_filter 'http://localhost/api' 'http://\$host/api';
+        sub_filter 'ws://localhost/ws' 'ws://\$host/ws';
     }
 }
 EOF
@@ -287,9 +455,102 @@ autorestart=true
 stdout_logfile=/var/log/superdesk/capi.log
 redirect_stderr=true
 directory=/opt/superdesk/server
+
+[program:client]
+command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec grunt server --inline'
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/superdesk/client.log
+redirect_stderr=true
+directory=/opt/superdesk/client-core
 EOF
 supervisorctl update
 supervisorctl restart all
+mails=/var/log/superdesk/mail
+mkdir -p $mails
+
+smtp_py=/var/tmp/smtp.py
+cat <<EOF > $smtp_py
+import argparse
+import asyncore
+import datetime as dt
+import logging
+import random
+import smtpd
+from email.parser import Parser
+from pathlib import Path
+
+log = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    datefmt='[%Y-%m-%d %H:%M:%S %Z]',
+    format='%(asctime)s %(message)s'
+)
+
+
+class Server(smtpd.SMTPServer, object):
+    """Logging-enabled SMTPServer instance."""
+
+    def __init__(self, path, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        path = Path(path)
+        path.mkdir(exist_ok=True)
+        self._path = path
+
+    def process_message(self, peer, mailfrom, rcpttos, data):
+        msg = Parser().parsestr(data)
+        subject = msg['subject']
+        log.info('to=%r subject=%r', rcpttos, subject)
+        for addr in rcpttos:
+            name = (
+                '{0:%Y%V/%w-%H%M%S}-{1:02d}-{2}.log'
+                .format(dt.datetime.now(), random.randint(0, 99), addr)
+            )
+            log.info('filename=%r to=%r subject=%r', name, addr, subject)
+            email = self._path / name
+            email.parent.mkdir(exist_ok=True)
+            email.write_text(data)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run an SMTP server.')
+    parser.add_argument('addr', help='addr to bind to')
+    parser.add_argument('port', type=int, help='port to bind to')
+    parser.add_argument('path', help='directory to store to')
+    args = parser.parse_args()
+
+    log.info('Starting SMTP server at {0}:{1}'.format(args.addr, args.port))
+    server = Server(args.path, (args.addr, args.port), None)
+    try:
+        asyncore.loop()
+    except KeyboardInterrupt:
+        log.info('Cleaning up')
+EOF
+
+cat <<EOF > /etc/nginx/conf.d/mail.inc
+location /mail {
+    return 302 \$scheme://\$host/mail/;
+}
+location /mail/ {
+    alias $mails/;
+    default_type text/plain;
+    autoindex on;
+    autoindex_exact_size off;
+}
+EOF
+
+cat <<EOF >> /etc/supervisor/conf.d/mail.conf
+[program:mail]
+command=python3 $smtp_py localhost 25 $mails
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/superdesk/mail.log
+redirect_stderr=true
+EOF
+
+supervisorctl update
+nginx -s reload
+unset smtp_py mails
 
 
 ### prepopulate
@@ -304,8 +565,14 @@ _sample_data() {
 
 if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
     _sample_data
-    python manage.py app:initialize_data $sample_data
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+    # add default vocabularies
+    python manage.py app:initialize_data --entity-name vocabularies
+    # add default validators
+    python manage.py app:initialize_data --entity-name validators
+    # add Forbes ingest source
+    python manage.py app:initialize_data --entity-name ingest_providers $sample_data
+    # Use data from e2e tests
+    python manage.py app:prepopulate
 else
     python manage.py app:initialize_data
 fi

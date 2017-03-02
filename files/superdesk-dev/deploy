@@ -29,6 +29,8 @@ DB_HOST=${DB_HOST:-'localhost'}
 DB_NAME=${DB_NAME:-'superdesk'}
 
 SUPERDESK_TESTING=${SUPERDESK_TESTING:-''}
+# keep using redis on localhost
+REDIS_URL=redis://localhost:6379/1
 EOF
 
 # env.sh
@@ -123,19 +125,7 @@ EOF
 unset envfile activate config
 _activate
 
-# prepare dist directory
-dist_orig=/opt/superdesk/client/dist
-dist=${dist_orig}-deploy
-rm -rf $dist
-cp -r $dist_orig $dist
-sed -i \
-    -e "s|<SUPERDESK_URL>|http$SSL://$HOST/api|" \
-    -e "s|<SUPERDESK_WS_URL>|ws$SSL://$HOST/ws|" \
-    -e "s|<IFRAMELY_KEY>|${IFRAMELY_KEY:-}|" \
-    -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
-    -e "s|<PUBLISHER_API_DOMAIN>|${PUBLISHER_API_DOMAIN:-}|" \
-    $dist/app.bundle.*
-unset dist_orig dist
+# empty deploy-dist.sh file
 
 
 # nginx
@@ -198,6 +188,7 @@ cat <<EOF > $path/default.conf
 server {
     listen 80 default;
 
+    include $path/*.inc;
     location /ws {
         proxy_pass http://localhost:5100;
         proxy_http_version 1.1;
@@ -224,7 +215,13 @@ server {
     }
 
     location / {
-        root /opt/superdesk/client/dist-deploy;
+        proxy_pass http://localhost:9000;
+
+        sub_filter_once off;
+        sub_filter_types application/javascript;
+        sub_filter 'http://localhost:9000' 'http://\$host';
+        sub_filter 'http://localhost/api' 'http://\$host/api';
+        sub_filter 'ws://localhost/ws' 'ws://\$host/ws';
     }
 }
 EOF
@@ -287,9 +284,102 @@ autorestart=true
 stdout_logfile=/var/log/superdesk/capi.log
 redirect_stderr=true
 directory=/opt/superdesk/server
+
+[program:client]
+command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec grunt server --inline'
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/superdesk/client.log
+redirect_stderr=true
+directory=/opt/superdesk/client-core
 EOF
 supervisorctl update
 supervisorctl restart all
+mails=/var/log/superdesk/mail
+mkdir -p $mails
+
+smtp_py=/var/tmp/smtp.py
+cat <<EOF > $smtp_py
+import argparse
+import asyncore
+import datetime as dt
+import logging
+import random
+import smtpd
+from email.parser import Parser
+from pathlib import Path
+
+log = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    datefmt='[%Y-%m-%d %H:%M:%S %Z]',
+    format='%(asctime)s %(message)s'
+)
+
+
+class Server(smtpd.SMTPServer, object):
+    """Logging-enabled SMTPServer instance."""
+
+    def __init__(self, path, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        path = Path(path)
+        path.mkdir(exist_ok=True)
+        self._path = path
+
+    def process_message(self, peer, mailfrom, rcpttos, data):
+        msg = Parser().parsestr(data)
+        subject = msg['subject']
+        log.info('to=%r subject=%r', rcpttos, subject)
+        for addr in rcpttos:
+            name = (
+                '{0:%Y%V/%w-%H%M%S}-{1:02d}-{2}.log'
+                .format(dt.datetime.now(), random.randint(0, 99), addr)
+            )
+            log.info('filename=%r to=%r subject=%r', name, addr, subject)
+            email = self._path / name
+            email.parent.mkdir(exist_ok=True)
+            email.write_text(data)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run an SMTP server.')
+    parser.add_argument('addr', help='addr to bind to')
+    parser.add_argument('port', type=int, help='port to bind to')
+    parser.add_argument('path', help='directory to store to')
+    args = parser.parse_args()
+
+    log.info('Starting SMTP server at {0}:{1}'.format(args.addr, args.port))
+    server = Server(args.path, (args.addr, args.port), None)
+    try:
+        asyncore.loop()
+    except KeyboardInterrupt:
+        log.info('Cleaning up')
+EOF
+
+cat <<EOF > /etc/nginx/conf.d/mail.inc
+location /mail {
+    return 302 \$scheme://\$host/mail/;
+}
+location /mail/ {
+    alias $mails/;
+    default_type text/plain;
+    autoindex on;
+    autoindex_exact_size off;
+}
+EOF
+
+cat <<EOF >> /etc/supervisor/conf.d/mail.conf
+[program:mail]
+command=python3 $smtp_py localhost 25 $mails
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/superdesk/mail.log
+redirect_stderr=true
+EOF
+
+supervisorctl update
+nginx -s reload
+unset smtp_py mails
 
 
 ### prepopulate
@@ -304,8 +394,14 @@ _sample_data() {
 
 if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
     _sample_data
-    python manage.py app:initialize_data $sample_data
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+    # add default vocabularies
+    python manage.py app:initialize_data --entity-name vocabularies
+    # add default validators
+    python manage.py app:initialize_data --entity-name validators
+    # add Forbes ingest source
+    python manage.py app:initialize_data --entity-name ingest_providers $sample_data
+    # Use data from e2e tests
+    python manage.py app:prepopulate
 else
     python manage.py app:initialize_data
 fi

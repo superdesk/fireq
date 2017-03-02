@@ -20,6 +20,7 @@ def get_conf():
         ('debug_aio', False),
         ('lxc_base', 'base-sd'),
         ('lxc_data', 'data-sd'),
+        ('lxc_opts', '-B zfs'),
         ('domain', 'localhost'),
         ('logurl', lambda c: 'http://%s/' % c['domain']),
         ('e2e_chunks', 1),
