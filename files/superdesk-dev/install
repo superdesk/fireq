@@ -74,9 +74,9 @@ wait_elastic() {
     done
 }
 if ! _skip_install elasticsearch; then
-    elastic_version=${elastic_version:-1.7}
+    version=${elastic_version:-1.7}
     curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-    echo "deb https://packages.elastic.co/elasticsearch/$elastic_version/debian stable main" \
+    echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \
         > /etc/apt/sources.list.d/elastic.list
 
     apt-get -y update
@@ -85,7 +85,7 @@ if ! _skip_install elasticsearch; then
         elasticsearch
 
     systemctl enable elasticsearch
-    unset elastic_version
+    unset version
 fi
 
 # tune elasticsearch
@@ -102,13 +102,7 @@ node.local: true
 discovery.zen.ping.multicast: false
 path.repo: $es_backups
 index.number_of_replicas: 0
-#index.refresh_interval: 30s
-#index.store.type: memory
-
-# Next setting break behave tests
-# index.number_of_shards: 1
 EOF
-
 
 systemctl restart elasticsearch
 wait_elastic
@@ -188,18 +182,67 @@ npm install grunt-cli
 time npm install
 
 
+[ -z "${testing:-}" ] || (
+mongo_init='path=/tmp/mongodb; [ -d $path ] || mkdir $path; chown mongodb:mongodb $path'
+cat <<EOF > /etc/systemd/system/mongo-init.service
+[Unit]
+Description=Mongo init
+Before=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "$mongo_init"
+
+[Install]
+RequiredBy=local-fs.target
+EOF
+systemctl enable mongo-init
+systemctl start mongo-init
+
+# tune elasticsearch
+cat <<EOF > /etc/elasticsearch/elasticsearch.yml
+network.bind_host: 0.0.0.0
+node.local: true
+discovery.zen.ping.multicast: false
+path.repo: /var/tmp/elasticsearch
+index.number_of_replicas: 0
+index.store.type: memory
+#index.refresh_interval: 30s
+
+# Next setting break behave tests
+# index.number_of_shards: 1
+EOF
+echo 'log4j.rootLogger=OFF' > /etc/elasticsearch/logging.yml
+
+# tune mongo
+cat <<EOF > /etc/mongod.conf
+storage:
+  dbPath: /tmp/mongodb
+  journal:
+    enabled: false
+  engine: wiredTiger
+
+net:
+  port: 27017
+  bindIp: 0.0.0.0
+EOF
+
+systemctl restart elasticsearch mongod
+wait_elastic
+)
+
 ### deploy
 # write config if not exist
 config=/etc/superdesk.sh
 [ -f $config ] || cat <<EOF > $config
 # put your variables here!
-HOST=${HOST:-'localhost'}
-HOST_SSL=${HOST_SSL:-''}
+HOST=${host:-'localhost'}
+HOST_SSL=${host_ssl:-''}
 
-DB_HOST=${DB_HOST:-'localhost'}
-DB_NAME=${DB_NAME:-'superdesk'}
+DB_HOST=${db_host:-'localhost'}
+DB_NAME=${db_name:-'superdesk'}
 
-SUPERDESK_TESTING=${SUPERDESK_TESTING:-''}
+SUPERDESK_TESTING=${testing:-''}
 # keep using redis on localhost
 REDIS_URL=redis://localhost:6379/1
 EOF
@@ -281,7 +324,7 @@ NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
 if [ -n "${SUPERDESK_TESTING:-}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
-    ELASTICSEARCH_BACKUPS_PATH=/tmp/es-backups
+    ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
 fi
 EOF
 
@@ -412,7 +455,7 @@ fi
 [ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
 cat <<"EOF" > /etc/supervisor/conf.d/superdesk.conf
 [program:rest]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 wsgi'
+command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 -t 300 wsgi'
 autostart=true
 autorestart=true
 stdout_logfile=/var/log/superdesk/rest.log
@@ -465,7 +508,6 @@ redirect_stderr=true
 directory=/opt/superdesk/client-core
 EOF
 supervisorctl update
-supervisorctl restart all
 mails=/var/log/superdesk/mail
 mkdir -p $mails
 

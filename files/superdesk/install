@@ -74,9 +74,9 @@ wait_elastic() {
     done
 }
 if ! _skip_install elasticsearch; then
-    elastic_version=${elastic_version:-1.7}
+    version=${elastic_version:-1.7}
     curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-    echo "deb https://packages.elastic.co/elasticsearch/$elastic_version/debian stable main" \
+    echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \
         > /etc/apt/sources.list.d/elastic.list
 
     apt-get -y update
@@ -85,7 +85,7 @@ if ! _skip_install elasticsearch; then
         elasticsearch
 
     systemctl enable elasticsearch
-    unset elastic_version
+    unset version
 fi
 
 # tune elasticsearch
@@ -102,13 +102,7 @@ node.local: true
 discovery.zen.ping.multicast: false
 path.repo: $es_backups
 index.number_of_replicas: 0
-#index.refresh_interval: 30s
-#index.store.type: memory
-
-# Next setting break behave tests
-# index.number_of_shards: 1
 EOF
-
 
 systemctl restart elasticsearch
 wait_elastic
@@ -195,13 +189,13 @@ grunt build --force
 config=/etc/superdesk.sh
 [ -f $config ] || cat <<EOF > $config
 # put your variables here!
-HOST=${HOST:-'localhost'}
-HOST_SSL=${HOST_SSL:-''}
+HOST=${host:-'localhost'}
+HOST_SSL=${host_ssl:-''}
 
-DB_HOST=${DB_HOST:-'localhost'}
-DB_NAME=${DB_NAME:-'superdesk'}
+DB_HOST=${db_host:-'localhost'}
+DB_NAME=${db_name:-'superdesk'}
 
-SUPERDESK_TESTING=${SUPERDESK_TESTING:-''}
+SUPERDESK_TESTING=${testing:-''}
 EOF
 
 # env.sh
@@ -281,7 +275,7 @@ NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
 if [ -n "${SUPERDESK_TESTING:-}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
-    ELASTICSEARCH_BACKUPS_PATH=/tmp/es-backups
+    ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
 fi
 EOF
 
@@ -398,6 +392,11 @@ server {
 
     location / {
         root /opt/superdesk/client/dist-deploy;
+
+        sub_filter_once off;
+        sub_filter_types application/javascript;
+        sub_filter 'http://localhost' 'http://\$host';
+        sub_filter 'ws://localhost/ws' 'ws://\$host/ws';
     }
 }
 EOF
@@ -417,7 +416,7 @@ fi
 [ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
 cat <<"EOF" > /etc/supervisor/conf.d/superdesk.conf
 [program:rest]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 wsgi'
+command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 -t 300 wsgi'
 autostart=true
 autorestart=true
 stdout_logfile=/var/log/superdesk/rest.log
@@ -462,7 +461,6 @@ redirect_stderr=true
 directory=/opt/superdesk/server
 EOF
 supervisorctl update
-supervisorctl restart all
 
 
 ### prepopulate

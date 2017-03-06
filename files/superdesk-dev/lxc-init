@@ -22,7 +22,7 @@ name=${name:-$proj}
 opts=${opts:-}
 authorized_keys=${authorized_keys:-/root/.ssh/id_rsa.pub}
 mount_src=${mount_src:-"$(pwd)"}
-mount_cache=${mount_cache:-"/var/tmp/$proj"}
+mount_cache=${mount_cache:-"/var/cache/fireq"}
 
 lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 
