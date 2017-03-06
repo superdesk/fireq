@@ -290,7 +290,7 @@ fi
 [ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
 cat <<"EOF" > /etc/supervisor/conf.d/superdesk.conf
 [program:rest]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 -t 300 wsgi'
+command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 -t 300 wsgi --reload'
 autostart=true
 autorestart=true
 stdout_logfile=/var/log/superdesk/rest.log
@@ -327,7 +327,7 @@ redirect_stderr=true
 directory=/opt/superdesk/server
 
 [program:capi]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5400 content_api.wsgi'
+command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5400 content_api.wsgi --reload'
 autostart=true
 autorestart=true
 stdout_logfile=/var/log/superdesk/capi.log

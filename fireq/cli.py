@@ -111,7 +111,7 @@ def render_tpl(tpl, ctx, search_dirs=None):
     return renderer.render(tpl, ctx)
 
 
-def endpoint(tpl, scope=None, *, tpldir=None, expand=None):
+def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     def val(name, default=None):
         if name in expand:
             return expand.pop(name)
@@ -194,7 +194,8 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None):
     ctx = get_ctx(name, scope.name)
     if expand:
         ctx.update(expand)
-    tpl = '{{>header.sh}}\n' + tpl
+    if header:
+        tpl = '{{>header.sh}}\n' + tpl
     return render_tpl(tpl, ctx, search_dirs)
 
 
@@ -362,12 +363,15 @@ def gen_files():
                 '# Modify "tpl/*" and run "./fire gen-files"\n'
             ),
         }, **opts)
+        is_bash = True if target.endswith('.sh') else False
         txt = endpoint(
-            '{{>%s.sh}}' % target, name,
+            '{{>%s}}' % target, name,
             tpldir='tpl/' + tpldir,
             expand=expand,
+            header=is_bash,
         )
-        p = Path('files') / tpldir / target
+        filename = target.replace('.sh', '') if is_bash else target
+        p = Path('files') / tpldir / filename
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(txt)
         print('+ updated "%s"' % p)
@@ -377,8 +381,9 @@ def gen_files():
         ('lb', 'liveblog', {'repo_ref': 'heads/master', 'dev': False}),
         ('sd', 'superdesk-dev', {}),
     ]
+    files = ['build.sh', 'deploy.sh', 'install.sh', 'lxc-init.sh', 'README.md']
     for scope_name, tpldir, opts in items:
-        for target in ['build', 'deploy', 'install', 'lxc-init']:
+        for target in files:
             save(target, scope_name, tpldir, **opts)
 
 
@@ -388,10 +393,10 @@ def lxc_ls(opts):
 
 
 def mongo_ls(pattern):
-    c = '''
+    cmd = '''
     echo "show databases" | mongo --host {data} | grep -oE "{pattern}" || true
     '''.format(data=conf['lxc_data'], pattern=pattern)
-    names = sp.check_output(c, shell=True)
+    names = sp.check_output(cmd, shell=True)
     return sorted(set(names.decode().split()))
 
 
