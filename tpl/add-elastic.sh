@@ -10,9 +10,9 @@ wait_elastic() {
     done
 }
 if ! _skip_install elasticsearch; then
-    elastic_version=${elastic_version:-1.7}
+    version=${elastic_version:-1.7}
     curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-    echo "deb https://packages.elastic.co/elasticsearch/$elastic_version/debian stable main" \
+    echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \
         > /etc/apt/sources.list.d/elastic.list
 
     apt-get -y update
@@ -21,7 +21,7 @@ if ! _skip_install elasticsearch; then
         elasticsearch
 
     systemctl enable elasticsearch
-    unset elastic_version
+    unset version
 fi
 
 # tune elasticsearch
@@ -38,16 +38,7 @@ node.local: true
 discovery.zen.ping.multicast: false
 path.repo: $es_backups
 index.number_of_replicas: 0
-#index.refresh_interval: 30s
-#index.store.type: memory
-
-# Next setting break behave tests
-# index.number_of_shards: 1
 EOF
-
-{{#db_optimize}}
-echo 'log4j.rootLogger=OFF' > /etc/elasticsearch/logging.yml
-{{/db_optimize}}
 
 systemctl restart elasticsearch
 wait_elastic

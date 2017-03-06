@@ -4,7 +4,7 @@ opts=${opts:-}
 authorized_keys=${authorized_keys:-/root/.ssh/id_rsa.pub}
 {{#dev}}
 mount_src=${mount_src:-"$(pwd)"}
-mount_cache=${mount_cache:-"/var/tmp/$proj"}
+mount_cache=${mount_cache:-"/var/cache/fireq"}
 {{/dev}}
 {{^dev}}
 mount_src=${mount_src:-}

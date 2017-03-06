@@ -137,7 +137,6 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None):
         host_url = 'http%s://%s/' % (host_ssl and 's', host)
         db_host = val('db_host', 'localhost')
         db_name = name
-        db_optimize = val('db_optimize', dev)
         db_local = db_host == 'localhost'
         test_data = val('test_data', dev) and 1 or ''
         pkg_upgrade = val('pkg_upgrade', False) and 1 or ''
@@ -376,7 +375,7 @@ def gen_files():
     items = [
         ('sd', 'superdesk', {'repo_ref': 'heads/1.0', 'dev': False}),
         ('lb', 'liveblog', {'repo_ref': 'heads/master', 'dev': False}),
-        ('sd', 'superdesk-dev', {'db_optimize': False}),
+        ('sd', 'superdesk-dev', {}),
     ]
     for scope_name, tpldir, opts in items:
         for target in ['build', 'deploy', 'install', 'lxc-init']:
@@ -600,12 +599,21 @@ def main(args=None):
     cmd('lxc-data')\
         .inf('LXC: create container with data services')\
         .arg('name')\
-        .arg('--tests', action='store_true')\
+        .arg('--create', action='store_true')\
+        .arg('--testing', action='store_true')\
         .arg('--env', default='')\
         .exe(lambda a: sh('''
-        ./fire lxc-init {name}
-        ./fire r add-dbs --dev={dev} --env={env!r} | ./fire lxc-ssh {name}
-        '''.format(name=a.name, dev=a.tests and 1 or '', env=a.env)))
+        [ -z "{create}" ] || ./fire lxc-init {name}
+        (
+            ./fire r --env={env!r} add-dbs
+            [ -z "{testing}" ] || ./fire r --env={env!r} testing
+        ) | ./fire lxc-ssh {name}
+        '''.format(
+            name=a.name,
+            env=a.env,
+            create=a.create and 1 or '',
+            testing=a.testing and 1 or '',
+        )))
 
     cmd('lxc-rm')\
         .inf('LXC: remove containers and related databases')\

@@ -1,11 +1,11 @@
 # put your variables here!
-HOST=${HOST:-'{{host}}'}
-HOST_SSL=${HOST_SSL:-'{{host_ssl}}'}
+HOST=${host:-'{{host}}'}
+HOST_SSL=${host_ssl:-'{{host_ssl}}'}
 
-DB_HOST=${DB_HOST:-'{{db_host}}'}
-DB_NAME=${DB_NAME:-'{{db_name}}'}
+DB_HOST=${db_host:-'{{db_host}}'}
+DB_NAME=${db_name:-'{{db_name}}'}
 
-SUPERDESK_TESTING=${SUPERDESK_TESTING:-'{{testing}}'}
+SUPERDESK_TESTING=${testing:-'{{testing}}'}
 {{#dev}}
 # keep using redis on localhost
 REDIS_URL=redis://localhost:6379/1
