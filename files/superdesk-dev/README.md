@@ -3,11 +3,12 @@
 ## Install a superdesk in LXC container
 ```sh
 lxc=sd path=~/superdesk
+# create clean directory
 mkdir $path && cd $path
-# by default it mounts next directories inside the container
-# - current directory to /opt/superdesk
+# it mounts next directories inside the container
+# - current directory $(pwd) to /opt/superdesk
 # - /var/cache/fireq for pip, npm, dpkg caches and logs
-(echo name=$lxc; curl https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk-dev/lxc-init) | sudo bash
+(echo name=$lxc mount_src=$(pwd); curl https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk-dev/lxc-init) | sudo bash
 (echo host=$lxc; curl https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk-dev/install) | ssh root@$lxc
 
 # open http://$lxc in browser to access superdesk
@@ -41,7 +42,7 @@ ll /var/log/superdesk # logs
 ## We can create separate LXC container for tests
 ```sh
 lxc=sdtest
-(echo name=$lxc; curl https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk-dev/lxc-init) | sudo bash
+(echo name=$lxc mount_src=~/superdesk; curl https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk-dev/lxc-init) | sudo bash
 (echo host=$lxc testing=1; curl https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk-dev/install) | ssh root@$lxc
 
 # and run tests like this

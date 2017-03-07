@@ -6,7 +6,7 @@
 curl https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/install | sudo bash
 ```
 
-Open your public IP or domain in browser to access {{name}}.
+Open your public IP or domain in browser to access {{name}}. Use default user with login:**admin** and password:**admin**.
 
 ## Install a {{name}} in LXC container
 

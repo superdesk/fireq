@@ -6,7 +6,7 @@
 curl https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/install | sudo bash
 ```
 
-Open your public IP or domain in browser to access liveblog.
+Open your public IP or domain in browser to access liveblog. Use default user with login:**admin** and password:**admin**.
 
 ## Install a liveblog in LXC container
 

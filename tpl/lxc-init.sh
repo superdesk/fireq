@@ -1,15 +1,9 @@
 proj={{name}}
 name=${name:-$proj}
 opts=${opts:-}
-authorized_keys=${authorized_keys:-/root/.ssh/id_rsa.pub}
-{{#dev}}
-mount_src=${mount_src:-"$(pwd)"}
-mount_cache=${mount_cache:-"/var/cache/fireq"}
-{{/dev}}
-{{^dev}}
+authorized_keys=${authorized_keys:-}
 mount_src=${mount_src:-}
-mount_cache=${mount_cache:-}
-{{/dev}}
+mount_cache=${mount_cache:-"/var/cache/fireq"}
 
 lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 
@@ -31,15 +25,25 @@ EOF
 lxc-start -n $name
 sleep 5
 
-cat <<"EOF2" | lxc-attach --clear-env -n $name -- /bin/bash
-# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+lxc_attach="lxc-attach --clear-env -n $name -- /bin/bash"
+cat <<"EOF" | $lxc_attach
 set -exuo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends openssh-server openssl curl
-{{#dev}}
-# use password-less root login for development
+EOF
+
+if [ -n "$authorized_keys" ]; then
+    cat $authorized_keys | $lxc_attach -c "
+/bin/mkdir -p /root/.ssh
+/bin/cat > /root/.ssh/authorized_keys
+"
+else
+    # use password-less root login instead
+    cat <<"EOF" | $lxc_attach
+set -exuo pipefail
+
 passwd -d root
 sed -i \
     -e 's/^#*\(PermitRootLogin\) .*/\1 yes/' \
@@ -48,11 +52,5 @@ sed -i \
     -e 's/^#*\(UsePAM\) .*/\1 no/' \
     /etc/ssh/sshd_config
 systemctl restart sshd
-{{/dev}}
-EOF2
-{{^dev}}
-cat $authorized_keys | lxc-attach --clear-env -n $name -- /bin/sh -c "
-    /bin/mkdir -p /root/.ssh;
-    /bin/cat > /root/.ssh/authorized_keys
-"
-{{/dev}}
+EOF
+fi

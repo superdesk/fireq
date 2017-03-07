@@ -6,7 +6,7 @@
 curl https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/install | sudo bash
 ```
 
-Open your public IP or domain in browser to access superdesk.
+Open your public IP or domain in browser to access superdesk. Use default user with login:**admin** and password:**admin**.
 
 ## Install a superdesk in LXC container
 

@@ -583,22 +583,18 @@ def main(args=None):
     cmd('lxc-init')\
         .inf('LXC: create minimal container with sshd')\
         .arg('name')\
-        .arg('--dev', default='')\
         .arg('--mount-src', default='')\
         .arg('--mount-cache', default='')\
-        .arg('--opts', default=conf['lxc_opts'], help=(
-            'lxc-create options'
-        ))\
+        .arg('-k', '--authorized-keys', default='')\
+        .arg('--opts', default=conf['lxc_opts'], help='lxc-create options')\
         .exe(lambda a: sh(
-            './fire r lxc-init --dev={dev} --env="{env}" | bash'
-            .format(
-                dev=a.dev,
-                env=' '.join(
-                    '%s=%s' % (k, getattr(a, k))
-                    for k in ['name', 'opts', 'mount_src', 'mount_cache']
-                    if getattr(a, k)
-                )
-            )
+            './fire r lxc-init --env="{env}" | bash'
+            .format(env=' '.join(
+                '%s=%s' % (k, getattr(a, k))
+                for k in (
+                    'name opts mount_src mount_cache authorized_keys'.split()
+                ) if getattr(a, k)
+            ))
         ))
 
     cmd('lxc-data')\
