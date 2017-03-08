@@ -459,6 +459,94 @@ EOF
 supervisorctl update
 
 
+[ -z "${add_smtp:-1}" ] || (
+mails=/var/log/liveblog/mail
+mkdir -p $mails
+
+smtp_py=/var/tmp/smtp.py
+cat <<EOF > $smtp_py
+import argparse
+import asyncore
+import datetime as dt
+import logging
+import random
+import smtpd
+from email.parser import Parser
+from pathlib import Path
+
+log = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.DEBUG,
+    datefmt='[%Y-%m-%d %H:%M:%S %Z]',
+    format='%(asctime)s %(message)s'
+)
+
+
+class Server(smtpd.SMTPServer, object):
+    """Logging-enabled SMTPServer instance."""
+
+    def __init__(self, path, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        path = Path(path)
+        path.mkdir(exist_ok=True)
+        self._path = path
+
+    def process_message(self, peer, mailfrom, rcpttos, data):
+        msg = Parser().parsestr(data)
+        subject = msg['subject']
+        log.info('to=%r subject=%r', rcpttos, subject)
+        for addr in rcpttos:
+            name = (
+                '{0:%Y%V/%w-%H%M%S}-{1:02d}-{2}.log'
+                .format(dt.datetime.now(), random.randint(0, 99), addr)
+            )
+            log.info('filename=%r to=%r subject=%r', name, addr, subject)
+            email = self._path / name
+            email.parent.mkdir(exist_ok=True)
+            email.write_text(data)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run an SMTP server.')
+    parser.add_argument('addr', help='addr to bind to')
+    parser.add_argument('port', type=int, help='port to bind to')
+    parser.add_argument('path', help='directory to store to')
+    args = parser.parse_args()
+
+    log.info('Starting SMTP server at {0}:{1}'.format(args.addr, args.port))
+    server = Server(args.path, (args.addr, args.port), None)
+    try:
+        asyncore.loop()
+    except KeyboardInterrupt:
+        log.info('Cleaning up')
+EOF
+
+cat <<EOF > /etc/nginx/conf.d/mail.inc
+location /mail {
+    return 302 \$scheme://\$host/mail/;
+}
+location /mail/ {
+    alias $mails/;
+    default_type text/plain;
+    autoindex on;
+    autoindex_exact_size off;
+}
+EOF
+
+cat <<EOF >> /etc/supervisor/conf.d/mail.conf
+[program:mail]
+command=python3 $smtp_py localhost 25 $mails
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/liveblog/mail.log
+redirect_stderr=true
+EOF
+
+supervisorctl update
+nginx -s reload
+unset smtp_py mails
+)
+
 ### prepopulate
 _activate
 cd /opt/liveblog/server

@@ -508,6 +508,9 @@ redirect_stderr=true
 directory=/opt/superdesk/client-core
 EOF
 supervisorctl update
+
+
+[ -z "${add_smtp:-1}" ] || (
 mails=/var/log/superdesk/mail
 mkdir -p $mails
 
@@ -593,7 +596,7 @@ EOF
 supervisorctl update
 nginx -s reload
 unset smtp_py mails
-
+)
 
 ### prepopulate
 _activate
