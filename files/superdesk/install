@@ -179,7 +179,7 @@ SUPERDESK_WS_URL='<SUPERDESK_WS_URL>' \
 SUPERDESK_RAVEN_DSN='<RAVEN_DSN>' \
 IFRAMELY_KEY='<IFRAMELY_KEY>' \
 PUBLISHER_API_DOMAIN='<PUBLISHER_API_DOMAIN>' \
-grunt build --force
+grunt build
 
 
 ### deploy
@@ -362,6 +362,8 @@ EOF
 cat <<EOF > $path/default.conf
 server {
     listen 80 default;
+
+    include $path/*.inc;
 
     location /ws {
         proxy_pass http://localhost:5100;

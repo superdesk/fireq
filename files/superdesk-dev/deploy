@@ -238,6 +238,7 @@ server {
     listen 80 default;
 
     include $path/*.inc;
+
     location /ws {
         proxy_pass http://localhost:5100;
         proxy_http_version 1.1;
