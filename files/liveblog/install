@@ -132,15 +132,13 @@ cd $repo
 if [ ! -d $repo/.git ]; then
     git init
     git remote add origin https://github.com/liveblog/liveblog.git
+    repo_ref=${repo_ref:-'heads/master'}
+    repo_sha=
+    git fetch origin $repo_ref:
+    git checkout ${repo_sha:-FETCH_HEAD}
+    unset repo_sha
+    unset repo repo_ref
 fi
-
-cd $repo
-repo_ref=heads/master
-repo_sha=
-git fetch origin $repo_ref:
-git checkout ${repo_sha:-FETCH_HEAD}
-unset repo_sha
-unset repo repo_ref
 
 
 ## server part
