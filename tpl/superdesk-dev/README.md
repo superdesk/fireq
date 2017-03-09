@@ -30,10 +30,10 @@ supervisorctl status client # it's "grunt server"
 supervisorctl restart all
 supervisorctl restart rest wamp capi
 
-cat /etc/{{name}}.sh # config
+cat {{config}} # config
 env | sort # print all env variables
-ll /opt/superdesk/env # virtualenv
-source /opt/{{name}}/bin/activate # active by default, loads env variables
+ll /opt/{{name}}/env # virtualenv
+source /opt/{{name}}/env/bin/activate # active by default, loads variables from {{config}}
 
 ll /etc/nginx/conf.d/ # nginx configs
 ll /var/log/superdesk # logs

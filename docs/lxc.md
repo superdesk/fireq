@@ -40,6 +40,7 @@ sudo lxc-ls -f # list containers
 sudo lxc-destroy -fn sd # stop and remove container
 sudo lxc-stop -n sd # stop container
 sudo lxc-start -n sd # start container
+sudo lxc-copy -n sd -N sd1 # clone container
 sudo lxc-info -iH -n sd # IP of container
 # go inside
 sudo lxc-attach -n sd
