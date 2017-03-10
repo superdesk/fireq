@@ -220,6 +220,10 @@ server {
         proxy_pass http://localhost:5000;
         proxy_set_header Host $HOST;
         expires epoch;
+
+        sub_filter_once off;
+        sub_filter_types application/json;
+        sub_filter 'http://localhost' 'http://\$host';
     }
 
 
