@@ -33,7 +33,7 @@ supervisorctl restart rest wamp capi
 cat /etc/superdesk.sh # config
 env | sort # print all env variables
 ll /opt/superdesk/env # virtualenv
-source /opt/superdesk/bin/activate # active by default, loads env variables
+source /opt/superdesk/env/bin/activate # active by default, loads variables from /etc/superdesk.sh
 
 ll /etc/nginx/conf.d/ # nginx configs
 ll /var/log/superdesk # logs
