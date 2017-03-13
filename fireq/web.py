@@ -78,11 +78,11 @@ async def auth_middleware(app, handler):
         log.debug('callback: session=%s GET=%s', session, request.GET)
         if session.get('github_state') != request.GET.get('state'):
             return web.HTTPBadRequest()
-        gh = gh_client()
         code = request.GET.get('code')
         if not code:
             return web.HTTPBadRequest()
 
+        gh = gh_client()
         token, _ = await gh.get_access_token(code)
         gh = gh_client(access_token=token)
         req = await gh.request('GET', 'user')

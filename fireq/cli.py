@@ -257,7 +257,7 @@ def run_jobs_with_lock(scope, ref, *a, **kw):
         run_jobs(ref, *a, **kw)
 
 
-def run_jobs(ref, targets, all=False):
+def run_jobs(ref, targets=None, all=False):
     def ctx(_ref, _logs):
         started = time.time()
         uid = _ref.uid
@@ -424,6 +424,70 @@ def ci_nginx(scope, ssl=False, live=False, reload=True):
     sh(txt, quiet=True)
 
 
+def gh_refs(scope=None):
+    if scope is None:
+        for s in scopes:
+            for a in gh_refs(s):
+                yield a
+        return
+
+    for i in gh.call('repos/%s/branches?per_page=100' % scope.repo):
+        yield i, Ref(scope.name, 'heads/%s' % i['name'], i['commit']['sha'])
+    for i in gh.call('repos/%s/pulls?state=open&per_page=100' % scope.repo):
+        yield i, Ref(scope.name, 'pull/%s' % i['number'], i['head']['sha'])
+
+
+def gh_pull():
+    """
+    Github pulling: check if all webhooks have been running for new refs
+    """
+    log.info('gh-pull: started')
+    state = {}
+    state_file = Path('/tmp/fireq/gh-pull.json')
+    if state_file.exists():
+        state = state_file.read_text()
+        try:
+            state = json.loads(state)
+        except Exception:
+            pass
+
+    new_state = []
+    skipped = []
+    for i, ref in gh_refs():
+        new_state.append(str(ref))
+        if str(ref) in state:
+            continue
+        r = gh.call('repos/{0.scope.repo}/git/commits/{0.sha}'.format(ref))
+        t = dt.datetime.strptime(r['committer']['date'], '%Y-%m-%dT%H:%M:%SZ')
+        if dt.datetime.utcnow() - t > dt.timedelta(days=1):
+            # the newest refs are only interested
+            continue
+
+        skipped.append(ref)
+        for s in gh.get_statuses(ref):
+            if s['context'].startswith(conf['status_prefix']):
+                skipped.pop()
+                break
+
+    state_file.write_text(json.dumps(new_state, indent=2))
+    # skipped.append(Ref('sd', 'naspeh')) #testing
+    if not skipped:
+        log.info('gh-pull: seems all good')
+        return
+
+    log.info('gh-pull: no statuses for: %s', skipped)
+    with futures.ThreadPoolExecutor() as pool:
+        jobs = [
+            pool.submit(run_jobs_with_lock, ref.scope.name, ref.val)
+            for ref in skipped
+        ]
+        for future in futures.as_completed(jobs):
+            try:
+                future.result()
+            except Exception as e:
+                log.exception(e)
+
+
 def gh_clean(scope, using_mongo=False):
     """
     Remove contaner and related databases if
@@ -431,12 +495,6 @@ def gh_clean(scope, using_mongo=False):
     - branch was removed
     otherwise keep container and related databases alive
     """
-    def skip(prefix, ref):
-        name = re.sub('[^a-z0-9]', '', str(ref))
-        name = '%s-%s' % (prefix, name)
-        skips.append('^%s$' % name)
-        # sh('lxc-start -n %s || true' % name)
-
     def ls_names(scope):
         pattern = '^%s(pr)?-[a-z0-9-]*' % scope
         if using_mongo:
@@ -447,10 +505,9 @@ def gh_clean(scope, using_mongo=False):
     scopes_ = [getattr(scopes, s) for s in scope] if scope else scopes
     for s in scopes_:
         skips = []
-        for i in gh.call('repos/%s/branches?per_page=100' % s.repo):
-            skip(s.name, i['name'])
-        for i in gh.call('repos/%s/pulls?state=open&per_page=100' % s.repo):
-            skip(s.name + 'pr', i['number'])
+        for i, ref in gh_refs(scope):
+            skips.append('^%s$' % ref.uid)
+            # sh('lxc-start -n %s || true' % ref.uid)
 
         skips = '(%s)' % '|'.join(skips)
         clean = [n for n in ls_names(s.name) if not re.match(skips, n)]
@@ -459,7 +516,7 @@ def gh_clean(scope, using_mongo=False):
             continue
 
         # "*--build" containers should be removed in the end,
-        # snapshots based on them, so reverse sorting there
+        # snapshots were based on them, so reverse sorting there
         clean = ' '.join(sorted(clean, reverse=True))
         sh('''
         ./fire lxc-rm {0}
@@ -549,6 +606,10 @@ def main(args=None):
         .arg('--ssl', action='store_true')\
         .arg('--live', action='store_true')\
         .exe(lambda a: ci_nginx(a.scope, a.ssl, a.live))
+
+    cmd('gh-pull')\
+        .inf('check if all webhooks have been running')\
+        .exe(lambda a: gh_pull())
 
     cmd('gh-clean')\
         .inf('clean containers and databases using info from Github')\

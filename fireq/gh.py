@@ -96,14 +96,18 @@ def post_status(target, ctx, logs, *, started=True, code=None, duration=None):
     )
 
 
+def get_statuses(ref):
+    body = call('repos/{0.scope.repo}/commits/{0.sha}/status'.format(ref))
+    return body['statuses']
+
+
 def clean_statuses(ref, targets, logs):
     if conf['no_statuses']:
         return
     failed = []
     targets = targets + ['restart']
-    body = call('repos/{0.scope.repo}/commits/{0.sha}/status'.format(ref))
     url = 'repos/{0.scope.repo}/statuses/{0.sha}'.format(ref)
-    for s in body['statuses']:
+    for s in get_statuses(ref):
         pattern = r'^%s' % re.escape(conf['status_prefix'])
         if not re.search(pattern, s['context']):
             continue
