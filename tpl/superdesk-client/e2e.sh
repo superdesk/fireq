@@ -6,10 +6,6 @@ host=localhost
 host_ssl=
 testing=1
 
-# TODO: update superdesk-core to check elastic instead of directory
-# Waiting for https://github.com/NickTomlin/protractor-flake/issues/6#issuecomment-276787954
-# ELASTICSEARCH_BACKUPS_PATH=/tmp/es-backups
-# mkdir -p $ELASTICSEARCH_BACKUPS_PATH
 {{>deploy.sh}}
 
 cd {{repo_client}}

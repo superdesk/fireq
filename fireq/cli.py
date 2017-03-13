@@ -588,9 +588,9 @@ def main(args=None):
         .arg('-k', '--authorized-keys', default='')\
         .arg('--opts', default=conf['lxc_opts'], help='lxc-create options')\
         .exe(lambda a: sh(
-            './fire r lxc-init --env="{env}" | bash'
+            './fire r lxc-init --env={env!r} | bash'
             .format(env=' '.join(
-                '%s=%s' % (k, getattr(a, k))
+                '%s=%r' % (k, getattr(a, k))
                 for k in (
                     'name opts mount_src mount_cache authorized_keys'.split()
                 ) if getattr(a, k)
@@ -600,8 +600,8 @@ def main(args=None):
     cmd('lxc-data')\
         .inf('LXC: create container with data services')\
         .arg('name')\
-        .arg('--create', action='store_true')\
-        .arg('--testing', action='store_true')\
+        .arg('-c', '--create', action='store_true')\
+        .arg('-t', '--testing', action='store_true')\
         .arg('--env', default='')\
         .exe(lambda a: sh('''
         [ -z "{create}" ] || ./fire lxc-init {name}
