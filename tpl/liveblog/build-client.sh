@@ -3,9 +3,13 @@
 
 cd {{repo_client}}
 npm i grunt-cli
-npm i bower
 time npm install
-time bower --allow-root install
+
+if [ -f bower.json ]; then
+    # 3.0.9, 3.1.0 versions need bower
+    npm i bower
+    time bower --allow-root install
+fi
 
 time \
 SUPERDESK_URL='<SUPERDESK_URL>' \
