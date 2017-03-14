@@ -505,7 +505,7 @@ def gh_clean(scope, using_mongo=False):
     scopes_ = [getattr(scopes, s) for s in scope] if scope else scopes
     for s in scopes_:
         skips = []
-        for i, ref in gh_refs(scope):
+        for i, ref in gh_refs(s):
             skips.append('^%s$' % ref.uid)
             # sh('lxc-start -n %s || true' % ref.uid)
 
