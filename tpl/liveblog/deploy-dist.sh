@@ -4,10 +4,11 @@ dist_orig={{repo_client}}/dist
 dist=${dist_orig}-deploy
 rm -rf $dist
 cp -r $dist_orig $dist
-if [ -f bower.json ]; then
-    filename=$dist/index.html
+cd $dist
+if [ -f index.html ]; then
+    filename=index.html
 else
-    filename=$dist/app.bundle.*
+    filename=app.bundle.*
 fi
 sed -i \
     -e "s|<SUPERDESK_URL>|http$SSL://$HOST/api|" \
