@@ -3,5 +3,6 @@
 cat <<"EOF" >> {{config}}
 {{>init/.amazon-from-dev.sh}}
 
-PUBLISHER_API_DOMAIN=master.s-lab.sourcefabric.org
+PUBLISHER_API_DOMAIN=sourcefabric.org
+PUBLISHER_API_SUBDOMAIN=master.s-lab
 EOF

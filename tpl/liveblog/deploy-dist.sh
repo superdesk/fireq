@@ -15,7 +15,6 @@ sed -i \
     -e "s|<SUPERDESK_WS_URL>|ws$SSL://$HOST/ws|" \
     -e "s|<IFRAMELY_KEY>|${IFRAMELY_KEY:-}|" \
     -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
-    -e "s|<PUBLISHER_API_DOMAIN>|${PUBLISHER_API_DOMAIN:-}|" \
     -e "s|<EMBEDLY_KEY>|${EMBEDLY_KEY:-}|" \
     -e "s|<SYNDICATION>|${SYNDICATION:-}|" \
     $filename

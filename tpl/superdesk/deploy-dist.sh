@@ -9,5 +9,6 @@ sed -i \
     -e "s|<IFRAMELY_KEY>|${IFRAMELY_KEY:-}|" \
     -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
     -e "s|<PUBLISHER_API_DOMAIN>|${PUBLISHER_API_DOMAIN:-}|" \
+    -e "s|<PUBLISHER_API_SUBDOMAIN>|${PUBLISHER_API_SUBDOMAIN:-}|" \
     $dist/app.bundle.*
 unset dist_orig dist
