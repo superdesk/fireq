@@ -294,28 +294,37 @@ def run_jobs(ref, targets=None, all=False):
         ['build', 'www'] +
         ['check-' + i for i in checks.get(ref.scope.name, ())]
     )
+    commands = ['reset', 'deploy']
     if targets is None:
         failed_targets = gh.clean_statuses(ref, default_targets, logs)
         targets = default_targets if all else failed_targets
         targets = targets or default_targets
     else:
-        targets = [t for t in targets if t in default_targets]
+        targets = [t for t in targets if t in (default_targets + commands)]
+
+    for cmd in set(commands).intersection(set(targets)):
+        targets.remove(cmd)
+        ctx_ = dict(ctx, no_statuses=1)
+        code = run_job(cmd, '{{>ci-%s.sh}}' % cmd, ctx_, logs)
+        codes.append((cmd, code))
 
     for target in targets:
         if target == 'build':
             continue
         gh.post_status(target, ctx, logs, started=False)
 
-    target = 'build'
-    ctx.update(clean_build='')
-    if target in targets:
-        targets.remove(target)
-        ctx.update(clean_build=1)
-    code = run_job(target, '{{>ci-build.sh}}', ctx, logs)
-    if code != 0:
-        log.error('%s %s', target, ctx['uid'])
-        raise SystemExit(code)
-    codes.append((target, code))
+    if targets:
+        target = 'build'
+        ctx.update(clean_build='')
+        if target in targets:
+            targets.remove(target)
+            ctx.update(clean_build=1)
+
+        code = run_job(target, '{{>ci-build.sh}}', ctx, logs)
+        if code != 0:
+            log.error('%s %s', target, ctx['uid'])
+            raise SystemExit(code)
+        codes.append((target, code))
 
     jobs = {}
     with futures.ThreadPoolExecutor() as pool:

@@ -1,5 +1,6 @@
 *.pyc
 .cache
+.dbshell
 env
 config.json
 tpl/init/.*

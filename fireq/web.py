@@ -255,17 +255,18 @@ async def repo(request):
     def info(name, pr=False):
         ref = '%s/%s' % ('pull' if pr else 'heads', name)
         if pr:
-            subdomain = '%spr-%s' % (prefix, name)
+            lxc = '%spr-%s' % (prefix, name)
             gh_url = 'https://github.com/%s/pull/%s' % (repo_name, name)
         else:
             name_cleaned = re.sub('[^a-z0-9]', '', name)
-            subdomain = '%s-%s' % (prefix, name_cleaned)
+            lxc = '%s-%s' % (prefix, name_cleaned)
             gh_url = 'https://github.com/%s/commits/%s' % (repo_name, ref)
 
         return {
             'name': name,
+            'lxc': lxc,
             'gh_url': gh_url,
-            'url': 'http://%s.%s' % (subdomain, conf['domain']),
+            'url': 'http://%s.%s' % (lxc, conf['domain']),
             'restart_url': get_restart_url(prefix, ref),
         }
 
@@ -292,6 +293,10 @@ repo_tpl = '''
         <a href="{{restart_url}}?t=www" style="color:black">[deploy]</a>
         <a href="{{restart_url}}" style="color:black">[restart]</a>
         <a href="{{restart_url}}?all=1" style="color:black">[restart all]</a>
+        <a href="{{restart_url}}?t=reset"
+            style="color:black"
+            onclick="return confirm('Reseting db for {{lxc}}. Are you sure?')"
+        >[reset db]</a>
     </li>
 {{/items}}
 </ul>

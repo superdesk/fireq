@@ -65,6 +65,9 @@ def _post_status(url, context, state, target_url, desc, logs):
 
 
 def post_status(target, ctx, logs, *, started=True, code=None, duration=None):
+    if ctx.get('no_statuses'):
+        return
+
     state = {
         None: 'pending',
         0: 'success',
