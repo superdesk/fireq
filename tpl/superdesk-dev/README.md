@@ -1,4 +1,4 @@
-###[Prepare LXC](../../docs/lxc.md)
+### [Prepare LXC](../../docs/lxc.md)
 
 ## Install a {{name}} in LXC container
 ```sh

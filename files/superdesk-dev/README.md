@@ -1,4 +1,4 @@
-###[Prepare LXC](../../docs/lxc.md)
+### [Prepare LXC](../../docs/lxc.md)
 
 ## Install a superdesk in LXC container
 ```sh

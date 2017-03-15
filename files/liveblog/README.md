@@ -13,7 +13,7 @@ curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/
 
 ## Install in LXC container
 
-###[Prepare LXC](../../docs/lxc.md)
+### [Prepare LXC](../../docs/lxc.md)
 
 ```sh
 # initilize new container

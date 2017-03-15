@@ -134,11 +134,11 @@ dist=${dist_orig}-deploy
 rm -rf $dist
 cp -r $dist_orig $dist
 cd $dist
-if [ -f index.html ]; then
-    filename=index.html
-else
-    filename=app.bundle.*
-fi
+
+filename=(app.bundle.*)
+# there no app.bundle.js for 3.0.9 version
+[ -f $filename ] || filename=index.html
+
 sed -i \
     -e "s|<SUPERDESK_URL>|http$SSL://$HOST/api|" \
     -e "s|<SUPERDESK_WS_URL>|ws$SSL://$HOST/ws|" \

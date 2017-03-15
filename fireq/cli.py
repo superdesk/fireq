@@ -441,7 +441,6 @@ def gh_pull():
     """
     Github pulling: check if all webhooks have been running for new refs
     """
-    log.info('gh-pull: started')
     state = {}
     state_file = Path('/tmp/fireq/gh-pull.json')
     if state_file.exists():
@@ -472,7 +471,6 @@ def gh_pull():
     state_file.write_text(json.dumps(new_state, indent=2))
     # skipped.append(Ref('sd', 'naspeh')) #testing
     if not skipped:
-        log.info('gh-pull: seems all good')
         return
 
     log.info('gh-pull: no statuses for: %s', skipped)
