@@ -165,6 +165,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         ctx = {
             'repo_core': repo,
             'repo_server': repo,
+            'repo_remote': github + scope.repo + '.git',
         }
     elif scope == scopes.sdc:
         repo = '/opt/superdesk/client-core'
@@ -172,22 +173,23 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
             'repo_core': repo,
             'repo_client': repo,
             'repo_server': '%s/test-server' % repo,
+            'repo_remote': github + scope.repo + '.git',
         }
     elif scope == scopes.sdp:
         repo = '/opt/superdesk/planning'
         ctx = {
             'repo_core': repo,
-            'repo_remote': github + 'superdesk/superdesk-planning.git'
+            'repo_remote': github + scope.repo + '.git',
         }
     elif scope == scopes.ntb:
         ctx = {
-            'repo_remote': github + 'superdesk/superdesk-ntb.git',
+            'repo_remote': github + scope.repo + '.git',
             'test_data': 0,
         }
     elif scope == scopes.lb:
         name = 'liveblog'
         ctx = {
-            'repo_remote': github + 'liveblog/liveblog.git'
+            'repo_remote': github + scope.repo + '.git',
         }
 
     expand = dict(expand or {}, **ctx)
