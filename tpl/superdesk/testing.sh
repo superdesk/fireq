@@ -49,4 +49,4 @@ wait_elastic
 
 # TODO: update superdesk-core to check elastic instead of directory
 # "/tmp/es-backups" because need to fix superdesk/tests/__init__.py#L78
-# mkdir -p /tmp/es-backups /var/tmp/elasticsearch
+mkdir -p /tmp/es-backups /var/tmp/elasticsearch

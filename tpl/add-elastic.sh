@@ -6,10 +6,12 @@ wait_elastic() {
         curl -s "http://localhost:9200" 2>&1 > /dev/null \
             && elastic=1 \
             || echo "waiting for elastic..."
-        sleep 1
+        sleep 3
     done
 }
 if ! _skip_install elasticsearch; then
+    # for elasticsearch 2.4.x declare next
+    # elastic_version=2.x
     version=${elastic_version:-1.7}
     curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
     echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \

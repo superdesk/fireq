@@ -31,8 +31,10 @@ _activate
 {{>add-supervisor.sh}}
 
 
-[ -z "${add_smtp:-1}" ] || (
+[ -z "${smtp-1}" ] || (
 {{>add-smtp.sh}}
 )
 
+[ -z "${prepopulate-1}" ] || (
 {{>prepopulate.sh}}
+)

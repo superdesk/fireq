@@ -341,7 +341,7 @@ def run_jobs(ref, targets=None, all=False):
 
         for target in targets:
             # TODO: move superdesk based logic to separate file
-            if ref.scope == scopes.sds:
+            if ref.scope in (scopes.sds, scopes.sdc):
                 db_host = 'localhost'
                 db_name = 'superdesk'
             else:
