@@ -263,6 +263,7 @@ async def repo(request):
             gh_url = 'https://github.com/%s/commits/%s' % (repo_name, ref)
 
         return {
+            'protected_db': lxc in conf['protected_dbs'],
             'name': name,
             'lxc': lxc,
             'gh_url': gh_url,
@@ -293,10 +294,15 @@ repo_tpl = '''
         <a href="{{restart_url}}?t=www" style="color:black">[deploy]</a>
         <a href="{{restart_url}}" style="color:black">[restart]</a>
         <a href="{{restart_url}}?all=1" style="color:black">[restart all]</a>
+        {{#protected_db}}
+        <i style="color:grey">protected db</i>
+        {{/protected_db}}
+        {{^protected_db}}
         <a href="{{restart_url}}?t=reset"
             style="color:black"
             onclick="return confirm('Reseting db for {{lxc}}. Are you sure?')"
         >[reset db]</a>
+        {{/protected_db}}
     </li>
 {{/items}}
 </ul>

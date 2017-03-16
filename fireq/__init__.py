@@ -28,6 +28,7 @@ def get_conf():
         ('no_statuses', True),
         ('url_prefix', ''),
         ('status_prefix', 'fire:'),
+        ('protected_dbs', []),
 
         ('github_auth', None),
         ('github_id', None),

@@ -306,6 +306,9 @@ def run_jobs(ref, targets=None, all=False):
 
     for cmd in set(commands).intersection(set(targets)):
         targets.remove(cmd)
+        if cmd == 'reset' and ctx['uid'] in conf['protected_dbs']:
+            log.error('skip reset for %(uid)s: protected db', ctx)
+            continue
         ctx_ = dict(ctx, no_statuses=1)
         code = run_job(cmd, '{{>ci-%s.sh}}' % cmd, ctx_, logs)
         codes.append((cmd, code))
