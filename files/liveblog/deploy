@@ -302,7 +302,7 @@ EOF
 supervisorctl update
 
 
-[ -z "${add_smtp:-1}" ] || (
+[ -z "${smtp-1}" ] || (
 mails=/var/log/liveblog/mail
 mkdir -p $mails
 
@@ -390,6 +390,7 @@ nginx -s reload
 unset smtp_py mails
 )
 
+[ -z "${prepopulate-1}" ] || (
 ### prepopulate
 _activate
 cd /opt/liveblog/server
@@ -405,3 +406,4 @@ else
     python manage.py app:initialize_data
     python manage.py register_local_themes
 fi
+)

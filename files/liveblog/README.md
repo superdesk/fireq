@@ -32,7 +32,6 @@ source /opt/liveblog/env/bin/activate # activate virtualenv and loads variables 
 
 ll /etc/supervisor/conf.d/ # supervisor configs
 supervisorctl status
-supervisorctl status client # it's "grunt server"
 supervisorctl restart all
 supervisorctl restart rest wamp capi
 

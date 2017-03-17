@@ -67,7 +67,7 @@ wait_elastic
 
 # TODO: update superdesk-core to check elastic instead of directory
 # "/tmp/es-backups" because need to fix superdesk/tests/__init__.py#L78
-# mkdir -p /tmp/es-backups /var/tmp/elasticsearch
+mkdir -p /tmp/es-backups /var/tmp/elasticsearch
 )
 
 ### deploy
@@ -354,7 +354,7 @@ EOF
 supervisorctl update
 
 
-[ -z "${add_smtp:-1}" ] || (
+[ -z "${smtp-1}" ] || (
 mails=/var/log/superdesk/mail
 mkdir -p $mails
 
@@ -442,6 +442,7 @@ nginx -s reload
 unset smtp_py mails
 )
 
+[ -z "${prepopulate-1}" ] || (
 ### prepopulate
 _activate
 cd /opt/superdesk/server
@@ -466,3 +467,4 @@ else
     python manage.py app:initialize_data
 fi
 unset sample_data
+)

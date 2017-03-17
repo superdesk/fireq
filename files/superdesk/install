@@ -70,10 +70,12 @@ wait_elastic() {
         curl -s "http://localhost:9200" 2>&1 > /dev/null \
             && elastic=1 \
             || echo "waiting for elastic..."
-        sleep 1
+        sleep 3
     done
 }
 if ! _skip_install elasticsearch; then
+    # for elasticsearch 2.4.x declare next
+    # elastic_version=2.x
     version=${elastic_version:-1.7}
     curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
     echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \
@@ -469,7 +471,7 @@ EOF
 supervisorctl update
 
 
-[ -z "${add_smtp:-1}" ] || (
+[ -z "${smtp-1}" ] || (
 mails=/var/log/superdesk/mail
 mkdir -p $mails
 
@@ -557,6 +559,7 @@ nginx -s reload
 unset smtp_py mails
 )
 
+[ -z "${prepopulate-1}" ] || (
 ### prepopulate
 _activate
 cd /opt/superdesk/server
@@ -575,3 +578,4 @@ else
     python manage.py app:initialize_data
 fi
 unset sample_data
+)

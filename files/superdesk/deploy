@@ -303,7 +303,7 @@ EOF
 supervisorctl update
 
 
-[ -z "${add_smtp:-1}" ] || (
+[ -z "${smtp-1}" ] || (
 mails=/var/log/superdesk/mail
 mkdir -p $mails
 
@@ -391,6 +391,7 @@ nginx -s reload
 unset smtp_py mails
 )
 
+[ -z "${prepopulate-1}" ] || (
 ### prepopulate
 _activate
 cd /opt/superdesk/server
@@ -409,3 +410,4 @@ else
     python manage.py app:initialize_data
 fi
 unset sample_data
+)
