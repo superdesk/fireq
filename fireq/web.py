@@ -138,11 +138,14 @@ async def login(request):
     ctx = {'login_url': session['github_url']}
     return render_tpl(login_tpl, ctx)
 login_tpl = '''
+<p><a href="{{login_url}}">Login via Github</a></p>
 <p>
 You should be a member of
 <a href="https://github.com/orgs/superdesk/people">Superdesk Organization</a>
 </p>
-<p><a href="{{login_url}}">Login via Github</a></p>
+<p><a href="https://github.com/superdesk/fireq/blob/master/docs/ci.md">
+    About
+</a></p>
 '''
 
 
