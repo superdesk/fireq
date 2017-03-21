@@ -275,6 +275,7 @@ async def repo(request):
             'gh_url': gh_url,
             'url': 'http://%s.%s' % (lxc, conf['domain']),
             'restart_url': get_restart_url(prefix, ref),
+            'logs_url': '%slatest/%s/' % (conf['log_url'], lxc),
         }
 
     resp, body = await gh_api('repos/%s/pulls?per_page=100' % repo_name)
@@ -294,9 +295,10 @@ repo_tpl = '''
 <ul>
 {{#items}}
     <li>
-        <b>{{name}}</b>
+        <b style="font-size:120%">{{name}}</b>
         <a href="{{url}}" style="color:green">[instance]</a>
         <a href="{{gh_url}}" style="color:gray">[github]</a>
+        <a href="{{logs_url}}" style="color:black">[latest logs]</a>
         <a href="{{restart_url}}?t=www" style="color:black">[deploy]</a>
         <a href="{{restart_url}}" style="color:black">[restart]</a>
         <a href="{{restart_url}}?all=1" style="color:black">[restart all]</a>
