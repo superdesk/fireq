@@ -1,6 +1,6 @@
 # nginx
 if ! _skip_install nginx; then
-    curl http://nginx.org/keys/nginx_signing.key | apt-key add -
+    curl -s http://nginx.org/keys/nginx_signing.key | apt-key add -
     echo "deb http://nginx.org/packages/ubuntu/ xenial nginx" \
         > /etc/apt/sources.list.d/nginx.list
 

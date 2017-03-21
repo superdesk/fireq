@@ -1,4 +1,4 @@
-curl -q -XDELETE $db_host:9200/$db_name*
+curl -s -XDELETE $db_host:9200/$db_name*
 cat <<EOF | mongo --host $db_host --quiet
 db.getMongo().getDBNames().forEach(function(v) {
     if (v.indexOf("$db_name") === 0) {

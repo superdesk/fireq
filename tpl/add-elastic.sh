@@ -13,7 +13,7 @@ if ! _skip_install elasticsearch; then
     # for elasticsearch 2.4.x declare next
     # elastic_version=2.x
     version=${elastic_version:-1.7}
-    curl https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+    curl -s https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
     echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \
         > /etc/apt/sources.list.d/elastic.list
 
@@ -45,6 +45,6 @@ EOF
 systemctl restart elasticsearch
 wait_elastic
 
-curl -XPUT 'http://localhost:9200/_snapshot/backups' \
+curl -s -XPUT 'http://localhost:9200/_snapshot/backups' \
     -d '{"type": "fs", "settings": {"location": "'$es_backups'"}}'
 unset config es_backups
