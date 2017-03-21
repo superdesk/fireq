@@ -1,6 +1,6 @@
 # [test.superdesk.org](https://test.superdesk.org)
 
-**Authorization via Github, also people must be in [Superdesk Organisation][sd-people] to get access here.**
+**Uses authorization via Github, also people must be in [Superdesk Organisation][sd-people] to get access here.**
 
 [sd-people]: https://github.com/orgs/superdesk/people
 
@@ -48,6 +48,7 @@ All steps can be run from shell, web server just calls this scripts in backgroun
 ```sh
 cd /opt/fireq       # code
 ./fire -h           # help messages are pretty detailed
+./fire ci -h
 
 vim config.json     # config
 ./fire config       # show all config values (with defaults ones)
@@ -67,9 +68,17 @@ vim config.json     # config
 ./fire gh-clean # clean containers by checking Github for alive PRs and branches
 ./fire gh-pull  # checks if ci have been runnnig for all PRs and branches
 
-# lxc containers uses zfs pools
+# lxc containers uses zfs
 zfs list
 ll /var/tmp/zpool.*
+
+# container with presistent mongo and elastic, local redis is used everywhere
+cat config.json | grep lxc_data
+lxc-ls -f | grep data-sd
+
+# base container with all packages installed for CI
+cat config.json | grep lxc_base
+lxc-ls -f | grep base-sd
 ```
 
 `fireq.cli` uses [mustache][mustache] templates in `tpl` directory to generate straightforward bash scripts.
@@ -86,8 +95,8 @@ ll /var/tmp/zpool.*
 ## Env variables
 There are init files in [tpl/init][init], which invoked after build step
 ```sh
-name=sd-newthing
-cat <<EOF2 > tpl/init/$name.sh
+# superdesk/superdesk-client-core new-thing branch
+cat <<EOF2 > tpl/init/sdc-newthing.sh
 {{>init/sd.sh}}
 
 cat <<"EOF" >> {{config}}
@@ -97,7 +106,7 @@ EOF
 EOF2
 
 # deploy with new init
-./fire ci sd new-thing -t www
+./fire ci sdc new-thing -t deploy
 
 # see example
 cat tpl/init/sd-naspeh.sh
