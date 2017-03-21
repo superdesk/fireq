@@ -1,3 +1,10 @@
+"""Command line interface
+
+It uses `mustache`__ templates from `tpl` directory to generate
+straightforward bash scripts.
+
+__ https://mustache.github.io/mustache.5.html
+"""
 import argparse
 import datetime as dt
 import json
@@ -7,7 +14,7 @@ import subprocess as sp
 import time
 import urllib.request
 from concurrent import futures
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from pathlib import Path
 
 from pystache import Renderer
@@ -556,7 +563,7 @@ def gh_hook(path, url):
 def main(args=None):
     global dry_run
 
-    cmds = {}
+    cmds = OrderedDict()
     aliases = {}
 
     def command(v):
@@ -578,6 +585,10 @@ def main(args=None):
         if alias:
             aliases[alias] = name
         return p
+
+    cmd('config')\
+        .inf('show all config values (with defaults ones)')\
+        .exe(lambda a: print(pretty_json(conf)))
 
     cmd('gen-files')\
         .inf('generate install scripts')\

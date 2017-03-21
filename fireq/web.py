@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+"""CI server with dashboard and webhook handler
+
+It mainly transfers web requests to proper call of "./fire" in background.
+"""
 import asyncio
 import datetime as dt
 import hashlib

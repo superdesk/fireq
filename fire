@@ -1,8 +1,12 @@
 #!/bin/bash
+# Wrapper around fireq.cli with
+# - asking for sudo (lxc commands needs sudo rights)
+# - smart handling for required pystache dependency
 set -euo pipefail
 root=$(dirname $(realpath -s $0))
 cd $root
 if [ ! $(which pystache 2>&1 > /dev/null) ]; then
+    # if no pystache install it in virtualenv
     [ -d env ] || python3 -m venv env
     set +u
     . env/bin/activate

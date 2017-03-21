@@ -8,6 +8,7 @@ root = Path(__file__).resolve().parent.parent
 
 
 def get_conf():
+    """Loads config and handles default values for it"""
     path = root / os.environ.get('FIRE_CONFIG', 'config.json')
     if path.exists():
         conf = path.read_text()
