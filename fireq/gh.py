@@ -31,7 +31,7 @@ def call(url, data=None):
         res = urllib.request.urlopen(req, data=data)
         log.debug('%s url=%r', res.status, url)
         return json.loads(res.read().decode())
-    except urllib.error.URLError as e:
+    except urllib.error.HTTPError as e:
         log.error(
             '%s, code=%s url=%r \nposted_data=%s\nerror=%s',
             e,
