@@ -1,6 +1,6 @@
 # [test.superdesk.org](https://test.superdesk.org)
 
-**Uses authorization via Github, also people must be in [Superdesk Organisation][sd-people] to get access here.**
+**Uses login via Github, also people must be in [Superdesk Organisation][sd-people] to get access here.**
 
 [sd-people]: https://github.com/orgs/superdesk/people
 
@@ -62,12 +62,18 @@ vim config.json     # config
 # run ci for superdesk/superdesk-ntb master branch
 ./fire ci ntb master
 
-# shortcut for ssh-ing to container with no interruption and fully-worked shell
-./fire lxc-ssh sd-master
+# reset database
+./fire ci sd naspeh -t reset
+
+# update nginx on host
+./fire ci-nginx
 
 # next two command are running by cron /etc/cron.d/fireq
 ./fire gh-clean # clean containers by checking Github for alive PRs and branches
-./fire gh-pull  # checks if ci have been runnnig for all PRs and branches
+./fire gh-pull  # check if ci have been runnnig for all PRs and branches
+
+# shortcut for ssh-ing to container with no interruption and fully-worked shell
+./fire lxc-ssh sd-master
 
 # lxc containers uses zfs
 zfs list
