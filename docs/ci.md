@@ -99,6 +99,12 @@ lxc-ls -f | grep base-sd
 "github_auth": "<username>:<token from https://github.com/settings/tokens>"
 ```
 
+## SSL certificates
+The test instances for branches are using SSL certificates, but they are generated manually because of [Let’s Encrypt rate limits](https://letsencrypt.org/docs/rate-limits/), so if you need green one:
+```sh
+./fire ci-nginx sd --ssl --live
+```
+
 ## Env variables
 There are init files in [tpl/init][init], which invoked after build step
 ```sh
