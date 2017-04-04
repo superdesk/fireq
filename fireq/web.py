@@ -264,7 +264,7 @@ async def repo(request):
             lxc = '%spr-%s' % (prefix, name)
             gh_url = 'https://github.com/%s/pull/%s' % (repo_name, name)
         else:
-            name_cleaned = re.sub('[^a-z0-9]', '', name)
+            name_cleaned = re.sub('[^a-z0-9]', '', name.lower())
             lxc = '%s-%s' % (prefix, name_cleaned)
             gh_url = 'https://github.com/%s/commits/%s' % (repo_name, ref)
 
