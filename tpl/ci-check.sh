@@ -6,4 +6,3 @@ echo "lxc.cgroup.cpuset.cpus = 0-5" >> /var/lib/lxc/$lxc/config
 cat <<"EOF2" | {{ssh}} $lxc
 {{{inner}}}
 EOF2
-lxc-destroy -fn $lxc

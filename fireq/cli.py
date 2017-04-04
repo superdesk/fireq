@@ -233,7 +233,7 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False):
     return code
 
 
-def run_job(target, tpl, ctx, logs):
+def run_job(target, tpl, ctx, logs, lxc_clean=False):
     started = time.time()
     gh.post_status(target, ctx, logs)
     cmd = endpoint(tpl, expand=ctx)
@@ -248,6 +248,9 @@ def run_job(target, tpl, ctx, logs):
         logs.file(target + '.exception').write_text(e)
         error = e
     finally:
+        if lxc_clean and conf['lxc_clean']:
+            cmd = 'lxc-destroy -fn %s--%s || true' % (ctx['uid'], target)
+            sh(cmd, log_file, exit=False, quiet=True)
         duration = time.time() - started
         duration = '%dm%ds' % (duration // 60, duration % 60)
         info = 'duration=%s url=%s' % (duration, log_url)
@@ -344,7 +347,7 @@ def run_jobs(ref, targets=None, all=False):
         target = 'www'
         if target in targets:
             targets.remove(target)
-            j = pool.submit(run_job, target, '{{>ci-www.sh}}', ctx, logs)
+            j = pool.submit(run_job, target, '{{>ci-www.sh}}', ctx, logs, True)
             jobs[j] = target
 
         for target in targets:
@@ -358,7 +361,7 @@ def run_jobs(ref, targets=None, all=False):
             ctx = dict(ctx, db_host=db_host, db_name=db_name, testing=1)
             inner = endpoint('{{>%s.sh}}' % target, expand=ctx)
             c = dict(ctx, target=target, inner=inner)
-            j = pool.submit(run_job, target, '{{>ci-check.sh}}', c, logs)
+            j = pool.submit(run_job, target, '{{>ci-check.sh}}', c, logs, True)
             jobs[j] = target
 
     for f in futures.as_completed(jobs):
