@@ -3,7 +3,7 @@ name=${name:-$proj}
 opts=${opts:-}
 authorized_keys=${authorized_keys:-}
 mount_src=${mount_src:-}
-mount_cache=${mount_cache:-"/var/cache/fireq"}
+mount_cache=${mount_cache:-}
 
 lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 

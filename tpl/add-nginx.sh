@@ -6,9 +6,6 @@ if ! _skip_install nginx; then
 
     apt-get -y update
     apt-get -y install nginx
-
-    systemctl enable nginx
-    systemctl restart nginx
 fi
 
 path=/etc/nginx/conf.d
@@ -20,4 +17,5 @@ cat <<EOF > $path/default.conf
 {{>nginx.conf}}
 EOF
 unset path
-nginx -s reload || systemctl restart nginx
+systemctl enable nginx
+systemctl restart nginx
