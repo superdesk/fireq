@@ -6,7 +6,7 @@ wait_elastic() {
         curl -s "http://localhost:9200" 2>&1 > /dev/null \
             && elastic=1 \
             || echo "waiting for elastic..."
-        sleep 3
+        sleep 5
     done
 }
 if ! _skip_install elasticsearch; then
@@ -21,8 +21,6 @@ if ! _skip_install elasticsearch; then
     apt-get -y install --no-install-recommends \
         openjdk-8-jre-headless \
         elasticsearch
-
-    systemctl enable elasticsearch
     unset version
 fi
 
@@ -42,6 +40,7 @@ path.repo: $es_backups
 index.number_of_replicas: 0
 EOF
 
+systemctl enable elasticsearch
 systemctl restart elasticsearch
 wait_elastic
 

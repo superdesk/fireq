@@ -672,7 +672,7 @@ def main(args=None):
         .inf('LXC: create minimal container with sshd')\
         .arg('name')\
         .arg('--mount-src', default='')\
-        .arg('--mount-cache', default='')\
+        .arg('--mount-cache', default='/var/cache/fireq')\
         .arg('-k', '--authorized-keys', default='')\
         .arg('--opts', default=conf['lxc_opts'], help='lxc-create options')\
         .exe(lambda a: sh(
@@ -685,11 +685,20 @@ def main(args=None):
             ))
         ))
 
+    cmd('lxc-base')\
+        .inf('LXC: create base container with all possible packages')\
+        .arg('name')\
+        .arg('-c', '--create', action='store_true', default='')\
+        .exe(lambda a: sh(endpoint('{{>lxc-base.sh}}', header=False, expand={
+            'lxc_name': a.name,
+            'create': a.create
+        }), quiet=True))
+
     cmd('lxc-data')\
         .inf('LXC: create container with data services')\
         .arg('name')\
-        .arg('-c', '--create', action='store_true')\
-        .arg('-t', '--testing', action='store_true')\
+        .arg('-c', '--create', action='store_true', default='')\
+        .arg('-t', '--testing', action='store_true', default='')\
         .arg('--env', default='')\
         .exe(lambda a: sh('''
         [ -z "{create}" ] || ./fire lxc-init {name}
@@ -700,8 +709,8 @@ def main(args=None):
         '''.format(
             name=a.name,
             env=a.env,
-            create=a.create and 1 or '',
-            testing=a.testing and 1 or '',
+            create=a.create,
+            testing=a.testing,
         )))
 
     cmd('lxc-rm')\

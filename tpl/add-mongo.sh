@@ -6,8 +6,6 @@ if ! _skip_install mongodb-org-server; then
 
     apt-get -y update
     apt-get -y install --no-install-recommends mongodb-org-server
-
-    systemctl enable mongod
 fi
 
 # tune mongo
@@ -29,4 +27,5 @@ net:
   port: 27017
   bindIp: 0.0.0.0
 EOF
+systemctl enable mongod
 systemctl restart mongod
