@@ -67,5 +67,7 @@ apt-get clean -y
 rm /var/lib/apt/lists/lock || true
 rm /var/lib/dpkg/lock || true
 rm /var/cache/apt/archives/lock || true
+# don't need unexpected apt-get running
+echo 'APT::Periodic::Enable "0";' > /etc/apt/apt.conf.d/10periodic
 EOF2
 lxc-stop -n $name
