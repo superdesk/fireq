@@ -1,11 +1,12 @@
 ## superdesk-content-api external repository
 # it's deprecated but needed in some cases
+github=https://github.com/superdesk/superdesk-content-api
 path=/opt/superdesk-content-api
 env=$path/env
 
 if [ ! -d $path ]; then
     mkdir -p $path
-    git clone --depth=1 https://github.com/superdesk/superdesk-content-api.git $path
+    git clone --depth=1 $github.git $path
 fi
 
 cat {{config}} | grep -q PUBLICAPI_MONGO_URI || cat <<"EOF" >> {{config}}
@@ -33,24 +34,31 @@ cd $path
 pip install -r requirements.txt
 python content_api_manage.py app:prepopulate || true
 
-cat <<EOF > /etc/nginx/conf.d/sd-pubapi.inc
+service=superdesk-pubapi
+cat <<EOF > /etc/systemd/system/$service.service
+[Unit]
+Description=Deprecated $github
+Wants=network.target
+After=network.target
+
+[Service]
+ExecStart=/bin/sh -c '. $env/bin/activate && exec gunicorn -b 0.0.0.0:5050 wsgi'
+WorkingDirectory=$path
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable $service
+systemctl restart $service
+unset service
+
+cat <<EOF >> /etc/nginx/conf.d/default.inc
 location /pubapi {
     proxy_pass http://localhost:5050;
     proxy_set_header Host $HOST;
     expires epoch;
 }
 EOF
-
-cat <<EOF > /etc/supervisor/conf.d/sd-pubapi.conf
-[program:papi]
-command=/bin/sh -c '. $env/bin/activate && exec gunicorn -b 0.0.0.0:5050 wsgi'
-autostart=true
-autorestart=true
-stdout_logfile={{logs}}/capi.log
-redirect_stderr=true
-directory=$path
-EOF
-
-supervisorctl update
 nginx -s reload
 unset path env
