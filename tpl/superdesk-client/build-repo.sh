@@ -1,4 +1,4 @@
-branch=1.4
+#branch=1.4
 {{>superdesk-dev/build-repo.sh}}
 
 rm -rf {{repo}}/client-core
