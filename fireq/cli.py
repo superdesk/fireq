@@ -36,7 +36,7 @@ scopes = [
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
     scopes.sd.name: ('npmtest', 'flake8'),
-    scopes.sds.name: ('flake8', 'nose', 'behave'),
+    scopes.sds.name: ('flake8', 'nose', 'behave', 'docs'),
     scopes.sdc.name: ('npmtest', 'e2e--part1', 'e2e--part2'),
 }
 
