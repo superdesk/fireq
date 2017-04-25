@@ -22,6 +22,7 @@ EOF
 unset envfile activate config
 _activate
 
+
 {{>deploy-dist.sh}}
 
 
@@ -32,13 +33,10 @@ _activate
 {{>prepopulate.sh}}
 )
 
+
 [ -d {{logs}} ] || mkdir -p {{logs}}
 systemctl disable rsyslog
 systemctl stop rsyslog
-#chown syslog:adm {{logs}}
-#cat <<"EOF" > /etc/rsyslog.d/10-superdesk.conf
-#:msg, ereregex, "(rest|wamp|work|beat|capi)\.1" /var/log/superdesk/main.log
-#EOF
 
 service={{name}}-logs
 cat <<"EOF" > /etc/systemd/system/$service.service
@@ -60,6 +58,16 @@ systemctl restart $service
 # Use latest honcho with --no-colour option
 _activate
 pip install -U honcho
+
+cat <<"EOF" > {{repo}}/server/Procfile
+rest: gunicorn -b 0.0.0.0:5000 -t 300 -w 2 wsgi{{#dev}} --reload{{/dev}}
+wamp: python3 -u ws.py
+work: celery -A worker worker -c 2
+beat: celery -A worker beat --pid=
+{{#is_superdesk}}
+capi: gunicorn -b 0.0.0.0:5400 -t 300 -w 2 content_api.wsgi{{#dev}} --reload{{/dev}}
+{{/is_superdesk}}
+EOF
 
 service={{name}}
 cat <<"EOF" > /etc/systemd/system/$service.service

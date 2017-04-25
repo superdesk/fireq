@@ -17,7 +17,7 @@ cat <<EOF > $path/default.conf
 server {
     listen 80 default;
 
-    include $path/default.inc;
+    include $path/*.inc;
 }
 EOF
 cat <<EOF > $path/default.inc

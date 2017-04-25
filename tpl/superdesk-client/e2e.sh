@@ -7,9 +7,9 @@ host_ssl=
 testing=1
 prepopulate=
 
-# we don't need celery for e2e tests
+# we don't need celery and content_api for e2e tests
 cat <<"EOF" > {{repo}}/server/Procfile
-rest: gunicorn -c gunicorn_config.py wsgi
+rest: gunicorn -b 0.0.0.0:5000 -t 300 -w 2 wsgi
 wamp: python3 -u ws.py
 EOF
 
