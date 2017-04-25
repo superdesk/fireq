@@ -26,6 +26,10 @@ For example for `sd-master`:
 - https://sd-master.test.superdesk.org/mail/ emails
 - https://sd-master.test.superdesk.org/logs/ logs
 
+### Docs
+Docs are generated for `superdek-core` (`<domain>/docs/`), for example:
+- https://sds-master.test.superdesk.org/docs/
+
 # Github integration
 
 After webhook is invoked by Github, `fireq` uses [Github API][gh-statuses] to post statuses.
@@ -144,6 +148,7 @@ Secret: <"secret" from config.json>
 
 ### Login via Github
 Fill `github_id` and `github_secret` config values from [one of applications.][gh-apps]
+
 [gh-apps]: https://github.com/organizations/superdesk/settings/applications
 
 ## Upgrade
