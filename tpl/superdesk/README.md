@@ -30,13 +30,15 @@ cat {{config}} # config
 ll /opt/{{name}}/env # virtualenv
 source /opt/{{name}}/env/bin/activate # activate virtualenv and loads variables from {{config}}
 
-ll /etc/supervisor/conf.d/ # supervisor configs
-supervisorctl status
-supervisorctl restart all
-supervisorctl restart rest wamp capi
+systemctl status superdesk
+systemctl restart superdesk
+systemctl status superdesk-client
 
 ll /etc/nginx/conf.d/ # nginx configs
-ll /var/log/superdesk # logs
+
+# logs
+journal -u superdesk -f
+ll /var/log/superdesk
 ```
 
 [Available settings.](https://superdesk.readthedocs.io/en/latest/settings.html#default-settings)
@@ -66,8 +68,13 @@ MAIL_USE_SSL=False
 MAIL_USE_TLS=False
 EOF
 
-# restart supervisor
-$ supervisorctl restart all
+# restart superdesk
+$ systemctl restart superdesk
+
+# Also stop dev SMTP server if needed, it uses port 25 on localhost
+systemctl stop superdesk-smtp
+systemctl disable superdesk-smtp
+
 ```
 
 {{>README.extra.md}}

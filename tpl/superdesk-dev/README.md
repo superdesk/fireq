@@ -24,11 +24,9 @@ ls -l /var/cache/fireq/log/sd/ # logs
 ### Inside the container
 ```sh
 ssh root@{{scope}}
-ll /etc/supervisor/conf.d/ # supervisor configs
-supervisorctl status
-supervisorctl status client # it's "grunt server"
-supervisorctl restart all
-supervisorctl restart rest wamp capi
+systemctl status superdesk
+systemctl restart superdesk
+systemctl status superdesk-client
 
 cat {{config}} # config
 env | sort # print all env variables
@@ -36,7 +34,10 @@ ll /opt/{{name}}/env # virtualenv
 source /opt/{{name}}/env/bin/activate # active by default, loads variables from {{config}}
 
 ll /etc/nginx/conf.d/ # nginx configs
-ll /var/log/superdesk # logs
+
+# logs
+journal -u superdesk* -f
+ll /var/log/superdesk
 ```
 
 ## We can create separate LXC container for tests
@@ -48,13 +49,4 @@ lxc={{scope}}test path=~/{{name}}
 # and run tests like this
 cd ~/superdesk/client-core
 protractor protractor.conf.js --baseUrl http://{{scope}}test --params.baseBackendUrl http://{{scope}}test/api
-```
-
-## Using just for services
-```sh
-ssh root@{{scope}}
-systemctl disable supervisor nginx
-systemctl stop supervisor nginx
-
-# and use "sd" as host for mongo, elasticsearch, redis
 ```

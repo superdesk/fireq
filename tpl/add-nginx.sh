@@ -14,7 +14,15 @@ cat <<"EOF" > $path/params.conf
 EOF
 
 cat <<EOF > $path/default.conf
+server {
+    listen 80 default;
+
+    include $path/default.inc;
+}
+EOF
+cat <<EOF > $path/default.inc
 {{>nginx.conf}}
+{{>nginx-root.conf}}
 EOF
 unset path
 systemctl enable nginx

@@ -60,8 +60,8 @@ systemctl enable fix-run-directory
 # cleanup
 rm -rf {{repo}}
 rm {{config}} || true
-rm /etc/supervisor/conf.d/* || true
-systemctl disable nginx supervisor elasticsearch mongod
+rm /etc/systemd/system/{{name}}* || true
+systemctl disable nginx elasticsearch mongod
 
 # cleanup apt-get
 apt-get clean -y

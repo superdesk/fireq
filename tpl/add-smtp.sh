@@ -6,7 +6,7 @@ cat <<EOF > $smtp_py
 {{>add-smtp.py}}
 EOF
 
-cat <<EOF > /etc/nginx/conf.d/mail.inc
+cat <<EOF >> /etc/nginx/conf.d/default.inc
 location /mail {
     return 302 \$scheme://\$host/mail/;
 }
@@ -18,15 +18,23 @@ location /mail/ {
 }
 EOF
 
-cat <<EOF >> /etc/supervisor/conf.d/mail.conf
-[program:mail]
-command=python3 $smtp_py localhost 25 $mails
-autostart=true
-autorestart=true
-stdout_logfile={{logs}}/mail.log
-redirect_stderr=true
-EOF
+service={{name}}-smtp
+cat <<EOF > /etc/systemd/system/$service.service
+[Unit]
+Description=Dev SMTP server for Superdesk, it doesn't send real emails
+Wants=network.target
+After=network.target
 
-supervisorctl update
+[Service]
+ExecStart=/bin/sh -c '. {{repo_env}}/bin/activate && exec python3 $smtp_py localhost 25 $mails'
+WorkingDirectory={{repo}}/server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable $service
+systemctl restart $service
+
 nginx -s reload
 unset smtp_py mails
