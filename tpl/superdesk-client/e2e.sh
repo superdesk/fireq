@@ -7,13 +7,14 @@ host_ssl=
 testing=1
 prepopulate=
 
+{{>deploy.sh}}
+
 # we don't need celery and content_api for e2e tests
 cat <<"EOF" > {{repo}}/server/Procfile
 rest: gunicorn -b 0.0.0.0:5000 -t 300 -w 2 wsgi
 wamp: python3 -u ws.py
 EOF
-
-{{>deploy.sh}}
+systemctl restart superdesk
 
 cd {{repo_client}}
 time npm i protractor-flake

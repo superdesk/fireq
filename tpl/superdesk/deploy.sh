@@ -38,34 +38,18 @@ _activate
 systemctl disable rsyslog
 systemctl stop rsyslog
 
-service={{name}}-logs
-cat <<"EOF" > /etc/systemd/system/$service.service
-[Unit]
-Description=Redirect superdesk logs to file
-After=systemd-journald.service
-Requires=systemd-journald.service
-
-[Service]
-ExecStart=/bin/sh -c "journalctl -u superdesk* -f > {{logs}}/main.log"
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable $service
-systemctl restart $service
-
 # Use latest honcho with --no-colour option
 _activate
 pip install -U honcho
 
-cat <<"EOF" > {{repo}}/server/Procfile
-rest: gunicorn -b 0.0.0.0:5000 -t 300 -w 2 wsgi{{#dev}} --reload{{/dev}}
+gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"{{#dev}} --reload{{/dev}}'
+cat <<EOF > {{repo}}/server/Procfile
+rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
 wamp: python3 -u ws.py
 work: celery -A worker worker -c 2
 beat: celery -A worker beat --pid=
 {{#is_superdesk}}
-capi: gunicorn -b 0.0.0.0:5400 -t 300 -w 2 content_api.wsgi{{#dev}} --reload{{/dev}}
+capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
 {{/is_superdesk}}
 EOF
 
@@ -92,3 +76,22 @@ unset service
 [ -z "${smtp-1}" ] || (
 {{>add-smtp.sh}}
 )
+
+# {{name}}.service should be registered already
+service={{name}}-logs
+cat <<"EOF" > /etc/systemd/system/$service.service
+[Unit]
+Description=Redirect superdesk logs to file
+After={{name}}.service
+Requires={{name}}.service
+
+[Service]
+ExecStart=/bin/sh -c "journalctl -u {{name}}* -f >> {{logs}}/main.log"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable $service
+systemctl restart $service
+
