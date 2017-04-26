@@ -11,7 +11,7 @@ prepopulate=
 
 # we don't need celery and content_api for e2e tests
 cat <<"EOF" > {{repo}}/server/Procfile
-rest: gunicorn -b 0.0.0.0:5000 -t 300 -w 2 wsgi
+rest: gunicorn -b 0.0.0.0:5000 -t 300 wsgi
 wamp: python3 -u ws.py
 EOF
 systemctl restart superdesk
