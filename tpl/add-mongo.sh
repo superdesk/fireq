@@ -5,7 +5,9 @@ if ! _skip_install mongodb-org-server; then
         > /etc/apt/sources.list.d/mongodb-org-3.2.list
 
     apt-get -y update
-    apt-get -y install --no-install-recommends mongodb-org-server
+    apt-get -y install --no-install-recommends \
+        mongodb-org-server \
+        mongodb-org-shell
 fi
 
 # tune mongo

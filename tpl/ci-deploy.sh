@@ -18,7 +18,16 @@ fi
 ./fire r -s {{scope}} init/$cfg | {{ssh}} $lxc
 unset cfg
 
+[ -z "${db_clean:-}" ] || (
 cat <<"EOF2" | {{ssh}} $lxc
+{{>header.sh}}
+
+{{>db-clean.sh}}
+EOF2
+)
+cat <<"EOF2" | {{ssh}} $lxc
+{{>header.sh}}
+
 cat <<"EOF" > /etc/nginx/conf.d/logs.inc
 location /logs {
     return 302 {{logs_url}}/;
@@ -27,8 +36,6 @@ location /logs/ {
     return 302 {{logs_url}}/;
 }
 EOF
-
-{{>header.sh}}
 
 {{>add-dbs.sh}}
 
