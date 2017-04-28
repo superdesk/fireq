@@ -11,15 +11,15 @@ curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/
 # password: admin
 ```
 
-## Install in LXC container
+## Install to LXC container
 
 ### [Prepare LXC](../../docs/lxc.md)
 
 ```sh
 # initilize new container
-(echo name=lb; curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/lxc-init) | sudo bash
-# install liveblog to container
-curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/install | ssh root@lb
+sudo bash -c "name=lb; $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/lxc-init)"
+# inside the container install liveblog
+curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/install | bash
 # expose port 80 from container to host
 iptables -t nat -A PREROUTING -p tcp -i eth0 --dport 80 -j DNAT --to-destination $(sudo lxc-info -iH -n lb)
 ```
@@ -30,13 +30,15 @@ cat /etc/liveblog.sh # config
 ll /opt/liveblog/env # virtualenv
 source /opt/liveblog/env/bin/activate # activate virtualenv and loads variables from /etc/liveblog.sh
 
-ll /etc/supervisor/conf.d/ # supervisor configs
-supervisorctl status
-supervisorctl restart all
-supervisorctl restart rest wamp capi
+systemctl status superdesk
+systemctl restart superdesk
+systemctl status superdesk-client
 
 ll /etc/nginx/conf.d/ # nginx configs
-ll /var/log/superdesk # logs
+
+# logs
+journal -u superdesk -f
+ll /var/log/superdesk
 ```
 
 [Available settings.](https://superdesk.readthedocs.io/en/latest/settings.html#default-settings)
@@ -66,7 +68,12 @@ MAIL_USE_SSL=False
 MAIL_USE_TLS=False
 EOF
 
-# restart supervisor
-$ supervisorctl restart all
+# restart superdesk
+$ systemctl restart superdesk
+
+# Also stop dev SMTP server if needed, it uses port 25 on localhost
+systemctl stop superdesk-smtp
+systemctl disable superdesk-smtp
+
 ```
 

@@ -31,7 +31,7 @@ set -exuo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y --no-install-recommends openssh-server openssl curl
+apt-get install -y --no-install-recommends openssh-server curl ca-certificates
 EOF
 
 if [ -n "$authorized_keys" ]; then
@@ -54,3 +54,5 @@ sed -i \
 systemctl restart sshd
 EOF
 fi
+./fire lxc-wait $name
+{{ssh}} $(lxc-info -n $name -iH)

@@ -7,7 +7,8 @@ if ! _skip_install mongodb-org-server; then
     apt-get -y update
     apt-get -y install --no-install-recommends \
         mongodb-org-server \
-        mongodb-org-shell
+        mongodb-org-shell \
+        mongodb-org-tools
 fi
 
 # tune mongo

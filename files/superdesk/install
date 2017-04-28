@@ -35,9 +35,10 @@ if ! _skip_install mongodb-org-server; then
         > /etc/apt/sources.list.d/mongodb-org-3.2.list
 
     apt-get -y update
-    apt-get -y install --no-install-recommends mongodb-org-server
-
-    systemctl enable mongod
+    apt-get -y install --no-install-recommends \
+        mongodb-org-server \
+        mongodb-org-shell \
+        mongodb-org-tools
 fi
 
 # tune mongo
@@ -59,6 +60,7 @@ net:
   port: 27017
   bindIp: 0.0.0.0
 EOF
+systemctl enable mongod
 systemctl restart mongod
 
 
@@ -70,7 +72,7 @@ wait_elastic() {
         curl -s "http://localhost:9200" 2>&1 > /dev/null \
             && elastic=1 \
             || echo "waiting for elastic..."
-        sleep 3
+        sleep 5
     done
 }
 if ! _skip_install elasticsearch; then
@@ -85,8 +87,6 @@ if ! _skip_install elasticsearch; then
     apt-get -y install --no-install-recommends \
         openjdk-8-jre-headless \
         elasticsearch
-
-    systemctl enable elasticsearch
     unset version
 fi
 
@@ -106,6 +106,7 @@ path.repo: $es_backups
 index.number_of_replicas: 0
 EOF
 
+systemctl enable elasticsearch
 systemctl restart elasticsearch
 wait_elastic
 
@@ -291,6 +292,7 @@ EOF
 unset envfile activate config
 _activate
 
+
 # prepare dist directory
 dist_orig=/opt/superdesk/client/dist
 dist=${dist_orig}-deploy
@@ -315,9 +317,6 @@ if ! _skip_install nginx; then
 
     apt-get -y update
     apt-get -y install nginx
-
-    systemctl enable nginx
-    systemctl restart nginx
 fi
 
 path=/etc/nginx/conf.d
@@ -368,107 +367,108 @@ server {
     listen 80 default;
 
     include $path/*.inc;
+}
+EOF
+cat <<EOF > $path/default.inc
+location /ws {
+    proxy_pass http://localhost:5100;
+    proxy_http_version 1.1;
+    proxy_buffering off;
+    proxy_read_timeout 3600;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "Upgrade";
+}
 
-    location /ws {
-        proxy_pass http://localhost:5100;
-        proxy_http_version 1.1;
-        proxy_buffering off;
-        proxy_read_timeout 3600;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "Upgrade";
-    }
+location /api {
+    proxy_pass http://localhost:5000;
+    proxy_set_header Host $HOST;
+    expires epoch;
 
-    location /api {
-        proxy_pass http://localhost:5000;
-        proxy_set_header Host $HOST;
-        expires epoch;
+    sub_filter_once off;
+    sub_filter_types application/json;
+    sub_filter 'http://localhost' 'http://\$host';
+}
 
-        sub_filter_once off;
-        sub_filter_types application/json;
-        sub_filter 'http://localhost' 'http://\$host';
-    }
+location /contentapi {
+    proxy_pass http://localhost:5400;
+    proxy_set_header Host $HOST;
+    expires epoch;
+}
 
-    location /contentapi {
-        proxy_pass http://localhost:5400;
-        proxy_set_header Host $HOST;
-        expires epoch;
-    }
+location /.well-known {
+    root /var/tmp;
+}
+location / {
+    root /opt/superdesk/client/dist-deploy;
 
-    location /.well-known {
-        root /var/tmp;
-    }
-
-    location / {
-        root /opt/superdesk/client/dist-deploy;
-
-        sub_filter_once off;
-        sub_filter_types application/javascript;
-        sub_filter 'http://localhost' 'http://\$host';
-        sub_filter 'ws://localhost/ws' 'ws://\$host/ws';
-    }
+    sub_filter_once off;
+    sub_filter_types application/javascript;
+    sub_filter 'http://localhost' 'http://\$host';
+    sub_filter 'ws://localhost/ws' 'ws://\$host/ws';
 }
 EOF
 unset path
-nginx -s reload || systemctl restart nginx
+systemctl enable nginx
+systemctl restart nginx
 
 
-# supervisor
-if ! _skip_install supervisor; then
-    apt-get -y install supervisor
+[ -z "${prepopulate-1}" ] || (
+### prepopulate
+_activate
+cd /opt/superdesk/server
 
-    systemctl enable supervisor
-    systemctl restart supervisor
-    sleep 1
+_sample_data() {
+    sample_data=${sample_data:-}
+    [ -z "$sample_data" ] || sample_data='--sample-data'
+    (python manage.py app:initialize_data --help | grep -- --sample-data) && sample_data=$sample_data || sample_data=
+}
+
+if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
+    _sample_data
+    python manage.py app:initialize_data $sample_data
+    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+else
+    python manage.py app:initialize_data
 fi
+unset sample_data
+)
+
 
 [ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
-cat <<"EOF" > /etc/supervisor/conf.d/superdesk.conf
-[program:rest]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5000 -t 300 wsgi'
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/superdesk/rest.log
-redirect_stderr=true
-directory=/opt/superdesk/server
+systemctl disable rsyslog
+systemctl stop rsyslog
 
-[program:wamp]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec python -u ws.py'
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/superdesk/wamp.log
-redirect_stderr=true
-directory=/opt/superdesk/server
+# Use latest honcho with --no-colour option
+_activate
+pip install -U honcho
 
-[program:work]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec celery -A worker worker --loglevel=DEBUG'
-autostart=true
-autorestart=true
-#user=nobody
-#startsecs=10
-#killasgroup=true
-stdout_logfile=/var/log/superdesk/work.log
-redirect_stderr=true
-directory=/opt/superdesk/server
-
-[program:beat]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec celery -A worker beat --loglevel=DEBUG --pid='
-autostart=true
-autorestart=true
-#user=nobody
-#startsecs=10
-stdout_logfile=/var/log/superdesk/beat.log
-redirect_stderr=true
-directory=/opt/superdesk/server
-
-[program:capi]
-command=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec gunicorn -b 0.0.0.0:5400 content_api.wsgi'
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/superdesk/capi.log
-redirect_stderr=true
-directory=/opt/superdesk/server
+gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
+cat <<EOF > /opt/superdesk/server/Procfile
+rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
+wamp: python3 -u ws.py
+work: celery -A worker worker -c 2
+beat: celery -A worker beat --pid=
+capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
 EOF
-supervisorctl update
+
+service=superdesk
+cat <<"EOF" > /etc/systemd/system/$service.service
+[Unit]
+Description=superdesk
+Wants=network.target
+After=network.target
+
+[Service]
+ExecStart=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec honcho start --no-colour'
+WorkingDirectory=/opt/superdesk/server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable $service
+systemctl restart $service
+unset service
 
 
 [ -z "${smtp-1}" ] || (
@@ -533,7 +533,7 @@ if __name__ == '__main__':
         log.info('Cleaning up')
 EOF
 
-cat <<EOF > /etc/nginx/conf.d/mail.inc
+cat <<EOF >> /etc/nginx/conf.d/default.inc
 location /mail {
     return 302 \$scheme://\$host/mail/;
 }
@@ -545,37 +545,43 @@ location /mail/ {
 }
 EOF
 
-cat <<EOF >> /etc/supervisor/conf.d/mail.conf
-[program:mail]
-command=python3 $smtp_py localhost 25 $mails
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/superdesk/mail.log
-redirect_stderr=true
-EOF
+service=superdesk-smtp
+cat <<EOF > /etc/systemd/system/$service.service
+[Unit]
+Description=Dev SMTP server for Superdesk, it doesn't send real emails
+Wants=network.target
+After=network.target
 
-supervisorctl update
+[Service]
+ExecStart=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec python3 $smtp_py localhost 25 $mails'
+WorkingDirectory=/opt/superdesk/server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable $service
+systemctl restart $service
+
 nginx -s reload
 unset smtp_py mails
 )
 
-[ -z "${prepopulate-1}" ] || (
-### prepopulate
-_activate
-cd /opt/superdesk/server
+# superdesk.service should be registered already
+service=superdesk-logs
+cat <<"EOF" > /etc/systemd/system/$service.service
+[Unit]
+Description=Redirect superdesk logs to file
+After=superdesk.service
+Requires=superdesk.service
 
-_sample_data() {
-    sample_data=${sample_data:-}
-    [ -z "$sample_data" ] || sample_data='--sample-data'
-    (python manage.py app:initialize_data --help | grep -- --sample-data) && sample_data=$sample_data || sample_data=
-}
+[Service]
+ExecStart=/bin/sh -c "journalctl -u superdesk* -f >> /var/log/superdesk/main.log"
+Restart=always
 
-if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
-    _sample_data
-    python manage.py app:initialize_data $sample_data
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
-else
-    python manage.py app:initialize_data
-fi
-unset sample_data
-)
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable $service
+systemctl restart $service
+

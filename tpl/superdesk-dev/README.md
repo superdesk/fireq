@@ -1,17 +1,17 @@
 ### [Prepare LXC](../../docs/lxc.md)
 
-## Install a {{name}} in LXC container
+## Install a {{name}} to LXC container
 ```sh
-lxc={{scope}} path=~/{{name}}
 # create clean directory
+path=~/{{name}}
 mkdir $path && cd $path
 # it mounts next directories inside the container
 # - current directory $(pwd) to /opt/superdesk
 # - /var/cache/fireq for pip, npm, dpkg caches and logs
-(echo name=$lxc mount_src=$(pwd); curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}-dev/lxc-init) | sudo bash
-(echo host=$lxc; curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}-dev/install) | ssh root@$lxc
+sudo bash -c "name={{scope}} mount_src=$(pwd); $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/lxc-init)"
+(echo host=$(hostname); curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}-dev/install) | bash
 
-# open http://$lxc in browser to access superdesk
+# open http://{{scope}} in browser to access superdesk
 
 # current directory is mounted inside the container,
 # some files could be created by root during installation, so
@@ -42,9 +42,9 @@ ll /var/log/superdesk
 
 ## We can create separate LXC container for tests
 ```sh
-lxc={{scope}}test path=~/{{name}}
-(echo name=$lxc mount_src=$path; curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}-dev/lxc-init) | sudo bash
-(echo host=$lxc testing=1; curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}-dev/install) | ssh root@$lxc
+sudo bash -c "name={{scope}}tests mount_src=~/{{name}}; $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/lxc-init)"
+# inside the container
+(echo testing=1 host=$(hostname); curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}-dev/install) | bash
 
 # and run tests like this
 cd ~/superdesk/client-core

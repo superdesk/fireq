@@ -22,7 +22,7 @@ name=${name:-$proj}
 opts=${opts:-}
 authorized_keys=${authorized_keys:-}
 mount_src=${mount_src:-}
-mount_cache=${mount_cache:-"/var/cache/fireq"}
+mount_cache=${mount_cache:-}
 
 lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 
@@ -50,7 +50,7 @@ set -exuo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y --no-install-recommends openssh-server openssl curl
+apt-get install -y --no-install-recommends openssh-server curl ca-certificates
 EOF
 
 if [ -n "$authorized_keys" ]; then
@@ -73,3 +73,5 @@ sed -i \
 systemctl restart sshd
 EOF
 fi
+./fire lxc-wait $name
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $(lxc-info -n $name -iH)

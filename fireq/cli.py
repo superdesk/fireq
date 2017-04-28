@@ -149,6 +149,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         test_data = val('test_data', dev) and 1 or ''
         pkg_upgrade = val('pkg_upgrade', False) and 1 or ''
         header_doc = val('header_doc', '')
+        ssh = 'ssh %s' % ssh_opts
 
         is_pr = re.match('^pull/\d*$', repo_ref)
         is_superdesk = name == 'superdesk'
@@ -156,6 +157,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         config = '/etc/%s.sh' % name
         return locals()
 
+    expand = expand or {}
     scope = scope or expand.get('scope')
     scope = getattr(scopes, scope) if scope else scopes[0]
 
@@ -287,7 +289,6 @@ def run_jobs(ref, targets=None, all=False):
         db_host = conf['lxc_data']
         db_name = uid
         test_data = 1
-        ssh = 'ssh %s' % ssh_opts
         restart_url = (
             'http://{domain}{url_prefix}/{ref.scope.name}/{ref.val}/restart'
             .format(
@@ -406,7 +407,7 @@ def gen_files():
         ('lb', 'liveblog', {'repo_ref': 'heads/master', 'dev': False}),
         ('sd', 'superdesk-dev', {}),
     ]
-    files = ['build.sh', 'deploy.sh', 'install.sh', 'lxc-init.sh', 'README.md']
+    files = ['install.sh', 'lxc-init.sh', 'README.md']
     for scope_name, tpldir, opts in items:
         for target in files:
             save(target, scope_name, tpldir, **opts)
@@ -675,15 +676,15 @@ def main(args=None):
         .arg('--mount-cache', default='/var/cache/fireq')\
         .arg('-k', '--authorized-keys', default='')\
         .arg('--opts', default=conf['lxc_opts'], help='lxc-create options')\
-        .exe(lambda a: sh(
-            './fire r lxc-init --env={env!r} | bash'
-            .format(env=' '.join(
+        .exe(lambda a: sh('{env}\n{cmd}'.format(
+            env='\n'.join(
                 '%s=%r' % (k, getattr(a, k))
                 for k in (
                     'name opts mount_src mount_cache authorized_keys'.split()
                 ) if getattr(a, k)
-            ))
-        ))
+            ),
+            cmd=endpoint('{{>lxc-init.sh}}', header=False)
+        )))
 
     cmd('lxc-base')\
         .inf('LXC: create base container with all possible packages')\
