@@ -717,9 +717,11 @@ def main(args=None):
     cmd('lxc-rm')\
         .inf('LXC: remove containers and related databases')\
         .arg('n', nargs='+')\
+        .arg('--only-dbs', action='store_true', default='')\
         .exe(lambda a: sh(render_tpl('{{>lxc-rm.sh}}', {
             'names': a.n,
-            'db_host': conf['lxc_data']
+            'only_dbs': a.only_dbs,
+            'db_host': conf['lxc_data'],
         }), quiet=True))
 
     cmd('lxc-expose')\
