@@ -1,5 +1,4 @@
-name='{{lxc_name}}'
-ssh="{{ssh}} $name"
+ssh="{{ssh}} {{lxc_name}}"
 
 cat <<"EOF2" | $ssh
 {{>header.sh}}
@@ -12,10 +11,18 @@ pkg_upgrade=1
 unset pkg_upgrade
 fi
 
+{{#db_name}}
+db_name='{{db_name}}'
+db_host='{{lxc_name}}'
+{{/db_name}}
+{{^db_name}}
+db_name=$DB_NAME
+db_host=$DB_HOST
+{{/db_name}}
 clean='{{clean}}'
 backup='{{backup}}'
 restore='{{restore}}'
-mongo="mongo --quiet --host $DB_HOST"
+mongo="mongo --quiet --host $db_host"
 
 backupdir=/var/tmp/data/backups
 [ -d $backupdir ] || mkdir $backupdir
@@ -23,25 +30,26 @@ backupdir=/var/tmp/data/backups
 dbs() {
     cat <<EOF | $mongo
 db.getMongo().getDBNames().forEach(function(v) {
-    if (v.indexOf("${DB_NAME}_") === 0 || v == "$DB_NAME") {print(v)}
+    if (v.indexOf("${db_name}_") === 0 || v == "$db_name") {print(v)}
 })
 EOF
 }
 
 [ -z "$backup" ] || (
+[ "$backup" != "-" ] || backup="$db_host/$(date +%Y%m%d%H%M%S)--$db_name"
 path=$backupdir/$backup
-[ -d $path ] || mkdir $path
+[ -d $path ] || mkdir -p $path
 cd $path
 
 for i in $(dbs); do
     sub="$(echo ${i}_main | cut -d'_' -f 2)"
-    mongodump --host $DB_HOST -d $i -o .
+    mongodump --host $db_host -d $i -o .
     mv $i $sub
 done
 )
 
 [ -z "$clean" ] || (
-curl -s -XDELETE $DB_HOST:9200/$DB_NAME*
+curl -s -XDELETE $db_host:9200/$db_name*
 for i in $(dbs); do
      echo "db.dropDatabase()" | $mongo $i
 done
@@ -58,7 +66,7 @@ fi
 
 for i in $(dbs); do
     sub="$(echo ${i}_main | cut -d'_' -f 2)"
-    mongorestore --host $DB_HOST -d $i --drop $backupdir/$restore/$sub
+    mongorestore --host $db_host -d $i --drop $backupdir/$restore/$sub
 done
 
 python manage.py app:index_from_mongo -f all --page-size 3000

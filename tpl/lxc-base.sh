@@ -16,7 +16,7 @@ lxc.mount.entry = $mount_cache/npm root/.npm none bind,create=dir
 # apt-get uses lock files, so we can't use shared dpkg cache on CI
 #lxc.mount.entry = $mount_cache/dpkg var/cache/apt/archives/ none bind,create=dir
 
-lxc.mount.entry = /var/tmp/fire-data var/tmp/data none bind,create=dir
+lxc.mount.entry = /var/tmp/data var/tmp/data none bind,create=dir
 lxc.mount.entry = /var/spool/ftp var/tmp/ftp none bind,create=dir
 
 # let's keep few cores for data containers and webhook

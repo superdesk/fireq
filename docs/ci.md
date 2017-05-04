@@ -68,6 +68,11 @@ vim config.json     # config
 
 # reset database
 ./fire ci sd naspeh -t reset
+# backup database
+./fire lxc-db -b - sd-master  # loads $DB_HOST and $DB_NAME inside container
+./fire lxc-db -b - data-sd --db-name sd-master  # backup in data container
+# restore database
+./fire lxc-db -cr sd-sdsite-20170503 sd-naspeh
 
 # update nginx on host
 ./fire ci-nginx

@@ -651,14 +651,16 @@ def main(args=None):
         .arg('url', nargs='?', default='http://localhost:8081/dev/hook')\
         .exe(lambda a: gh_hook(a.path, a.url))
 
-    cmd('db')\
-        .inf('DB: manage container related databases')\
+    cmd('lxc-db')\
+        .inf('LXC: manage container related databases')\
         .arg('lxc_name')\
+        .arg('-d', '--db-name', default='')\
         .arg('-c', '--clean', action='store_true', default='')\
         .arg('-b', '--backup', default='', help='backup name')\
         .arg('-r', '--restore', default='', help='restore name')\
-        .exe(lambda a: sh(endpoint('{{>db-manage.sh}}', header=False, expand={
+        .exe(lambda a: sh(endpoint('{{>lxc-db.sh}}', header=False, expand={
             'lxc_name': a.lxc_name,
+            'db_name': a.db_name,
             'clean': a.clean,
             'backup': a.backup,
             'restore': a.restore,
@@ -705,7 +707,7 @@ def main(args=None):
         .arg('-c', '--create', action='store_true', default='')\
         .exe(lambda a: sh(endpoint('{{>lxc-base.sh}}', header=False, expand={
             'lxc_name': a.name,
-            'create': a.create
+            'create': a.create,
         }), quiet=True))
 
     cmd('lxc-data')\

@@ -1,4 +1,4 @@
 {{#names}}
-./fire db -c {{.}}
+./fire lxc-db -c {{.}}
 lxc-destroy -fn {{.}} || true
 {{/names}}

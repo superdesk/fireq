@@ -19,7 +19,7 @@ fi
 unset cfg
 
 [ -z "${db_clean:-}" ] || (
-./fire db -cb $lxc-$(date +%Y%m%d%H%M%S) $lxc
+./fire lxc-db -cb - $lxc
 )
 cat <<"EOF2" | {{ssh}} $lxc
 {{>header.sh}}
