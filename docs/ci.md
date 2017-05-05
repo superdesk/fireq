@@ -105,8 +105,21 @@ lxc-ls -f | grep base-sd
 `./fire ci` posts proper statuses to Github if config values are filled:
 ```json
 "no_statuses": false
-"github_auth": "<username>:<token from https://github.com/settings/tokens>"
+"github_basic": "token:<token>"
 ```
+
+### Get token for [your application](#login-via-github)
+```sh
+curl -XPOST -u <username> https://api.github.com/authorizations -d '{
+"client_id": "<github_id>",
+"client_secret": "<github_secret>",
+"note": "fireq",
+"scopes": ["public_repo", "read:org"]
+}'
+```
+
+### Get personal token
+Create token here: https://github.com/settings/tokens
 
 ## SSL certificates
 The test instances for branches are using SSL certificates, but they are generated manually because of [Let’s Encrypt rate limits](https://letsencrypt.org/docs/rate-limits/), so if you need green one:

@@ -19,12 +19,12 @@ def get_conf():
     defaults = [
         ('debug', True),
         ('debug_aio', False),
+        ('tmp_root', '/tmp/fireq'),
         ('lxc_base', 'base-sd'),
         ('lxc_data', 'data-sd'),
         ('lxc_opts', '-B zfs'),
         ('lxc_clean', True),
         ('domain', 'localhost'),
-        ('logurl', lambda c: 'http://%s/' % c['domain']),
         ('e2e_chunks', 1),
         ('use_cpus', ''),
         ('no_statuses', True),
@@ -32,14 +32,14 @@ def get_conf():
         ('status_prefix', 'fire:'),
         ('protected_dbs', []),
 
-        ('github_auth', None),
         ('github_id', None),
         ('github_secret', None),
+        ('github_basic', None),
         ('github_orgs', ['superdesk']),
         ('github_callback', '/oauth_callback/github'),
 
         ('log_url', lambda c: 'http://%s/logs/' % c['domain']),
-        ('log_root', '/tmp/fireq/logs'),
+        ('log_root', lambda c: '%s/logs' % c['tmp_root']),
     ]
     for key, value in defaults:
         if callable(value):

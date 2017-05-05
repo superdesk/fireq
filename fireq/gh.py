@@ -14,7 +14,7 @@ class Error(Exception):
 
 
 def auth():
-    b64auth = base64.b64encode(conf['github_auth'].encode()).decode()
+    b64auth = base64.b64encode(conf['github_basic'].encode()).decode()
     headers = {'Authorization': 'Basic %s' % b64auth}
     return headers
 

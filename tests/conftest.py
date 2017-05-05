@@ -28,7 +28,7 @@ def pytest_configure():
     else:
         conf = {
             'secret': '11111111111111111111111111111111',
-            'github_auth': '',
+            'github_basic': '',
         }
 
     conf_tmp = tmp / 'config.json'

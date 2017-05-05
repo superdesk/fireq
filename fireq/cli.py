@@ -468,7 +468,7 @@ def gh_pull():
     Github pulling: check if all webhooks have been running for new refs
     """
     state = {}
-    state_file = Path('/tmp/fireq/gh-pull.json')
+    state_file = Path(conf['tmp_root']) / 'gh-pull.json'
     if state_file.exists():
         state = state_file.read_text()
         try:
