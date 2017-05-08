@@ -17,6 +17,9 @@ def kill_previous(name):
     if txt:
         pid = int(txt.decode().rsplit(':', 1)[1])
         try:
+            os.kill(pid, signal.SIGTERM)
+            # wait a little when process will be cleaned
+            time.sleep(5)
             os.kill(pid, signal.SIGKILL)
             time.sleep(1)
         except Exception as e:

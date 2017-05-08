@@ -10,6 +10,7 @@ import datetime as dt
 import json
 import random
 import re
+import signal
 import subprocess as sp
 import time
 import urllib.request
@@ -243,25 +244,27 @@ def run_job(target, tpl, ctx, logs, lxc_clean=False):
     log_url = logs.url(target + '.log')
     log.info('pending: url=%s', log_url)
     logs.file(target + '.sh').write_text(cmd)
+    error = 'terminated'
     try:
         code = sh(cmd, log_file, exit=False, quiet=True)
         error = None if code == 0 else 'failure: code=%s' % code
     except Exception as e:
         logs.file(target + '.exception').write_text(e)
-        error = e
+        error = str(e)
     finally:
-        if lxc_clean and conf['lxc_clean']:
-            cmd = 'lxc-destroy -fn %s--%s || true' % (ctx['uid'], target)
-            sh(cmd, log_file, exit=False, quiet=True)
         duration = time.time() - started
         duration = '%dm%ds' % (duration // 60, duration % 60)
+        gh.post_status(target, ctx, logs, code=code, duration=duration)
+
         info = 'duration=%s url=%s' % (duration, log_url)
         if error:
             log.error('%s %s', error, info)
         else:
             log.info('success: %s', info)
 
-    gh.post_status(target, ctx, logs, code=code, duration=duration)
+        if lxc_clean and conf['lxc_clean'] and error != 'terminated':
+            cmd = 'lxc-destroy -fn %s--%s || true' % (ctx['uid'], target)
+            sh(cmd, log_file, exit=False, quiet=True)
     return code
 
 
@@ -325,23 +328,31 @@ def run_jobs(ref, targets=None, all=False):
         code = run_job(cmd, '{{>ci-%s.sh}}' % cmd, ctx_, logs)
         codes.append((cmd, code))
 
+    if not targets:
+        return
+
     for target in targets:
         if target == 'build':
             continue
         gh.post_status(target, ctx, logs, started=False)
 
-    if targets:
-        target = 'build'
-        ctx.update(clean_build='')
-        if target in targets:
-            targets.remove(target)
-            ctx.update(clean_build=1)
+    target = 'build'
+    ctx.update(clean_build='')
+    if target in targets:
+        targets.remove(target)
+        ctx.update(clean_build=1)
 
-        code = run_job(target, '{{>ci-build.sh}}', ctx, logs)
-        if code != 0:
-            log.error('%s %s', target, ctx['uid'])
-            raise SystemExit(code)
-        codes.append((target, code))
+    def clean(*a, targets=tuple(targets) + (target,)):
+        gh.clean_pending_statuses(ref, targets, logs)
+        raise SystemExit('Terminated.')
+    signal.signal(signal.SIGINT, clean)
+    signal.signal(signal.SIGTERM, clean)
+
+    code = run_job(target, '{{>ci-build.sh}}', ctx, logs)
+    if code != 0:
+        log.error('%s %s', target, ctx['uid'])
+        raise SystemExit(code)
+    codes.append((target, code))
 
     jobs = {}
     with futures.ThreadPoolExecutor() as pool:
@@ -489,10 +500,9 @@ def gh_pull():
             continue
 
         skipped.append(ref)
-        for s in gh.get_statuses(ref):
-            if s['context'].startswith(conf['status_prefix']):
-                skipped.pop()
-                break
+        for context, s in gh.get_statuses(ref):
+            skipped.pop()
+            break
 
     state_file.write_text(json.dumps(new_state, indent=2))
     # skipped.append(Ref('sd', 'naspeh')) #testing
@@ -500,7 +510,8 @@ def gh_pull():
         return
 
     log.info('gh-pull: no statuses for: %s', skipped)
-    with futures.ThreadPoolExecutor() as pool:
+    # using processes here, because run_jobs uses signals
+    with futures.ProcessPoolExecutor() as pool:
         jobs = [
             pool.submit(run_jobs_with_lock, ref.scope.name, ref.val)
             for ref in skipped

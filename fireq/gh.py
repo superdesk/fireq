@@ -101,7 +101,21 @@ def post_status(target, ctx, logs, *, started=True, code=None, duration=None):
 
 def get_statuses(ref):
     body = call('repos/{0.scope.repo}/commits/{0.sha}/status'.format(ref))
-    return body['statuses']
+    for s in body['statuses']:
+        pattern = r'^%s' % re.escape(conf['status_prefix'])
+        if not re.search(pattern, s['context']):
+            continue
+        context = re.sub(pattern, '', s['context'])
+        yield context, s
+
+
+def clean_pending_statuses(ref, targets, logs):
+    if conf['no_statuses']:
+        return
+    url = 'repos/{0.scope.repo}/statuses/{0.sha}'.format(ref)
+    for context, s in get_statuses(ref):
+        if context in targets and s['state'] == 'pending':
+            _post_status(url, context, 'failure', logs.url(), 'cleaned', logs)
 
 
 def clean_statuses(ref, targets, logs):
@@ -110,11 +124,7 @@ def clean_statuses(ref, targets, logs):
     failed = []
     targets = targets + ['restart']
     url = 'repos/{0.scope.repo}/statuses/{0.sha}'.format(ref)
-    for s in get_statuses(ref):
-        pattern = r'^%s' % re.escape(conf['status_prefix'])
-        if not re.search(pattern, s['context']):
-            continue
-        context = re.sub(pattern, '', s['context'])
+    for context, s in get_statuses(ref):
         if context in targets:
             if s['state'] != 'success' and context != 'restart':
                 failed.append(context)
