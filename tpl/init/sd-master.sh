@@ -11,7 +11,6 @@ EOF
 
 cat <<"EOF" >> {{config}}
 DB_HOST=data-sd--elastic2
-DB_NAME=sd-master--2
 
 {{>init/.amazon.sh}}
 AMAZON_CONTAINER_NAME='sd-frankfurt-test'
