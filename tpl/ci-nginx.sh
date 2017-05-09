@@ -1,4 +1,4 @@
-{{#ssl}}
+{{#cert}}
 path=/etc/nginx/certs/{{scope}}
 if [ -n "{{live}}" ] || [ ! -d $path ]; then
     mkdir -p $path
@@ -8,7 +8,7 @@ if [ -n "{{live}}" ] || [ ! -d $path ]; then
         --fullchainpath $path/fullchain.pem\
         {{#hosts}}-d {{host}} {{/hosts}}
 fi
-{{/ssl}}
+{{/cert}}
 
 cat <<"EOF" > /etc/nginx/sites-enabled/{{scope}}
 {{#hosts}}
@@ -32,7 +32,6 @@ server {
     listen [::]:443 ssl http2;
     ssl_certificate /etc/nginx/certs/{{scope}}/fullchain.pem;
     ssl_certificate_key /etc/nginx/certs/{{scope}}/privkey.pem;
-
 {{/ssl}}
     server_name {{host}};
     access_log /var/log/nginx/{{name}}.access.log;

@@ -33,6 +33,7 @@ scopes = [
     Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
+    Scope('dev', 'superdesk-dev', 'superdesk/superdesk'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
@@ -441,21 +442,20 @@ def ci_nginx(scope, ssl=False, live=False, reload=True):
     if not scope:
         for scope in scopes:
             ci_nginx(scope.name, ssl=True, live=live, reload=False)
-            ci_nginx(scope.name + 'pr', reload=False)
         sh('nginx -s reload')
         return
 
-    scope = scope.split('-', 1)[0]
-    names = lxc_ls('--filter="^%s-[a-z0-9]*$" --running' % scope)
+    names = lxc_ls('--filter="^%s(pr)?-[a-z0-9]*$" --running' % scope)
     hosts = [{
         'name': n,
-        'host': '%s.%s' % (n, conf['domain'])
+        'host': '%s.%s' % (n, conf['domain']),
+        'ssl': not n.startswith(scope + 'pr') and ssl,
     } for n in names]
     txt = render_tpl('{{>ci-nginx.sh}}', {
         'scope': scope,
-        'ssl': ssl,
-        'live': live and 1 or '',
         'hosts': hosts,
+        'cert': ssl,
+        'live': live and 1 or '',
         'reload': reload,
     })
     sh(txt, quiet=True)
@@ -553,11 +553,9 @@ def gh_clean(scope, using_mongo=False):
         # "*--build" containers should be removed in the end,
         # snapshots were based on them, so reverse sorting there
         clean = ' '.join(sorted(clean, reverse=True))
-        sh('''
-        ./fire lxc-rm {0}
-        ./fire ci-nginx {1} --ssl
-        ./fire ci-nginx {1}pr
-        '''.format(clean, s.name))
+        sh('./fire lxc-rm {0}'.format(clean, s.name))
+    # update nginx
+    sh('./fire ci-nginx')
 
 
 def gh_hook(path, url):
@@ -638,10 +636,7 @@ def main(args=None):
 
     cmd('ci-nginx')\
         .inf('CI: update nginx sites')\
-        .arg('scope', nargs='?', help=(
-            'scope or lxc name, if lxc name is given then '
-            'it\'ll be used to get a scope name'
-        ))\
+        .arg('scope', nargs='?', choices=scopes._fields)\
         .arg('--ssl', action='store_true')\
         .arg('--live', action='store_true')\
         .exe(lambda a: ci_nginx(a.scope, a.ssl, a.live))

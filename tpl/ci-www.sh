@@ -17,4 +17,4 @@ cat <<EOF >> /var/lib/lxc/{{uid}}/config;
 lxc.mount.entry = {{host_logs}} ${logs:1} none bind,create=dir
 EOF
 lxc-start -n {{uid}};
-./fire ci-nginx {{#host_ssl}}--ssl{{/host_ssl}} {{uid}} || true
+./fire ci-nginx {{#host_ssl}}--ssl{{/host_ssl}} {{scope}} || true
