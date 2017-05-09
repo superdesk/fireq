@@ -69,7 +69,15 @@ for i in $(dbs); do
     mongorestore --host $db_host -d $i --drop $backupdir/$restore/$sub
 done
 
-python manage.py app:index_from_mongo -f all --page-size 3000
+cmd='python manage.py app:index_from_mongo --page-size 3000'
+$cmd --all || (
+    $cmd -f ingest
+    $cmd -f published
+    $cmd -f items
+    $cmd -f archive
+    $cmd -f archived
+)
+
 systemctl start {{name}}
 )
 EOF2
