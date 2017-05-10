@@ -537,7 +537,10 @@ def gh_clean(scope, using_mongo=False):
         else:
             return lxc_ls('--filter="%s"' % pattern)
 
-    scopes_ = [getattr(scopes, s) for s in scope] if scope else scopes
+    if scope:
+        scopes_ = [getattr(scopes, s) for s in scope]
+    else:
+        scopes_ = [s for s in scopes if s != scopes.dev]
     for s in scopes_:
         skips = []
         for i, ref in gh_refs(s):
