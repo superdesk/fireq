@@ -17,5 +17,6 @@ sed -i \
     -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
     -e "s|<EMBEDLY_KEY>|${EMBEDLY_KEY:-}|" \
     -e "s|<SYNDICATION>|${SYNDICATION:-}|" \
+    -e "s|<SUBSCRIPTION_LEVEL>|${SUBSCRIPTION_LEVEL:-}|" \
     $filename
 unset dist_orig dist filename
