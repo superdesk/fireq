@@ -143,7 +143,8 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         testing = val('testing') and 1 or ''
         host = val('host', 'localhost')
         host_ssl = val('host_ssl', False) and 1 or ''
-        host_url = 'http%s://%s/' % (host_ssl and 's', host)
+        host_url = 'http%s://%s' % (host_ssl and 's', host)
+        host_ws = 'ws%s://%s' % (host_ssl and 's', host)
         db_host = val('db_host', 'localhost')
         db_name = name
         db_local = db_host == 'localhost'
