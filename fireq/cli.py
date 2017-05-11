@@ -437,25 +437,30 @@ def mongo_ls(pattern):
     return sorted(set(names.decode().split()))
 
 
-def ci_nginx(scope, ssl=False, live=False, reload=True):
-    if not scope:
-        for scope in scopes:
-            ci_nginx(scope.name, ssl=True, live=live, reload=False)
-        sh('nginx -s reload')
-        return
+def ci_nginx(lxc_prefix=None, ssl=False, live=False):
+    label = lxc_prefix
+    if not lxc_prefix:
+        # generate nginx config for all ci instances
+        lxc_prefix = '(%s)' % '|'.join(s.name for s in scopes)
+        label = 'ci'
+        ssl = True
 
-    names = lxc_ls('--filter="^%s(pr)?-[a-z0-9]*$" --running' % scope)
+    names = lxc_ls('--filter="^%s(pr)?-[a-z0-9]*$" --running' % lxc_prefix)
+    cert_name = 'sd-master'
+    if  cert_name in names:
+        # acme.sh uses first domain for directory name
+        names.remove(cert_name)
+        names.insert(0, cert_name)
     hosts = [{
         'name': n,
         'host': '%s.%s' % (n, conf['domain']),
-        'ssl': not n.startswith(scope + 'pr') and ssl,
+        'ssl': not n.split('-', 1)[0].endswith('pr') and ssl,
     } for n in names]
     txt = render_tpl('{{>ci-nginx.sh}}', {
-        'scope': scope,
+        'label': label,
         'hosts': hosts,
         'cert': ssl,
         'live': live and 1 or '',
-        'reload': reload,
     })
     sh(txt, quiet=True)
 
@@ -635,10 +640,10 @@ def main(args=None):
 
     cmd('ci-nginx')\
         .inf('CI: update nginx sites')\
-        .arg('scope', nargs='?', choices=scopes._fields + ('dev',))\
+        .arg('-p', '--lxc-prefix', choices=('dev',))\
         .arg('--ssl', action='store_true')\
         .arg('--live', action='store_true')\
-        .exe(lambda a: ci_nginx(a.scope, a.ssl, a.live))
+        .exe(lambda a: ci_nginx(a.lxc_prefix, a.ssl, a.live))
 
     cmd('gh-pull')\
         .inf('check if all webhooks have been running')\

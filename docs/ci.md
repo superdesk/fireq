@@ -74,7 +74,7 @@ vim config.json     # config
 # restore database
 ./fire lxc-db -cr sd-sdsite-20170503 sd-naspeh
 
-# update nginx on host
+# update nginx for ci instances
 ./fire ci-nginx
 
 # next two command are running by cron /etc/cron.d/fireq
@@ -124,7 +124,8 @@ Create token here: https://github.com/settings/tokens
 ## SSL certificates
 The test instances for branches are using SSL certificates, but they are generated manually because of [Let’s Encrypt rate limits](https://letsencrypt.org/docs/rate-limits/), so if you need green one:
 ```sh
-./fire ci-nginx sd --ssl --live
+./fire ci-nginx --live
+ll /etc/nginx/certs/ci
 ```
 
 ## Env variables
