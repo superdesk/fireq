@@ -33,7 +33,6 @@ scopes = [
     Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
-    Scope('dev', 'superdesk-dev', 'superdesk/superdesk'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
@@ -537,10 +536,7 @@ def gh_clean(scope, using_mongo=False):
         else:
             return lxc_ls('--filter="%s"' % pattern)
 
-    if scope:
-        scopes_ = [getattr(scopes, s) for s in scope]
-    else:
-        scopes_ = [s for s in scopes if s != scopes.dev]
+    scopes_ = [getattr(scopes, s) for s in scope] if scope else scopes
     for s in scopes_:
         skips = []
         for i, ref in gh_refs(s):
@@ -639,7 +635,7 @@ def main(args=None):
 
     cmd('ci-nginx')\
         .inf('CI: update nginx sites')\
-        .arg('scope', nargs='?', choices=scopes._fields)\
+        .arg('scope', nargs='?', choices=scopes._fields + ('dev',))\
         .arg('--ssl', action='store_true')\
         .arg('--live', action='store_true')\
         .exe(lambda a: ci_nginx(a.scope, a.ssl, a.live))

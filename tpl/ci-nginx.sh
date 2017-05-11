@@ -6,7 +6,7 @@ if [ -n "{{live}}" ] || [ ! -d $path ]; then
         --home /root/.acme.sh\
         --keypath $path/privkey.pem\
         --fullchainpath $path/fullchain.pem\
-        {{#hosts}}-d {{host}} {{/hosts}}
+        {{#hosts}}{{#ssl}}-d {{host}} {{/ssl}}{{/hosts}}
 fi
 {{/cert}}
 
