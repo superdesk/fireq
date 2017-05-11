@@ -1,33 +1,24 @@
 ### deploy
-# write config if not exist
-config={{config}}
-[ -f $config ] || cat <<EOF > $config
-{{>deploy-config.sh}}
+honcho_env={{repo}}/.env
+cat <<"EOF" >> $honcho_env
+LANG=en_US.UTF-8
+LANGUAGE=en_US:en
+LC_ALL=en_US.UTF-8
+PYTHONIOENCODING="utf-8"
+PYTHONUNBUFFERED=1
+C_FORCE_ROOT="False"
 EOF
 
-# env.sh
-envfile={{repo}}/env.sh
-cat <<"EOF" > $envfile
-{{>deploy-env.sh}}
+sd_settings={{repo_server}}/settings.py
+cat <<EOF > $sd_settings
+{{>add-settings.py}}
 EOF
 
-# load env.sh and config in activation script
-activate={{repo_env}}/bin/activate
-grep "$envfile" $activate || cat <<EOF >> $activate
-set -a
-[ -f $config ] && . $config
-. $envfile
-set +a
-EOF
-unset envfile activate config
 _activate
-
 
 {{>deploy-dist.sh}}
 
-
 {{>add-nginx.sh}}
-
 
 [ -z "${prepopulate-1}" ] || (
 {{>prepopulate.sh}}
