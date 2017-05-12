@@ -22,10 +22,6 @@ EOF
 unset envfile activate config
 _activate
 
-# use env vars also here
-cd {{repo_client}}
-time grunt build
-
 
 {{>add-nginx.sh}}
 

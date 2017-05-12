@@ -4,6 +4,7 @@ opts=${opts:-}
 authorized_keys=${authorized_keys:-}
 mount_src=${mount_src:-}
 mount_cache=${mount_cache:-}
+no_login=${no_login:-}
 
 lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 
@@ -54,5 +55,7 @@ sed -i \
 systemctl restart sshd
 EOF
 fi
+[ -n "$no_login" ] || (
 ./fire lxc-wait $name
 {{ssh}} $(lxc-info -n $name -iH)
+)

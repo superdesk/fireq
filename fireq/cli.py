@@ -700,12 +700,15 @@ def main(args=None):
         .arg('--mount-src', default='')\
         .arg('--mount-cache', default='/var/cache/fireq')\
         .arg('-k', '--authorized-keys', default='')\
+        .arg('--no-login', action='store_true', default='')\
         .arg('--opts', default=conf['lxc_opts'], help='lxc-create options')\
         .exe(lambda a: sh('{env}\n{cmd}'.format(
             env='\n'.join(
                 '%s=%r' % (k, getattr(a, k))
                 for k in (
-                    'name opts mount_src mount_cache authorized_keys'.split()
+                    'name opts mount_src mount_cache '
+                    'authorized_keys no_login'
+                    .split()
                 ) if getattr(a, k)
             ),
             cmd=endpoint('{{>lxc-init.sh}}', header=False)

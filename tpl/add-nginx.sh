@@ -22,7 +22,6 @@ server {
 EOF
 cat <<EOF > $path/default.inc
 {{>nginx.conf}}
-{{>nginx-root.conf}}
 EOF
 unset path
 systemctl enable nginx

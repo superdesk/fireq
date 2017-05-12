@@ -2,7 +2,7 @@
 # should be installed for faster builds
 name={{lxc_name}}
 
-[ -z "{{create}}" ] || ./fire lxc-init $name --mount-cache= -k /root/.ssh/id_rsa.pub
+[ -z "{{create}}" ] || ./fire lxc-init $name --mount-cache= -k /root/.ssh/id_rsa.pub --no-login
 
 lxc-stop -n $name || true
 config=/var/lib/lxc/$name/config
