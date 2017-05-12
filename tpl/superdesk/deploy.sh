@@ -22,8 +22,9 @@ EOF
 unset envfile activate config
 _activate
 
-
-{{>deploy-dist.sh}}
+# use env vars also here
+cd {{repo_client}}
+time grunt build
 
 
 {{>add-nginx.sh}}

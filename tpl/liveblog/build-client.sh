@@ -10,13 +10,3 @@ if [ -f bower.json ]; then
     npm i bower
     time bower --allow-root install
 fi
-
-time \
-SUPERDESK_URL='<SUPERDESK_URL>' \
-SUPERDESK_WS_URL='<SUPERDESK_WS_URL>' \
-SUPERDESK_RAVEN_DSN='<RAVEN_DSN>' \
-IFRAMELY_KEY='<IFRAMELY_KEY>' \
-EMBEDLY_KEY='<EMBEDLY_KEY>' \
-SYNDICATION='<SYNDICATION>' \
-SUBSCRIPTION_LEVEL='<SUBSCRIPTION_LEVEL>' \
-grunt build --force
