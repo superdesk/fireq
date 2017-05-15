@@ -16,4 +16,4 @@ fi
 time \
 SUPERDESK_URL=http://localhost/api \
 SUPERDESK_WS_URL=ws://localhost/ws \
-grunt build
+grunt build --webpack-no-progress

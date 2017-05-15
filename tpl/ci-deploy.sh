@@ -41,7 +41,7 @@ EOF
 # trying to replace with nginx or fill config.js correctly
 _activate
 cd {{repo_client}}
-time grunt build
+time grunt build --webpack-no-progress
 
 [ -z "${pubapi-}" ] || (
 {{>pubapi.sh}}
