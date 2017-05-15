@@ -74,4 +74,5 @@ if [ -n "${SUPERDESK_TESTING:-}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
     ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
+    LEGAL_ARCHIVE=True
 fi
