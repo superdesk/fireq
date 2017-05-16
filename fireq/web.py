@@ -67,7 +67,7 @@ def get_app():
             refs_prefix[r.match_info['typ']] + r.match_info['ref']
         ))
     )
-    url('/push/{p:.*}', lambda r: web.HTTPFound('/logs/' + r.match_info['p']))
+    url('/push/{p:.*}', lambda r: web.HTTPFound('/logs/0/' + r.match_info['p']))
     return app
 
 
