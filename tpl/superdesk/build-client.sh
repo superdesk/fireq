@@ -2,7 +2,6 @@
 {{>add-node.sh}}
 
 cd {{repo_client}}
-npm install grunt-cli
 time npm install
 {{^is_superdesk}}
 # liveblog 3.0.9, 3.1.0 versions need bower

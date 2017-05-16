@@ -2,8 +2,10 @@
 if ! _skip_install nodejs; then
     curl -sL https://deb.nodesource.com/setup_7.x | bash -
     apt-get install -y nodejs
+
+    npm install -g grunt-cli
 fi
 
-[ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
-npm --version
 node --version
+npm --version
+grunt --version

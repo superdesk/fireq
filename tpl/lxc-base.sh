@@ -8,6 +8,11 @@ lxc-stop -n $name || true
 config=/var/lib/lxc/$name/config
 placeholder='###fireq'
 mount_cache=${mount_cache:-"/var/cache/fireq"}
+
+# create required directories
+mkdir -p $mount_cache/{pip,npm}
+mkdir -p /var/tmp/data /var/spool/ftp
+
 sed -i '/'$placeholder'/Q' $config
 cat <<EOF >> $config
 $placeholder
