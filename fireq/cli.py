@@ -32,6 +32,7 @@ scopes = [
     Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
     Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
+    Scope('fil', 'superdesk', 'superdesk/superdesk-fidelity'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
@@ -192,15 +193,15 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
             'repo_core': repo,
             'repo_remote': github + scope.repo + '.git',
         }
-    elif scope == scopes.ntb:
-        ctx = {
-            'repo_remote': github + scope.repo + '.git',
-            'test_data': 0,
-        }
     elif scope == scopes.lb:
         name = 'liveblog'
         ctx = {
             'repo_remote': github + scope.repo + '.git',
+        }
+    else:
+        ctx = {
+            'repo_remote': github + scope.repo + '.git',
+            'test_data': 0,
         }
 
     expand = dict(expand or {}, **ctx)

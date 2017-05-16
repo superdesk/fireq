@@ -163,7 +163,9 @@ gunicorn fireq.web:app --bind localhost:8080 --worker-class aiohttp.worker.Gunic
 ```
 Payload URL: https://test.superdesk.org/hook
 Secret: <"secret" from config.json>
+Content type: application/json
 ```
+Events **Push** and **Pull request** are supported.
 
 ### Login via Github
 Fill `github_id` and `github_secret` config values from [one of applications.][gh-apps]
