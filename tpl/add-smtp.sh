@@ -21,7 +21,7 @@ EOF
 service={{name}}-smtp
 cat <<EOF > /etc/systemd/system/$service.service
 [Unit]
-Description=Dev SMTP server for Superdesk, it doesn't send real emails
+Description=Dev SMTP server for {{name}}, it doesn't send real emails
 Wants=network.target
 After=network.target
 

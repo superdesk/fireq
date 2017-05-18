@@ -17,7 +17,7 @@ curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/
 
 ```sh
 # initilize new container
-sudo bash -c "name={{scope}}; $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/lxc-init)"
+sudo bash -c "name={{scope}}; $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/lxc-init)"
 # inside the container install {{name}}
 curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/install | bash
 # expose port 80 from container to host
@@ -30,25 +30,34 @@ cat {{config}} # config
 ll /opt/{{name}}/env # virtualenv
 source /opt/{{name}}/env/bin/activate # activate virtualenv and loads variables from {{config}}
 
-systemctl status superdesk
-systemctl restart superdesk
-systemctl status superdesk-client
+systemctl status {{name}}
+systemctl restart {{name}}
 
 ll /etc/nginx/conf.d/ # nginx configs
 
 # logs
-journal -u superdesk -f
-ll /var/log/superdesk
+journal -u {{name}} -f
+ll /var/log/{{name}}
 ```
 
 [Available settings.](https://superdesk.readthedocs.io/en/latest/settings.html#default-settings)
 
 ## Update
 ```sh
-cd /opt/superdesk
+cd {{repo}}
 git pull
-curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/install | sudo bash
-# it's safe to run many times
+source env/bin/activate
+
+cd {{repo}}/server
+pip install -U -r requirements.txt
+./manage.py data:upgrade
+./manage.py app:initialize_data
+
+cd {{repo}}/client
+npm i
+grunt build
+
+systemctl restart {{name}}
 ```
 
 ## Emails
@@ -68,12 +77,12 @@ MAIL_USE_SSL=False
 MAIL_USE_TLS=False
 EOF
 
-# restart superdesk
-$ systemctl restart superdesk
+# restart {{name}}
+$ systemctl restart {{name}}
 
 # Also stop dev SMTP server if needed, it uses port 25 on localhost
-systemctl stop superdesk-smtp
-systemctl disable superdesk-smtp
+systemctl stop {{name}}-smtp
+systemctl disable {{name}}-smtp
 
 ```
 
