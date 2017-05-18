@@ -164,26 +164,22 @@ time pip install -U -r requirements.txt
 if ! _skip_install nodejs; then
     curl -sL https://deb.nodesource.com/setup_7.x | bash -
     apt-get install -y nodejs
+
+    npm install -g grunt-cli
 fi
 
-[ -f /usr/bin/node ] || ln -s /usr/bin/nodejs /usr/bin/node
-npm --version
 node --version
+npm --version
+grunt --version
 
 cd /opt/superdesk/client
-npm install grunt-cli
 time npm install
 
-# TODO: maybe remove "--force" later
-# vars are used in "webpack.config.js"
+# use default urls here
 time \
-SUPERDESK_URL='<SUPERDESK_URL>' \
-SUPERDESK_WS_URL='<SUPERDESK_WS_URL>' \
-SUPERDESK_RAVEN_DSN='<RAVEN_DSN>' \
-IFRAMELY_KEY='<IFRAMELY_KEY>' \
-PUBLISHER_API_DOMAIN='<PUBLISHER_API_DOMAIN>' \
-PUBLISHER_API_SUBDOMAIN='<PUBLISHER_API_SUBDOMAIN>' \
-grunt build
+SUPERDESK_URL=http://localhost/api \
+SUPERDESK_WS_URL=ws://localhost/ws \
+grunt build --webpack-no-progress
 
 
 ### deploy
@@ -196,6 +192,9 @@ HOST_SSL=${host_ssl:-''}
 
 DB_HOST=${db_host:-'localhost'}
 DB_NAME=${db_name:-'superdesk'}
+
+# keep using redis on localhost
+REDIS_URL=redis://localhost:6379/1
 
 SUPERDESK_TESTING=${testing:-''}
 EOF
@@ -232,7 +231,6 @@ SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-"http$SSL://$HOST"}
 SUPERDESK_URL=${SUPERDESK_URL:-"http$SSL://$HOST/api"}
 CONTENTAPI_URL=${CONTENTAPI_URL:-"http$SSL://$HOST/contentapi"}
 
-
 MONGO_URI=${MONGO_URI:-"mongodb://$DB_HOST/$DB_NAME"}
 LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://$DB_HOST/${DB_NAME}_la"}
 ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://$DB_HOST/${DB_NAME}_ar"}
@@ -250,34 +248,19 @@ C_FORCE_ROOT=1
 CELERYBEAT_SCHEDULE_FILENAME=${CELERYBEAT_SCHEDULE_FILENAME:-/tmp/celerybeatschedule}
 CELERY_BROKER_URL=${CELERY_BROKER_URL:-$REDIS_URL}
 
-MAIL_FROM=${MAIL_FROM-''}
-MAIL_SERVER=${MAIL_SERVER-localhost}
-MAIL_PASSWORD=${MAIL_PASSWORD-''}
-MAIL_PORT=${MAIL_PORT-25}
-MAIL_USERNAME=${MAIL_USERNAME-''}
-MAIL_USE_SSL=${MAIL_USE_SSL-False}
-MAIL_USE_TLS=${MAIL_USE_TLS-False}
-
-AMAZON_ACCESS_KEY_ID=${AMAZON_ACCESS_KEY_ID:-}
-AMAZON_SECRET_ACCESS_KEY=${AMAZON_SECRET_ACCESS_KEY:-}
-AMAZON_CONTAINER_NAME=${AMAZON_CONTAINER_NAME:-}
-AMAZON_S3_SUBFOLDER=${AMAZON_S3_SUBFOLDER:-$(hostname)}
-AMAZON_REGION=${AMAZON_REGION:-'eu-west-1'}
-AMAZON_SERVER=${AMAZON_SERVER:-amazonaws.com}
+# TODO: remove after full adoption of MEDIA_PREFIX
 AMAZON_SERVE_DIRECT_LINKS=${AMAZON_SERVE_DIRECT_LINKS:-True}
-AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-False}
-AMAZON_PROXY_SERVER=${AMAZON_PROXY_SERVER:-}
-AMAZON_URL_GENERATOR=${AMAZON_URL_GENERATOR:-default}
-
-IFRAMELY_KEY=${IFRAMELY_KEY:-}
-SENTRY_DSN=${SENTRY_DSN:-}
-NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-}
-NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
+AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-True}
+if [ -n "$AMAZON_CONTAINER_NAME" ]; then
+    AMAZON_S3_SUBFOLDER=${AMAZON_S3_SUBFOLDER:-'superdesk'}
+    MEDIA_PREFIX=${MEDIA_PREFIX:-"http$SSL://$HOST/api/upload-raw"}
+fi
 
 if [ -n "${SUPERDESK_TESTING:-}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
     ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
+    LEGAL_ARCHIVE=True
 fi
 EOF
 
@@ -291,22 +274,6 @@ set +a
 EOF
 unset envfile activate config
 _activate
-
-
-# prepare dist directory
-dist_orig=/opt/superdesk/client/dist
-dist=${dist_orig}-deploy
-rm -rf $dist
-cp -r $dist_orig $dist
-sed -i \
-    -e "s|<SUPERDESK_URL>|http$SSL://$HOST/api|" \
-    -e "s|<SUPERDESK_WS_URL>|ws$SSL://$HOST/ws|" \
-    -e "s|<IFRAMELY_KEY>|${IFRAMELY_KEY:-}|" \
-    -e "s|<RAVEN_DSN>|${RAVEN_DSN:-}|" \
-    -e "s|<PUBLISHER_API_DOMAIN>|${PUBLISHER_API_DOMAIN:-}|" \
-    -e "s|<PUBLISHER_API_SUBDOMAIN>|${PUBLISHER_API_SUBDOMAIN:-}|" \
-    $dist/app.bundle.*
-unset dist_orig dist
 
 
 # nginx
@@ -398,9 +365,11 @@ location /contentapi {
 location /.well-known {
     root /var/tmp;
 }
-location / {
-    root /opt/superdesk/client/dist-deploy;
 
+location / {
+    root /opt/superdesk/client/dist;
+
+    # TODO: use "config.js:server" for user installations
     sub_filter_once off;
     sub_filter_types application/javascript;
     sub_filter 'http://localhost' 'http://\$host';
@@ -444,6 +413,7 @@ pip install -U honcho
 
 gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
 cat <<EOF > /opt/superdesk/server/Procfile
+logs: journalctl -u superdesk* -f >> /var/log/superdesk/main.log
 rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
 wamp: python3 -u ws.py
 work: celery -A worker worker -c 2
@@ -548,7 +518,7 @@ EOF
 service=superdesk-smtp
 cat <<EOF > /etc/systemd/system/$service.service
 [Unit]
-Description=Dev SMTP server for Superdesk, it doesn't send real emails
+Description=Dev SMTP server for superdesk, it doesn't send real emails
 Wants=network.target
 After=network.target
 
@@ -566,22 +536,3 @@ systemctl restart $service
 nginx -s reload
 unset smtp_py mails
 )
-
-# superdesk.service should be registered already
-service=superdesk-logs
-cat <<"EOF" > /etc/systemd/system/$service.service
-[Unit]
-Description=Redirect superdesk logs to file
-After=superdesk.service
-Requires=superdesk.service
-
-[Service]
-ExecStart=/bin/sh -c "journalctl -u superdesk* -f >> /var/log/superdesk/main.log"
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable $service
-systemctl restart $service
-

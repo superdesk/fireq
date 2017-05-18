@@ -17,7 +17,7 @@ curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/
 
 ```sh
 # initilize new container
-sudo bash -c "name=lb; $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/lxc-init)"
+sudo bash -c "name=lb; $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/lxc-init)"
 # inside the container install liveblog
 curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/install | bash
 # expose port 80 from container to host
@@ -30,25 +30,34 @@ cat /etc/liveblog.sh # config
 ll /opt/liveblog/env # virtualenv
 source /opt/liveblog/env/bin/activate # activate virtualenv and loads variables from /etc/liveblog.sh
 
-systemctl status superdesk
-systemctl restart superdesk
-systemctl status superdesk-client
+systemctl status liveblog
+systemctl restart liveblog
 
 ll /etc/nginx/conf.d/ # nginx configs
 
 # logs
-journal -u superdesk -f
-ll /var/log/superdesk
+journal -u liveblog -f
+ll /var/log/liveblog
 ```
 
 [Available settings.](https://superdesk.readthedocs.io/en/latest/settings.html#default-settings)
 
 ## Update
 ```sh
-cd /opt/superdesk
+cd /opt/liveblog
 git pull
-curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/install | sudo bash
-# it's safe to run many times
+source env/bin/activate
+
+cd /opt/liveblog/server
+pip install -U -r requirements.txt
+./manage.py data:upgrade
+./manage.py app:initialize_data
+
+cd /opt/liveblog/client
+npm i
+grunt build
+
+systemctl restart liveblog
 ```
 
 ## Emails
@@ -68,12 +77,12 @@ MAIL_USE_SSL=False
 MAIL_USE_TLS=False
 EOF
 
-# restart superdesk
-$ systemctl restart superdesk
+# restart liveblog
+$ systemctl restart liveblog
 
 # Also stop dev SMTP server if needed, it uses port 25 on localhost
-systemctl stop superdesk-smtp
-systemctl disable superdesk-smtp
+systemctl stop liveblog-smtp
+systemctl disable liveblog-smtp
 
 ```
 

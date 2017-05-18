@@ -10,7 +10,8 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    . /opt/liveblog/env/bin/activate
+    . /opt/superdesk/env/bin/activate
+    [ ! -f /opt/superdesk/.env ] || . /opt/superdesk/.env
     set -ux
 }
 
@@ -115,7 +116,6 @@ curl -s -XPUT 'http://localhost:9200/_snapshot/backups' \
 unset config es_backups
 
 
-### build
 locale-gen en_US.UTF-8
 
 apt-get update
@@ -127,36 +127,15 @@ libfreetype6-dev liblcms2-dev libwebp-dev \
 curl libfontconfig libssl-dev \
 libxml2-dev libxslt1-dev
 
-
-## prepare source code
-repo=/opt/liveblog
-[ -d $repo ] || mkdir $repo
+repo=/opt/superdesk
+github=https://github.com/superdesk
+[ -d $repo ] && cd $repo || (
+mkdir $repo
 cd $repo
-if [ ! -d $repo/.git ]; then
-    git init
-    git remote add origin https://github.com/liveblog/liveblog.git
-    repo_ref=${repo_ref:-'heads/master'}
-    repo_sha=
-    git fetch origin $repo_ref:
-    git checkout ${repo_sha:-FETCH_HEAD}
-    unset repo_sha
-    unset repo repo_ref
-fi
-
-
-## server part
-# init virtualenv
-env=/opt/liveblog/env
-[ -d $env ] && rm -rf $env
-python3 -m venv $env
-echo 'export PATH=./node_modules/.bin/:$PATH' >> $env/bin/activate
-unset env
-
-_activate
-pip install -U pip wheel
-
-cd /opt/liveblog/server
-time pip install -U -r requirements.txt
+git clone $github/superdesk-core.git server-core
+git clone $github/superdesk-client-core.git client-core
+)
+unset repo github
 
 
 ## client part
@@ -171,14 +150,8 @@ fi
 node --version
 npm --version
 grunt --version
-
-cd /opt/liveblog/client
-time npm install
-# liveblog 3.0.9, 3.1.0 versions need bower
-if [ -f bower.json ]; then
-    npm i bower
-    time bower --allow-root install
-fi
+cd /opt/superdesk/client-core
+time npm link
 
 # use default urls here
 time \
@@ -187,102 +160,110 @@ SUPERDESK_WS_URL=ws://localhost/ws \
 grunt build --webpack-no-progress
 
 
+## server part
+env=/opt/superdesk/env
+[ -d $env ] && rm -rf $env
+python3 -m venv $env
+
+_activate
+pip install -U pip wheel
+
+cd /opt/superdesk/server-core
+time pip install -e .
+time pip install -r requirements.txt
+
+
 ### deploy
-# write config if not exist
-config=/etc/liveblog.sh
-[ -f $config ] || cat <<EOF > $config
-# put your variables here!
-HOST=${host:-'localhost'}
-HOST_SSL=${host_ssl:-''}
+_activate
 
-DB_HOST=${db_host:-'localhost'}
-DB_NAME=${db_name:-'liveblog'}
+cd /opt/superdesk
+cat <<"EOF" > run
+#!/bin/bash
+root=$(dirname $(realpath -s $0))
+cd $root
 
-# keep using redis on localhost
-REDIS_URL=redis://localhost:6379/1
+# use virtualenv
+. env/bin/activate
 
-SUPERDESK_TESTING=${testing:-''}
-EOF
-
-# env.sh
-envfile=/opt/liveblog/env.sh
-cat <<"EOF" > $envfile
-# don't change this file
-# variables are loading in /opt/liveblog/env/bin/activate by the next order
-# 1. /etc/liveblog.sh
-# 2. this file
-# so rewrite you variables in /etc/liveblog.sh
+set -a
+PATH=./node_modules/.bin/:$PATH
 LANG=en_US.UTF-8
 LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8
 PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
-
-HOST=${HOST:-localhost}
-DB_HOST=${DB_HOST:-localhost}
-DB_NAME=${DB_NAME:-'liveblog'}
-[ -n "${HOST_SSL:-}" ] && [ "$HOST" != 'localhost' ] && SSL='s' || SSL=''
-
-# TODO: client related
-SUPERDESK_WS_URL=${SUPERDESK_WS_URL:-"ws$SSL://$HOST/ws"}
-
-# TODO: need to get rid this for proper SaaS
-SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-"http$SSL://$HOST"}
-
-# To work properly inside and outside container, must be
-# - "proxy_set_header Host <host>;" in nginx
-# - the same "<host>" for next two settings
-# TODO: try to fix at backend side, it should accept any host
-SUPERDESK_URL=${SUPERDESK_URL:-"http$SSL://$HOST/api"}
-CONTENTAPI_URL=${CONTENTAPI_URL:-"http$SSL://$HOST/contentapi"}
-
-MONGO_URI=${MONGO_URI:-"mongodb://$DB_HOST/$DB_NAME"}
-LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://$DB_HOST/${DB_NAME}_la"}
-ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://$DB_HOST/${DB_NAME}_ar"}
-ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://$DB_HOST:9200"}
-ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"$DB_NAME"}
-
-CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${DB_NAME}_ca"}
-# TODO: fix will be in 1.6 release, keep it for a while
-CONTENTAPI_ELASTIC_INDEX=$CONTENTAPI_ELASTICSEARCH_INDEX
-CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"mongodb://$DB_HOST/${CONTENTAPI_ELASTICSEARCH_INDEX}"}
-
-REDIS_URL=${REDIS_URL:-redis://$DB_HOST:6379/1}
-
 C_FORCE_ROOT=1
-CELERYBEAT_SCHEDULE_FILENAME=${CELERYBEAT_SCHEDULE_FILENAME:-/tmp/celerybeatschedule}
-CELERY_BROKER_URL=${CELERY_BROKER_URL:-$REDIS_URL}
 
-# TODO: remove after full adoption of MEDIA_PREFIX
-AMAZON_SERVE_DIRECT_LINKS=${AMAZON_SERVE_DIRECT_LINKS:-True}
-AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-True}
-if [ -n "$AMAZON_CONTAINER_NAME" ]; then
-    AMAZON_S3_SUBFOLDER=${AMAZON_S3_SUBFOLDER:-'liveblog'}
-    MEDIA_PREFIX=${MEDIA_PREFIX:-"http$SSL://$HOST/api/upload-raw"}
-fi
-
-if [ -n "${SUPERDESK_TESTING:-}" ]; then
-    SUPERDESK_TESTING=True
-    CELERY_ALWAYS_EAGER=True
-    ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
-    LEGAL_ARCHIVE=True
-fi
-
-### Liveblog custom
-S3_THEMES_PREFIX=${S3_THEMES_PREFIX:-"/liveblog/"}
-EMBEDLY_KEY=${EMBEDLY_KEY:-}
-EOF
-
-# load env.sh and config in activation script
-activate=/opt/liveblog/env/bin/activate
-grep "$envfile" $activate || cat <<EOF >> $activate
-set -a
-[ -f $config ] && . $config
-. $envfile
+# load sensitive settings
+[ -f .env ] && . .env
 set +a
+
+exec "$@"
 EOF
-unset envfile activate config
-_activate
+chmod +x run
+
+cat <<"EOF" > settings.py
+import inspect
+import os
+
+env = os.environ.get
+
+
+def f(s):
+    frame = inspect.stack()[1][0]
+    return s.format(**frame.f_locals)
+
+
+DB_HOST = env('DB_HOST', 'localhost')
+DB_NAME = env('DB_NAME', 'superdesk-new')
+
+ELASTICSEARCH_INDEX = DB_NAME
+ELASTICSEARCH_URL = f('http://{DB_HOST}:9200')
+MONGO_URI = f('mongodb://{DB_HOST}/{DB_NAME}')
+LEGAL_ARCHIVE_URI = f('mongodb://{DB_HOST}/{DB_NAME}_la')
+ARCHIVED_URI = f('mongodb://{DB_HOST}/{DB_NAME}_ar')
+
+DB_NAME_CA = f('{DB_NAME}_ca')
+CONTENTAPI_ELASTICSEARCH_INDEX = DB_NAME_CA
+CONTENTAPI_MONGO_URI = f('mongodb://{DB_HOST}/{DB_NAME_CA}')
+
+REDIS_URL = env('REDIS_URL', 'redis://localhost:6379/1')
+CELERY_BROKER_URL = REDIS_URL
+CELERY_BEAT_SCHEDULE_FILENAME = '/tmp/celerybeatschedule'
+
+CLIENT_URL = env('CLIENT_URL', 'http://localhost')
+SERVER_DOMAIN = 'localhost'
+SERVER_NAME = None
+URL_PREFIX = None
+
+MEDIA_PREFIX = f('{CLIENT_URL}/media')
+EOF
+cat <<"EOF" > manage.py
+#!/usr/bin/env python
+from superdesk.factory import get_app
+
+application = get_app(config_object='settings')
+celery = application.celery
+
+
+def main():
+    import sys
+
+    from flask_script import Manager
+    from superdesk import COMMANDS
+    from superdesk.ws import create_server
+
+    if len(sys.argv) == 2 and sys.argv[1] == 'ws':
+        create_server(application.config)
+    else:
+        manager = Manager(application)
+        manager.run(COMMANDS)
+
+
+if __name__ == '__main__':
+    main()
+EOF
+chmod +x manage.py
 
 
 # nginx
@@ -355,9 +336,13 @@ location /ws {
     proxy_set_header Connection "Upgrade";
 }
 
+location /media/ {
+    proxy_pass http://localhost:5000/upload-raw/;
+    expires epoch;
+}
+
 location /api {
-    proxy_pass http://localhost:5000;
-    proxy_set_header Host $HOST;
+    proxy_pass http://localhost:5000/;
     expires epoch;
 
     sub_filter_once off;
@@ -365,13 +350,17 @@ location /api {
     sub_filter 'http://localhost' 'http://\$host';
 }
 
+location /contentapi {
+    proxy_pass http://localhost:5400/;
+    expires epoch;
+}
 
 location /.well-known {
     root /var/tmp;
 }
 
 location / {
-    root /opt/liveblog/client/dist;
+    root /opt/superdesk/client-core/dist;
 
     # TODO: use "config.js:server" for user installations
     sub_filter_once off;
@@ -386,52 +375,43 @@ systemctl restart nginx
 
 
 [ -z "${prepopulate-1}" ] || (
-### prepopulate
 _activate
-cd /opt/liveblog/server
-if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
-    python manage.py app:initialize_data
-
-    # for master it should be '--admin=true' for devel just '--admin'
-    python manage.py users:create --help | grep -- '-a ADMIN' && admin='--admin=true' || admin='--admin'
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' $admin
-
-    python manage.py register_local_themes
-else
-    python manage.py app:initialize_data
-    python manage.py register_local_themes
-fi
+cd /opt/superdesk
+python manage.py app:prepopulate
+python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 )
 
 
-[ -d /var/log/liveblog ] || mkdir -p /var/log/liveblog
+[ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
 systemctl disable rsyslog
 systemctl stop rsyslog
 
 # Use latest honcho with --no-colour option
 _activate
-pip install -U honcho
+pip install -U honcho gunicorn
 
-gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
-cat <<EOF > /opt/liveblog/server/Procfile
-logs: journalctl -u liveblog* -f >> /var/log/liveblog/main.log
-rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
-wamp: python3 -u ws.py
-work: celery -A worker worker -c 2
-beat: celery -A worker beat --pid=
+gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb" --reload'
+cat <<EOF > /opt/superdesk/Procfile
+logs: journalctl -u superdesk* -f >> /var/log/superdesk/main.log
+rest: gunicorn -b 0.0.0.0:5000 manage $gunicorn_opts
+wamp: python manage.py ws
+work: celery -A manage worker -c 2
+beat: celery -A manage beat --pid=
+capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
 EOF
 
-service=liveblog
+service=superdesk
 cat <<"EOF" > /etc/systemd/system/$service.service
 [Unit]
-Description=liveblog
+Description=superdesk
 Wants=network.target
 After=network.target
 
 [Service]
-ExecStart=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec honcho start --no-colour'
-WorkingDirectory=/opt/liveblog/server
+ExecStart=/opt/superdesk/run honcho start --no-colour
+WorkingDirectory=/opt/superdesk
 Restart=always
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target
@@ -442,7 +422,7 @@ unset service
 
 
 [ -z "${smtp-1}" ] || (
-mails=/var/log/liveblog/mail
+mails=/var/log/superdesk/mail
 mkdir -p $mails
 
 smtp_py=/var/tmp/smtp.py
@@ -515,16 +495,16 @@ location /mail/ {
 }
 EOF
 
-service=liveblog-smtp
+service=superdesk-smtp
 cat <<EOF > /etc/systemd/system/$service.service
 [Unit]
-Description=Dev SMTP server for liveblog, it doesn't send real emails
+Description=Dev SMTP server for superdesk, it doesn't send real emails
 Wants=network.target
 After=network.target
 
 [Service]
-ExecStart=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec python3 $smtp_py localhost 25 $mails'
-WorkingDirectory=/opt/liveblog/server
+ExecStart=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec python3 $smtp_py localhost 25 $mails'
+WorkingDirectory=/opt/superdesk/server
 Restart=always
 
 [Install]

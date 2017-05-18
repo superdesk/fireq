@@ -10,14 +10,15 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    . /opt/liveblog/env/bin/activate
+    . /opt/superdesk/env/bin/activate
+    [ ! -f /opt/superdesk/.env ] || . /opt/superdesk/.env
     set -ux
 }
 
 _skip_install() {
     dpkg -l | grep '^ii.*'$1 && [ -z ${pkg_upgrade:-''} ]
 }
-proj=liveblog
+proj=superdesk
 name=${name:-$proj}
 opts=${opts:-}
 authorized_keys=${authorized_keys:-}

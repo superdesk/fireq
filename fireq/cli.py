@@ -418,6 +418,7 @@ def gen_files():
         ('sd', 'superdesk', {'repo_ref': 'heads/1.0', 'dev': False}),
         ('lb', 'liveblog', {'repo_ref': 'heads/master', 'dev': False}),
         ('sd', 'superdesk-dev', {}),
+        ('sd', 'superdesk-new', {}),
     ]
     files = ['install.sh', 'lxc-init.sh', 'README.md']
     for scope_name, tpldir, opts in items:
