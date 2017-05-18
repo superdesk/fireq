@@ -36,9 +36,6 @@ EOF
 chmod +x manage.py
 
 
-{{>add-nginx.sh}}
-
-
 [ -z "${prepopulate-1}" ] || (
 {{>prepopulate.sh}}
 )
@@ -83,6 +80,9 @@ EOF
 systemctl enable $service
 systemctl restart $service
 unset service
+
+
+{{>add-nginx.sh}}
 
 
 [ -z "${smtp-1}" ] || (

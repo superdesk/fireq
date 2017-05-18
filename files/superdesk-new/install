@@ -248,7 +248,6 @@ celery = application.celery
 
 def main():
     import sys
-
     from flask_script import Manager
     from superdesk import COMMANDS
     from superdesk.ws import create_server
@@ -264,6 +263,53 @@ if __name__ == '__main__':
     main()
 EOF
 chmod +x manage.py
+
+
+[ -z "${prepopulate-1}" ] || (
+_activate
+cd /opt/superdesk
+python manage.py app:prepopulate
+python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+)
+
+
+[ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
+systemctl disable rsyslog
+systemctl stop rsyslog
+
+# Use latest honcho with --no-colour option
+_activate
+pip install -U honcho gunicorn
+
+gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb" --reload'
+cat <<EOF > /opt/superdesk/Procfile
+logs: journalctl -u superdesk* -f >> /var/log/superdesk/main.log
+rest: gunicorn -b 0.0.0.0:5000 manage $gunicorn_opts
+wamp: python manage.py ws
+work: celery -A manage worker -c 2
+beat: celery -A manage beat --pid=
+capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
+EOF
+
+service=superdesk
+cat <<"EOF" > /etc/systemd/system/$service.service
+[Unit]
+Description=superdesk
+Wants=network.target
+After=network.target
+
+[Service]
+ExecStart=/opt/superdesk/run honcho start --no-colour
+WorkingDirectory=/opt/superdesk
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable $service
+systemctl restart $service
+unset service
 
 
 # nginx
@@ -372,53 +418,6 @@ EOF
 unset path
 systemctl enable nginx
 systemctl restart nginx
-
-
-[ -z "${prepopulate-1}" ] || (
-_activate
-cd /opt/superdesk
-python manage.py app:prepopulate
-python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
-)
-
-
-[ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
-systemctl disable rsyslog
-systemctl stop rsyslog
-
-# Use latest honcho with --no-colour option
-_activate
-pip install -U honcho gunicorn
-
-gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb" --reload'
-cat <<EOF > /opt/superdesk/Procfile
-logs: journalctl -u superdesk* -f >> /var/log/superdesk/main.log
-rest: gunicorn -b 0.0.0.0:5000 manage $gunicorn_opts
-wamp: python manage.py ws
-work: celery -A manage worker -c 2
-beat: celery -A manage beat --pid=
-capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
-EOF
-
-service=superdesk
-cat <<"EOF" > /etc/systemd/system/$service.service
-[Unit]
-Description=superdesk
-Wants=network.target
-After=network.target
-
-[Service]
-ExecStart=/opt/superdesk/run honcho start --no-colour
-WorkingDirectory=/opt/superdesk
-Restart=always
-RestartSec=10s
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable $service
-systemctl restart $service
-unset service
 
 
 [ -z "${smtp-1}" ] || (

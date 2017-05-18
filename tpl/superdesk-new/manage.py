@@ -7,7 +7,6 @@ celery = application.celery
 
 def main():
     import sys
-
     from flask_script import Manager
     from superdesk import COMMANDS
     from superdesk.ws import create_server
