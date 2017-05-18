@@ -46,6 +46,7 @@ for i in $(dbs); do
     mongodump --host $db_host -d $i -o .
     mv $i $sub
 done
+echo "Done: $backup"
 )
 
 [ -z "$clean" ] || (
