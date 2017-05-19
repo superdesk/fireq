@@ -58,3 +58,9 @@ if [ -n "${SUPERDESK_TESTING:-}" ]; then
     ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
     LEGAL_ARCHIVE=True
 fi
+{{^is_superdesk}}
+
+### Liveblog custom
+S3_THEMES_PREFIX=${S3_THEMES_PREFIX:-"/{{db_name}}/"}
+EMBEDLY_KEY=${EMBEDLY_KEY:-}
+{{/is_superdesk}}
