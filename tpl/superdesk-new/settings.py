@@ -10,7 +10,7 @@ def f(s):
 
 
 DB_HOST = env('DB_HOST', 'localhost')
-DB_NAME = env('DB_NAME', '{{name}}-new')
+DB_NAME = env('DB_NAME', '{{name}}')
 
 ELASTICSEARCH_INDEX = DB_NAME
 ELASTICSEARCH_URL = f('http://{DB_HOST}:9200')
@@ -32,3 +32,10 @@ SERVER_NAME = None
 URL_PREFIX = None
 
 MEDIA_PREFIX = f('{CLIENT_URL}/media')
+
+SUPERDESK_TESTING = env('SUPERDESK_TESTING', False)
+if SUPERDESK_TESTING:
+    SUPERDESK_TESTING=True
+    CELERY_ALWAYS_EAGER=True
+    ELASTICSEARCH_BACKUPS_PATH='/var/tmp/elasticsearch'
+    LEGAL_ARCHIVE=True

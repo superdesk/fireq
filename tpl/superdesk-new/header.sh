@@ -8,8 +8,11 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    . {{repo_env}}/bin/activate
-    [ ! -f {{repo}}/.env ] || . {{repo}}/.env
+    if [ -f {{repo}}/activate ]; then
+        . {{repo}}/activate
+    else
+        . {{repo_env}}/bin/activate
+    fi
     set -ux
 }
 

@@ -10,8 +10,11 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    . /opt/superdesk/env/bin/activate
-    [ ! -f /opt/superdesk/.env ] || . /opt/superdesk/.env
+    if [ -f /opt/superdesk/activate ]; then
+        . /opt/superdesk/activate
+    else
+        . /opt/superdesk/env/bin/activate
+    fi
     set -ux
 }
 
@@ -174,16 +177,10 @@ time pip install -r requirements.txt
 
 
 ### deploy
-_activate
-
 cd /opt/superdesk
-cat <<"EOF" > run
-#!/bin/bash
-root=$(dirname $(realpath -s $0))
-cd $root
-
+cat <<"EOF" > activate
 # use virtualenv
-. env/bin/activate
+. /opt/superdesk/env/bin/activate
 
 set -a
 PATH=./node_modules/.bin/:$PATH
@@ -194,14 +191,11 @@ PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
 C_FORCE_ROOT=1
 
-# load sensitive settings
-[ -f .env ] && . .env
+# put custom settings below
+
+# should be in the end
 set +a
-
-exec "$@"
 EOF
-chmod +x run
-
 cat <<"EOF" > settings.py
 import inspect
 import os
@@ -215,7 +209,7 @@ def f(s):
 
 
 DB_HOST = env('DB_HOST', 'localhost')
-DB_NAME = env('DB_NAME', 'superdesk-new')
+DB_NAME = env('DB_NAME', 'superdesk')
 
 ELASTICSEARCH_INDEX = DB_NAME
 ELASTICSEARCH_URL = f('http://{DB_HOST}:9200')
@@ -237,6 +231,13 @@ SERVER_NAME = None
 URL_PREFIX = None
 
 MEDIA_PREFIX = f('{CLIENT_URL}/media')
+
+SUPERDESK_TESTING = env('SUPERDESK_TESTING', False)
+if SUPERDESK_TESTING:
+    SUPERDESK_TESTING=True
+    CELERY_ALWAYS_EAGER=True
+    ELASTICSEARCH_BACKUPS_PATH='/var/tmp/elasticsearch'
+    LEGAL_ARCHIVE=True
 EOF
 cat <<"EOF" > manage.py
 #!/usr/bin/env python
@@ -299,7 +300,7 @@ Wants=network.target
 After=network.target
 
 [Service]
-ExecStart=/opt/superdesk/run honcho start --no-colour
+ExecStart=/bin/sh -c '. /opt/superdesk/activate; exec honcho start --no-colour'
 WorkingDirectory=/opt/superdesk
 Restart=always
 RestartSec=10s

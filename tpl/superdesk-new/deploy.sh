@@ -1,14 +1,8 @@
 ### deploy
-_activate
-
 cd {{repo}}
-cat <<"EOF" > run
-#!/bin/bash
-root=$(dirname $(realpath -s $0))
-cd $root
-
+cat <<"EOF" > activate
 # use virtualenv
-. env/bin/activate
+. {{repo_env}}/bin/activate
 
 set -a
 PATH=./node_modules/.bin/:$PATH
@@ -19,14 +13,11 @@ PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
 C_FORCE_ROOT=1
 
-# load sensitive settings
-[ -f .env ] && . .env
+# put custom settings below
+
+# should be in the end
 set +a
-
-exec "$@"
 EOF
-chmod +x run
-
 cat <<"EOF" > settings.py
 {{>settings.py}}
 EOF
@@ -69,7 +60,7 @@ Wants=network.target
 After=network.target
 
 [Service]
-ExecStart={{repo}}/run honcho start --no-colour
+ExecStart=/bin/sh -c '. {{repo}}/activate; exec honcho start --no-colour'
 WorkingDirectory={{repo}}
 Restart=always
 RestartSec=10s
