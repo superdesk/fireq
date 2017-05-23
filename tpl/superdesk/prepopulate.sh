@@ -9,7 +9,7 @@ _sample_data() {
 }
 
 {{^test_data}}
-if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
+if _missing_db; then
     _sample_data
     python manage.py app:initialize_data $sample_data
     python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
@@ -18,7 +18,7 @@ else
 fi
 {{/test_data}}
 {{#test_data}}
-if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
+if _missing_db; then
     _sample_data
     # add default vocabularies
     python manage.py app:initialize_data --entity-name vocabularies

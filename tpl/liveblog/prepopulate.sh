@@ -1,7 +1,7 @@
 ### prepopulate
 _activate
 cd {{repo}}/server
-if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
+if _missing_db; then
     python manage.py app:initialize_data
 
     # for master it should be '--admin=true' for devel just '--admin'

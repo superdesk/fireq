@@ -12,9 +12,9 @@ if ! _skip_install mongodb-org-server; then
 fi
 
 # tune mongo
-config=/etc/mongod.conf
-[ -f "${config}.bak" ] || mv $config $config.bak
-cat <<EOF > $config
+cfg=/etc/mongod.conf
+[ -f "${cfg}.bak" ] || mv $cfg $cfg.bak
+cat <<EOF > $cfg
 storage:
   dbPath: /var/lib/mongodb
   journal:
@@ -30,5 +30,6 @@ net:
   port: 27017
   bindIp: 0.0.0.0
 EOF
+unset cfg
 systemctl enable mongod
 systemctl restart mongod

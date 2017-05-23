@@ -245,13 +245,12 @@ def run_job(target, tpl, ctx, logs, lxc_clean=False):
     log_url = logs.url(target + '.log')
     log.info('pending: url=%s', log_url)
     logs.file(target + '.sh').write_text(cmd)
-    error = 'terminated'
+    error, code = 'terminated', 1
     try:
         code = sh(cmd, log_file, exit=False, quiet=True)
         error = None if code == 0 else 'failure: code=%s' % code
     except Exception as e:
         logs.file(target + '.exception').write_text(e)
-        code = 1
         error = str(e)
     finally:
         duration = time.time() - started
@@ -671,13 +670,20 @@ def main(args=None):
         .arg('-c', '--clean', action='store_true', default='')\
         .arg('-b', '--backup', default='', help='backup name')\
         .arg('-r', '--restore', default='', help='restore name')\
-        .exe(lambda a: sh(endpoint('{{>lxc-db.sh}}', header=False, expand={
-            'lxc_name': a.lxc_name,
-            'db_name': a.db_name,
-            'clean': a.clean,
-            'backup': a.backup,
-            'restore': a.restore,
-        }), quiet=True))
+        .exe(lambda a: sh(endpoint(
+            'cat <<"EOF2" | {{ssh}} {{lxc_name}}\n'
+            '{{>header.sh}}\n'
+            '{{>lxc-db.sh}}\n'
+            'EOF2',
+            header=False,
+            expand={
+                'lxc_name': a.lxc_name,
+                'db_name': a.db_name,
+                'clean': a.clean,
+                'backup': a.backup,
+                'restore': a.restore,
+            }
+        ), quiet=True))
 
     cmd('lxc-ssh')\
         .inf('LXC: login to container via SSH')\

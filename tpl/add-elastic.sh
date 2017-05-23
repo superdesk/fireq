@@ -25,14 +25,14 @@ if ! _skip_install elasticsearch; then
 fi
 
 # tune elasticsearch
-config='/etc/elasticsearch/elasticsearch.yml'
-[ -f "${config}.bak" ] || mv $config $config.bak
+cfg='/etc/elasticsearch/elasticsearch.yml'
+[ -f "${cfg}.bak" ] || mv $cfg $cfg.bak
 es_backups=/var/tmp/elasticsearch
 if [ ! -d "$es_backups" ]; then
     mkdir $es_backups
     chown elasticsearch:elasticsearch $es_backups
 fi
-cat <<EOF > $config
+cat <<EOF > $cfg
 network.bind_host: 0.0.0.0
 node.local: true
 discovery.zen.ping.multicast: false
@@ -46,4 +46,4 @@ wait_elastic
 
 curl -s -XPUT 'http://localhost:9200/_snapshot/backups' \
     -d '{"type": "fs", "settings": {"location": "'$es_backups'"}}'
-unset config es_backups
+unset cfg es_backups

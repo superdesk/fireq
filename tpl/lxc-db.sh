@@ -1,8 +1,3 @@
-ssh="{{ssh}} {{lxc_name}}"
-
-cat <<"EOF2" | $ssh
-{{>header.sh}}
-
 # previuos base container didn't have mongo/mongodump/mongorestore
 # so keep this section for a while
 if ! _skip_install mongodb-org-tools; then
@@ -61,7 +56,7 @@ systemctl stop {{name}}
 _activate
 cd {{repo}}/server
 
-if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
+if _missing_db; then
     python manage.py app:initialize_data
 fi
 
@@ -81,4 +76,3 @@ $cmd --all || (
 
 systemctl start {{name}}
 )
-EOF2
