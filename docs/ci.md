@@ -17,27 +17,43 @@ A repository page contains a list of **Pull Requests** and **Branches** with rel
 ![A repository page](images/ci-repo-page.png)
 
 ## Test instance
+### Emails
+**There are no real emails (by default),** all emails are stored in log files and can be found by url: `<domain>/mail`:
+- https://sd-master.test.superdesk.org/mail/
 
-**There are no real emails (by default),** all emails are stored in log files and can be found by url: `<domain>/mail`.
-
-**Server logs** for particular instance can be found by url `<domain>/logs`.
-
-For example for `sd-master`:
-- https://sd-master.test.superdesk.org/mail/ emails
-- https://sd-master.test.superdesk.org/logs/ logs
+### Server logs
+Logs for particular instance can be found by url `<domain>/logs`:
+- https://sd-master.test.superdesk.org/logs/
 
 ### Docs
-Docs are generated for `superdek-core` (`<domain>/docs/`), for example:
+Docs are generated for `superdek-core` and can be found by url `<domain>/docs/`:
 - https://sds-master.test.superdesk.org/docs/
+
+### Init
+Environment variables can be defined in **init files**, they are stored in separate branch [init][init]. Proper file invokes after build step. You can update existing files or [create new one][init-new] via github interface.
+
+For example, we have `new-feature` branch in `superdesk/superdesk` repo, filename should be `<instance name>.sh`, so `sd-newfeature.sh`, file should be like this:
+```sh
+# sd-newfeature.sh
+{{>init/sd.sh}}
+
+cat <<"EOF" >> {{config}}
+# there are variables
+WEBHOOK_PERSONALIA_AUTH=1234
+EOF
+```
+After updating or creation, we should press an according `[deploy]` button.
+
+Some examples:
+ - [sd-master.sh](https://github.com/superdesk/fireq/blob/init/sd-master.sh)
+ - [sd-sdsite.sh](https://github.com/superdesk/fireq/blob/init/sd-sdsite.sh)
+
+[init]: https://github.com/superdesk/fireq/tree/init
+[init-new]: https://github.com/superdesk/fireq/new/init
 
 # Github integration
 
 After webhook is invoked by Github, `fireq` uses [Github API][gh-statuses] to post statuses.
-
-[gh-statuses]: https://developer.github.com/v3/repos/statuses/
-
-![Show all checks](images/gh-show-all-checks.png)
-![Statuses](images/gh-checks.png)
 
 ## Minimal set of statuses
 ```
@@ -45,6 +61,11 @@ After webhook is invoked by Github, `fireq` uses [Github API][gh-statuses] to po
 ├─ fire:www         # deploy the test instance, contains the link if successful
 ├─ fire:restart     # the way to restart failed (or all) steps from Github interface
 ```
+
+[gh-statuses]: https://developer.github.com/v3/repos/statuses/
+
+![Show all checks](images/gh-show-all-checks.png)
+![Statuses](images/gh-checks.png)
 
 # Admin area
 You need `SSH` access to `host7.sourcefabric.org`.
@@ -74,9 +95,6 @@ vim config.json     # config
 # restore database
 ./fire lxc-db -cr sd-sdsite-20170503 sd-naspeh
 
-# update nginx for ci instances
-./fire ci-nginx
-
 # next two command are running by cron /etc/cron.d/fireq
 ./fire gh-clean # clean containers by checking Github for alive PRs and branches
 ./fire gh-pull  # check if ci have been runnnig for all PRs and branches
@@ -101,6 +119,19 @@ lxc-ls -f | grep base-sd
 
 [mustache]: https://mustache.github.io/mustache.5.html
 
+## nginx
+```sh
+# update nginx for ci instances
+./fire ci-nginx
+```
+### SSL certificates
+Test instances **for branches** are using SSL certificates, but they are generated manually because of [Let’s Encrypt rate limits](https://letsencrypt.org/docs/rate-limits/), so if you need green one:
+```sh
+./fire ci-nginx --live
+ll /etc/nginx/certs/ci
+```
+Cert updates automatically at nights by `cron` (`/etc/cron.d/fireq`).
+
 ## Github statuses
 `./fire ci` posts proper statuses to Github if config values are filled:
 ```json
@@ -120,32 +151,6 @@ curl -XPOST -u <username> https://api.github.com/authorizations -d '{
 
 ### Get personal token
 Create token here: https://github.com/settings/tokens
-
-## SSL certificates
-The test instances for branches are using SSL certificates, but they are generated manually because of [Let’s Encrypt rate limits](https://letsencrypt.org/docs/rate-limits/), so if you need green one:
-```sh
-./fire ci-nginx --live
-ll /etc/nginx/certs/ci
-```
-
-## Env variables
-Init files in [separate **init** branch][init], they are invoked after build step, you can update existing files or [create new one][init-new] via github interface.
-
-```sh
-# superdesk/superdesk-client-core new-thing branch
-# filename should be "<instance name>.sh", so "sdc-newthing.sh"
-{{>init/sd.sh}}
-
-cat <<"EOF" >> {{config}}
-# there are variables
-WEBHOOK_PERSONALIA_AUTH=1234
-EOF
-```
-See example: [sd-naspeh][init-example]
-
-[init]: https://github.com/superdesk/fireq/tree/init
-[init-new]: https://github.com/superdesk/fireq/new/init
-[init-example]: https://github.com/superdesk/fireq/blob/init/sd-naspeh.sh
 
 ## fireq.web - webhook and dashboard
 ```sh
