@@ -8,9 +8,6 @@ EOF
 
 cat <<EOF >> /etc/nginx/conf.d/default.inc
 location /mail {
-    return 302 \$scheme://\$host/mail/;
-}
-location /mail/ {
     alias $mails/;
     default_type text/plain;
     autoindex on;

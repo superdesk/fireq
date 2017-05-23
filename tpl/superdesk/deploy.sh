@@ -2,11 +2,11 @@
 # write config if not exist
 config={{config}}
 [ -f $config ] || cat <<EOF > $config
-{{>deploy-config.sh}}
+{{>config.sh}}
 EOF
 
 cat <<"EOF" > {{activate}}
-{{>deploy-env.sh}}
+{{>activate.sh}}
 EOF
 
 _activate

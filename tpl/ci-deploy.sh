@@ -4,7 +4,7 @@ db_name="{{uid}}"
 
 # env config
 cat <<EOF | {{ssh}} $lxc "cat > {{config}}"
-{{>deploy-config.sh}}
+{{>config.sh}}
 EOF
 
 # run init

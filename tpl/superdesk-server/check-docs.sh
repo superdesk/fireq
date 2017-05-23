@@ -1,3 +1,8 @@
 cd {{repo_server}}/docs
 make html
-[ ! -d {{repo_client}}/dist-deploy ] || cp -Tr _build/html {{repo_client}}/dist-deploy/docs
+
+cat <<EOF0 > /etc/nginx/conf.d/docs.inc
+location /docs {
+    alias {{repo_server}}/docs/_build/html;
+}
+EOF0
