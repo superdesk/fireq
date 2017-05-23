@@ -1,5 +1,5 @@
 #branch=1.4
-{{>superdesk-dev/build-repo.sh}}
+{{>superdesk-dev/build-init.sh}}
 
 rm -rf {{repo}}/server-core
-{{>superdesk/build-repo.sh}}
+{{>superdesk/build-init.sh}}

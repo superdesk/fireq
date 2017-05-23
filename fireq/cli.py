@@ -251,6 +251,7 @@ def run_job(target, tpl, ctx, logs, lxc_clean=False):
         error = None if code == 0 else 'failure: code=%s' % code
     except Exception as e:
         logs.file(target + '.exception').write_text(e)
+        code = 1
         error = str(e)
     finally:
         duration = time.time() - started
@@ -449,7 +450,7 @@ def ci_nginx(lxc_prefix=None, ssl=False, live=False):
 
     names = lxc_ls('--filter="^%s(pr)?-[a-z0-9]*$" --running' % lxc_prefix)
     cert_name = 'sd-master'
-    if  cert_name in names:
+    if cert_name in names:
         # acme.sh uses first domain for directory name
         names.remove(cert_name)
         names.insert(0, cert_name)

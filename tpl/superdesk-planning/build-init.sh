@@ -18,4 +18,4 @@ if [ ! -d $repo ]; then
 fi
 unset repo github
 
-{{>superdesk/build-repo.sh}}
+{{>superdesk/build-init.sh}}

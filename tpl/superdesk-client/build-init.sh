@@ -1,8 +1,8 @@
 #branch=1.4
-{{>superdesk-dev/build-repo.sh}}
+{{>superdesk-dev/build-init.sh}}
 
 rm -rf {{repo}}/client-core
-{{>superdesk/build-repo.sh}}
+{{>superdesk/build-init.sh}}
 
 chunks=/var/tmp/e2e-chunks.py
 cat <<"EOF" > $chunks
