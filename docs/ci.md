@@ -129,26 +129,23 @@ ll /etc/nginx/certs/ci
 ```
 
 ## Env variables
-There are init files in [tpl/init][init], which invoked after build step
+Init files in [separate **init** branch][init], they are invoked after build step, you can update existing files or [create new one][init-new] via github interface.
+
 ```sh
 # superdesk/superdesk-client-core new-thing branch
-cat <<EOF2 > tpl/init/sdc-newthing.sh
+# filename should be "<instance name>.sh", so "sdc-newthing.sh"
 {{>init/sd.sh}}
 
 cat <<"EOF" >> {{config}}
 # there are variables
 WEBHOOK_PERSONALIA_AUTH=1234
 EOF
-EOF2
-
-# deploy with new init
-./fire ci sdc new-thing -t deploy
-
-# see example
-cat tpl/init/sd-naspeh.sh
 ```
+See example: [sd-naspeh][init-example]
 
-[init]: https://github.com/superdesk/fireq/tree/master/tpl/init
+[init]: https://github.com/superdesk/fireq/tree/init
+[init-new]: https://github.com/superdesk/fireq/new/init
+[init-example]: https://github.com/superdesk/fireq/blob/init/sd-naspeh.sh
 
 ## fireq.web - webhook and dashboard
 ```sh

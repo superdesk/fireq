@@ -3,4 +3,4 @@
 .dbshell
 env
 config.json
-tpl/init/.*
+tpl/init

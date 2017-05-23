@@ -8,15 +8,28 @@ cat <<EOF | {{ssh}} $lxc "cat > {{config}}"
 EOF
 
 # run init
-if [ -f tpl/init/{{uid}}.sh ]; then
+path=tpl/init
+if [ -d $path ]; then
+    cd $path
+    git pull origin init
+else
+    mkdir $path
+    cd $path
+    git init
+    git remote add origin https://github.com/superdesk/fireq.git
+    git fetch origin init:
+    git checkout FETCH_HEAD
+fi
+if [ -f {{uid}}.sh ]; then
     cfg={{uid}}
-elif [ -f tpl/init/{{scope}}.sh ]; then
+elif [ -f {{scope}}.sh ]; then
     cfg={{scope}}
 else
     cfg=sd
 fi
+cd ../../
 ./fire r -s {{scope}} init/$cfg | {{ssh}} $lxc
-unset cfg
+unset cfg path
 
 [ -z "${db_clean:-}" ] || (
 ./fire lxc-db -cb - $lxc
