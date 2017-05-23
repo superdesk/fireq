@@ -5,25 +5,11 @@ config={{config}}
 {{>deploy-config.sh}}
 EOF
 
-# env.sh
-envfile={{repo}}/env.sh
-cat <<"EOF" > $envfile
+cat <<"EOF" > {{activate}}
 {{>deploy-env.sh}}
 EOF
 
-# load env.sh and config in activation script
-activate={{repo_env}}/bin/activate
-grep "$envfile" $activate || cat <<EOF >> $activate
-set -a
-[ -f $config ] && . $config
-. $envfile
-set +a
-EOF
-unset envfile activate config
 _activate
-
-
-{{>add-nginx.sh}}
 
 
 [ -z "${prepopulate-1}" ] || (
@@ -36,8 +22,7 @@ systemctl disable rsyslog
 systemctl stop rsyslog
 
 # Use latest honcho with --no-colour option
-_activate
-pip install -U honcho
+pip install -U honcho gunicorn
 
 gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"{{#dev}} --reload{{/dev}}'
 cat <<EOF > {{repo}}/server/Procfile
@@ -59,9 +44,10 @@ Wants=network.target
 After=network.target
 
 [Service]
-ExecStart=/bin/sh -c '. {{repo_env}}/bin/activate && exec honcho start --no-colour'
+ExecStart=/bin/sh -c '. {{activate}} && exec honcho start --no-colour'
 WorkingDirectory={{repo}}/server
 Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -69,6 +55,9 @@ EOF
 systemctl enable $service
 systemctl restart $service
 unset service
+
+
+{{>add-nginx.sh}}
 
 
 [ -z "${smtp-1}" ] || (

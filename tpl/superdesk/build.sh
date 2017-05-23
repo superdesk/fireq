@@ -19,7 +19,6 @@ libxml2-dev libxslt1-dev
 env={{repo_env}}
 [ -d $env ] && rm -rf $env
 python3 -m venv $env
-echo 'export PATH=./node_modules/.bin/:$PATH' >> $env/bin/activate
 unset env
 
 _activate
@@ -31,7 +30,7 @@ time pip install -U -r requirements.txt
 [ ! -f dev-requirements.txt ] || time pip install -r dev-requirements.txt
 
 cat <<EOF > /etc/profile.d/env.sh
-. {{repo_env}}/bin/activate
+. {{activate}}
 EOF
 {{/dev}}
 
