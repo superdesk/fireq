@@ -19,7 +19,7 @@ set +x
 . {{config}}
 set -x
 
-cat <<EOF > {{repo_client}}/dist/config.*.js
+cat <<EOF > {{repo_client}}/config.js
 window.superdeskConfig = {
     server: {
         url: location.origin + '/api',
@@ -28,7 +28,8 @@ window.superdeskConfig = {
     iframely: {key: '$IFRAMELY_KEY'},
     features: {
         swimlane: {columnsLimit: 4},
-        editor3: true
+        editor3: true,
+        testHowItWorks: 1
     }
 };
 EOF
