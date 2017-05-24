@@ -50,12 +50,6 @@ EOF
 
 {{>deploy.sh}}
 
-# it's just simpler rebuild client with env vars than
-# trying to replace with nginx or fill config.js correctly
-_activate
-cd {{repo_client}}
-time grunt build --webpack-no-progress
-
 [ -z "${pubapi-}" ] || (
 {{>pubapi.sh}}
 )

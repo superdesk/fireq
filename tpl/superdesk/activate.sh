@@ -1,5 +1,4 @@
-# don't change this file,
-# write you variables in {{config}}
+# you could write variables to {{config}}
 . {{repo_env}}/bin/activate
 
 set -a
@@ -12,23 +11,20 @@ PATH={{repo_client}}/node_modules/.bin/:$PATH
 
 [ ! -f {{config}} ] || . {{config}}
 
-HOST=${HOST:-localhost}
-DB_HOST=${DB_HOST:-localhost}
+HOST=${HOST:-'localhost'}
+HOST_SSL=${HOST_SSL:-}
+DB_HOST=${DB_HOST:-'localhost'}
 DB_NAME=${DB_NAME:-'{{name}}'}
-[ -n "${HOST_SSL:-}" ] && [ "$HOST" != 'localhost' ] && SSL='s' || SSL=''
 
-# TODO: client related
-SUPERDESK_WS_URL="ws$SSL://$HOST/ws"
-
-# TODO: need to get rid this for proper SaaS
-SUPERDESK_CLIENT_URL="http$SSL://$HOST"
-
+[ -n "${HOST_SSL:-}" ] && SSL='s' || SSL=''
 # To work properly inside and outside container, must be
 # - "proxy_set_header Host <host>;" in nginx
 # - the same "<host>" for next two settings
 # TODO: try to fix at backend side, it should accept any host
 SUPERDESK_URL="http$SSL://$HOST/api"
 CONTENTAPI_URL="http$SSL://$HOST/contentapi"
+SUPERDESK_WS_URL="ws$SSL://$HOST/ws"
+SUPERDESK_CLIENT_URL="http$SSL://$HOST"
 
 MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
 LEGAL_ARCHIVE_URI="mongodb://$DB_HOST/${DB_NAME}_la"
@@ -56,7 +52,7 @@ if [ -n "$AMAZON_CONTAINER_NAME" ]; then
     AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-True}
 fi
 
-if [ -n "${SUPERDESK_TESTING:-}" ]; then
+if [ -n "${SUPERDESK_TESTING:-'{{testing}}'}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
     ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch

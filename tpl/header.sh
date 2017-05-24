@@ -8,12 +8,7 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    if [ -f {{activate}} ]; then
-        . {{activate}}
-    else
-        PATH={{repo_client}}/node_modules/.bin/:$PATH
-        . {{repo_env}}/bin/activate
-    fi
+    . {{activate}}
     set -ux
 }
 

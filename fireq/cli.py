@@ -156,7 +156,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         is_pr = re.match('^pull/\d*$', repo_ref)
         is_superdesk = name == 'superdesk'
         logs = '/var/log/%s' % name
-        config = '%s/config.sh' % repo
+        config = '%s/env.sh' % repo
         activate = '%s/activate.sh' % repo
         return locals()
 
@@ -365,14 +365,7 @@ def run_jobs(ref, targets=None, all=False):
             jobs[j] = target
 
         for target in targets:
-            # TODO: move superdesk based logic to separate file
-            if ref.scope in (scopes.sds, scopes.sdc):
-                db_host = 'localhost'
-                db_name = 'superdesk'
-            else:
-                db_host = conf['lxc_data'] + '--tests'
-                db_name = '%s--%s' % (ref.uid, target)
-            ctx = dict(ctx, db_host=db_host, db_name=db_name, testing=1)
+            ctx = dict(ctx, db_host='localhost', testing=1)
             inner = endpoint('{{>%s.sh}}' % target, expand=ctx)
             c = dict(ctx, target=target, inner=inner)
             j = pool.submit(run_job, target, '{{>ci-check.sh}}', c, logs, True)

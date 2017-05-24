@@ -21,6 +21,17 @@ env={{repo_env}}
 python3 -m venv $env
 unset env
 
+cat <<"EOF" > {{activate}}
+. {{repo_env}}/bin/activate
+
+set -a
+# some settings required by client
+PATH={{repo_client}}/node_modules/.bin/:$PATH
+SUPERDESK_URL='http://localhost/api'
+SUPERDESK_WS_URL='ws://localhost/ws'
+set +a
+EOF
+
 _activate
 pip install -U pip wheel
 
@@ -30,12 +41,7 @@ time pip install -U -r requirements.txt
 [ ! -f dev-requirements.txt ] || time pip install -r dev-requirements.txt
 
 cat <<EOF > /etc/profile.d/activate.sh
-if [ -f {{activate}} ]; then
-    . {{activate}}
-else
-    PATH={{repo_client}}/node_modules/.bin/:$PATH
-    . {{repo_env}}/bin/activate
-fi
+[ -f {{activate}} ] && . {{activate}}
 EOF
 {{/dev}}
 
@@ -52,9 +58,3 @@ if [ -f bower.json ]; then
     time bower --allow-root install
 fi
 {{/is_superdesk}}
-
-# use default urls here
-time \
-SUPERDESK_URL=http://localhost/api \
-SUPERDESK_WS_URL=ws://localhost/ws \
-grunt build --webpack-no-progress
