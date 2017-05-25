@@ -172,8 +172,9 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     # TODO: move superdesk based logic to separate file
     name = 'superdesk'
     github = 'https://github.com/'
-    ctx = {}
-    if scope == scopes.sds:
+    if scope == scopes.sd:
+        ctx = {}
+    elif scope == scopes.sds:
         repo = '/opt/superdesk/server-core'
         ctx = {
             'repo_core': repo,
@@ -326,8 +327,8 @@ def run_jobs(ref, targets=None, all=False):
         if cmd == 'reset' and ctx['uid'] in conf['protected_dbs']:
             log.error('skip reset for %(uid)s: protected db', ctx)
             continue
-        ctx_ = dict(ctx, no_statuses=1)
-        code = run_job(cmd, '{{>ci-%s.sh}}' % cmd, ctx_, logs)
+        c = dict(ctx, no_statuses=1)
+        code = run_job(cmd, '{{>ci-%s.sh}}' % cmd, c, logs)
         codes.append((cmd, code))
 
     if not targets:
