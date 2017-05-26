@@ -1,3 +1,4 @@
+_activate
 cd {{repo_server}}/docs
 make html
 
