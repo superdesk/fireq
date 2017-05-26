@@ -28,7 +28,7 @@ net:
 EOF
 
 systemctl restart elasticsearch mongod
-wait_elastic
+! type wait_elastic || wait_elastic
 {{/db_local}}
 
 # TODO: update superdesk-core to check elastic instead of directory

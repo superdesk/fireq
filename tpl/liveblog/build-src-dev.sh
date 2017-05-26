@@ -1,0 +1,1 @@
+{{>superdesk/build-src.sh}}

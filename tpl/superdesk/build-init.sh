@@ -1,21 +1,37 @@
-## prepare source code
-repo={{repo_core}}{{^repo_core}}{{repo}}{{/repo_core}}
-[ -d $repo ] || mkdir $repo
-cd $repo
-if [ ! -d $repo/.git ]; then
-    git init
-    git remote add origin {{repo_remote}}
-    repo_ref=${repo_ref:-'{{repo_ref}}'}
-    {{#is_pr}}
-    git fetch origin $repo_ref/merge: || git fetch origin $repo_ref/head:
-    # TODO: use latest sha for now
-    git checkout FETCH_HEAD
-    {{/is_pr}}
-    {{^is_pr}}
-    repo_sha={{repo_sha}}
-    git fetch origin $repo_ref:
-    git checkout ${repo_sha:-FETCH_HEAD}
-    unset repo_sha
-    {{/is_pr}}
-    unset repo repo_ref
-fi
+locale-gen en_US.UTF-8
+
+apt-get update
+apt-get -y install --no-install-recommends \
+git python3 python3-dev python3-venv \
+build-essential libffi-dev \
+libtiff5-dev libjpeg8-dev zlib1g-dev \
+libfreetype6-dev liblcms2-dev libwebp-dev \
+curl libfontconfig libssl-dev \
+libxml2-dev libxslt1-dev
+
+{{>add-node.sh}}
+
+## virtualenv and activate script
+env={{repo_env}}
+[ -d $env ] && rm -rf $env
+python3 -m venv $env
+unset env
+
+cat <<"EOF" > {{activate}}
+. {{repo_env}}/bin/activate
+
+set -a
+# some settings required by client
+PATH={{repo_client}}/node_modules/.bin/:$PATH
+SUPERDESK_URL='http://localhost/api'
+SUPERDESK_WS_URL='ws://localhost/ws'
+set +a
+EOF
+{{#develop}}
+cat <<EOF > /etc/profile.d/activate.sh
+[ -f {{activate}} ] && . {{activate}}
+EOF
+{{/develop}}
+
+_activate
+pip install -U pip wheel

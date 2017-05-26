@@ -1,9 +1,8 @@
 repo={{repo}}
 github=https://github.com/superdesk
-# rm -rf $repo
-if [ ! -d $repo ]; then
-    mkdir $repo
-    cd $repo
+[ -d $repo ] || mkdir $repo
+cd $repo
+if [ ! -d $repo/.git ]; then
     git init
     git remote add origin $github/superdesk.git
 
@@ -18,4 +17,5 @@ if [ ! -d $repo ]; then
 fi
 unset repo github
 
-{{>superdesk/build-init.sh}}
+repo={{repo}}/planning
+{{>superdesk/build-src.sh}}

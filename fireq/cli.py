@@ -127,11 +127,12 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
             return expand.pop(name)
         return default
 
-    def get_ctx(name, scope):
+    def get_ctx():
         # TODO: move superdesk based logic to separate file
+        name = val('name', 'superdesk')
+        scope = val('scope', scopes.sd.name)
         repo = '/opt/%s' % name
         repo_env = '%s/env' % repo
-        repo_core = val('repo_core', '')
         repo_ref = val('repo_ref') or 'heads/master'
         repo_sha = val('repo_sha', '')
         repo_remote = val('repo_remote') or (
@@ -140,7 +141,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         repo_server = val('repo_server', '%s/server' % repo)
         repo_client = val('repo_client', '%s/client' % repo)
 
-        dev = val('dev', True) and 1 or ''
+        develop = val('develop', False) and 1 or ''
         testing = val('testing') and 1 or ''
         host = val('host', 'localhost')
         host_ssl = val('host_ssl', False) and 1 or ''
@@ -148,7 +149,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         db_host = val('db_host', 'localhost')
         db_name = name
         db_local = db_host == 'localhost'
-        test_data = val('test_data', dev) and 1 or ''
+        test_data = val('test_data', develop) and 1 or ''
         pkg_upgrade = val('pkg_upgrade', False) and 1 or ''
         header_doc = val('header_doc', '')
         ssh = 'ssh %s' % ssh_opts
@@ -160,7 +161,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         activate = '%s/activate.sh' % repo
         return locals()
 
-    expand = expand or {}
+    expand = dict(expand or {})
     scope = scope or expand.get('scope')
     scope = getattr(scopes, scope) if scope else scopes[0]
 
@@ -170,44 +171,32 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         search_dirs.insert(0, tpldir)
 
     # TODO: move superdesk based logic to separate file
-    name = 'superdesk'
-    github = 'https://github.com/'
+    expand.update({
+        'scope': scope.name,
+        'repo_remote': 'https://github.com/%s.git' % scope.repo
+    })
     if scope == scopes.sd:
-        ctx = {}
+        pass
     elif scope == scopes.sds:
-        repo = '/opt/superdesk/server-core'
-        ctx = {
-            'repo_core': repo,
-            'repo_server': repo,
-            'repo_remote': github + scope.repo + '.git',
-        }
+        expand.update({
+            'repo_server': '/opt/superdesk/server-core'
+        })
     elif scope == scopes.sdc:
         repo = '/opt/superdesk/client-core'
-        ctx = {
-            'repo_core': repo,
+        expand.update({
             'repo_client': repo,
             'repo_server': '%s/test-server' % repo,
-            'repo_remote': github + scope.repo + '.git',
-        }
-    elif scope == scopes.sdp:
-        repo = '/opt/superdesk/planning'
-        ctx = {
-            'repo_core': repo,
-            'repo_remote': github + scope.repo + '.git',
-        }
+        })
     elif scope == scopes.lb:
-        name = 'liveblog'
-        ctx = {
-            'repo_remote': github + scope.repo + '.git',
-        }
+        expand.update({
+            'name': 'liveblog'
+        })
     else:
-        ctx = {
-            'repo_remote': github + scope.repo + '.git',
-            'test_data': 0,
-        }
+        expand.update({
+            'test_data': 0
+        })
 
-    expand = dict(expand or {}, **ctx)
-    ctx = get_ctx(name, scope.name)
+    ctx = get_ctx()
     if expand:
         ctx.update(expand)
     if header:
@@ -615,14 +604,14 @@ def main(args=None):
         .arg('-s', '--scope', choices=scopes._fields)\
         .arg('-t', '--tpldir')\
         .arg('--env', default='')\
-        .arg('--dev', type=bool, default=1)\
+        .arg('--dev', action='store_true')\
         .arg('--host', default='localhost', help='host')\
         .exe(lambda a: print(endpoint(
             '%s\n{{>%s.sh}}' % (a.env, a.name),
             tpldir=a.tpldir,
             expand={
                 'scope': a.scope,
-                'dev': a.dev,
+                'develop': a.dev,
                 'host': a.host,
             }
         )))

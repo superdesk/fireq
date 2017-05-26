@@ -15,10 +15,7 @@ if [ -d $path ]; then
 else
     mkdir $path
     cd $path
-    git init
-    git remote add origin https://github.com/superdesk/fireq.git
-    git fetch origin init:
-    git checkout FETCH_HEAD
+    git clone -b init --single-branch https://github.com/superdesk/fireq.git .
 fi
 if [ -f {{uid}}.sh ]; then
     cfg={{uid}}
