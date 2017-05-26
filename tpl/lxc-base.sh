@@ -64,7 +64,6 @@ systemctl enable fix-run-directory
 
 # cleanup
 rm -rf {{repo}}
-rm {{config}} || true
 rm /etc/systemd/system/{{name}}* || true
 systemctl disable nginx elasticsearch mongod
 
