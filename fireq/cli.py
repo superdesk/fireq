@@ -182,10 +182,8 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
             'repo_server': '/opt/superdesk/server-core'
         })
     elif scope == scopes.sdc:
-        repo = '/opt/superdesk/client-core'
         expand.update({
-            'repo_client': repo,
-            'repo_server': '%s/test-server' % repo,
+            'repo_client': '/opt/superdesk/client-core',
         })
     elif scope == scopes.lb:
         expand.update({

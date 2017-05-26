@@ -1,4 +1,11 @@
-{{>superdesk/build.sh}}
+{{>build-init.sh}}
+
+#branch=1.4
+{{>superdesk/build-src-dev.sh}}
+
+repo={{repo}}/client-core
+rm -rf $repo
+{{>superdesk/build-src.sh}}
 
 chunks=/var/tmp/e2e-chunks.py
 cat <<"EOF" > $chunks
@@ -7,10 +14,16 @@ EOF
 python3 $chunks
 unset chunks
 
-# fix "ImportError: No module named 'analytics'"
+# we always need all packages from main repo to prevent
+# errors like: "ImportError: No module named 'analytics'"
 cd {{repo}}/server
 time pip install -r requirements.txt
 
-# will be used for e2e tests
+# use superdesk-core from here
+cd {{repo_client}}/test-server
+time pip install -Ur requirements.txt
+
 cd {{repo_client}}
+time npm install
+# will be used for e2e tests
 time grunt build --webpack-no-progress
