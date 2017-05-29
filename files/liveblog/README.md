@@ -26,9 +26,8 @@ iptables -t nat -A PREROUTING -p tcp -i eth0 --dport 80 -j DNAT --to-destination
 
 ## Stuff after installation
 ```sh
-cat /etc/liveblog.sh # config
 ll /opt/liveblog/env # virtualenv
-source /opt/liveblog/env/bin/activate # activate virtualenv and loads variables from /etc/liveblog.sh
+source /opt/liveblog/activate.sh # activate virtualenv and loads env variables
 
 systemctl status liveblog
 systemctl restart liveblog
@@ -44,9 +43,9 @@ ll /var/log/liveblog
 
 ## Update
 ```sh
+soucre /opt/liveblog/activate.sh
 cd /opt/liveblog
 git pull
-source env/bin/activate
 
 cd /opt/liveblog/server
 pip install -U -r requirements.txt
@@ -54,16 +53,16 @@ pip install -U -r requirements.txt
 ./manage.py app:initialize_data
 
 cd /opt/liveblog/client
-npm i
+npm install
 grunt build
 
 systemctl restart liveblog
 ```
 
 ## Emails
-By default it uses dev SMTP server, which logs all emails to files, you can access them by http://<ip_or_domain>/mail/. If you want real emails, then you should have a proper SMTP server configured and then update settings in `/etc/liveblog.sh`:
+By default it uses dev SMTP server, which logs all emails to files, you can access them by http://<ip_or_domain>/mail/. If you want real emails, then you should have a proper SMTP server configured and then update settings in `/opt/liveblog/env.sh`:
 ```sh
-$ cat << EOF >> /etc/liveblog.sh
+$ cat << EOF >> /opt/liveblog/env.sh
 # Uses for build urls in emails
 SUPERDESK_CLIENT_URL=http://<ip_or_domain>
 
@@ -84,4 +83,31 @@ $ systemctl restart liveblog
 systemctl stop liveblog-smtp
 systemctl disable liveblog-smtp
 
+```
+
+## Development
+For development it's better to install stuff to containers ([prepare LXC](../../docs/lxc.md)).
+
+```sh
+# create clean directory
+repo=~/liveblog
+mkdir $repo && cd $repo
+# it mounts next directories inside the container
+# - current directory $(pwd) to /opt/liveblog
+# - /var/cache/fireq for pip, npm, dpkg caches and logs
+sudo bash -c "name=lb mount_src=$(pwd); $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/lxc-init)"
+# inside the container install liveblog
+curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/liveblog/install-dev | bash
+
+# there are two watchers for file changes
+cat /opt/liveblog/watch-server # restart server
+cat /opt/liveblog/watch-client # rebuild client
+
+# open http://lb in browser to access liveblog
+
+# current directory is mounted inside the container,
+# some files could be created by root during installation, so
+sudo chown -R <your_user> .
+
+ls -l /var/cache/fireq/log/lb/ # logs
 ```

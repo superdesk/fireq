@@ -10,8 +10,12 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    . /opt/superdesk/env/bin/activate
+    . /opt/superdesk/activate.sh
     set -ux
+}
+
+_missing_db() {
+    curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404
 }
 
 _skip_install() {
@@ -42,9 +46,9 @@ if ! _skip_install mongodb-org-server; then
 fi
 
 # tune mongo
-config=/etc/mongod.conf
-[ -f "${config}.bak" ] || mv $config $config.bak
-cat <<EOF > $config
+cfg=/etc/mongod.conf
+[ -f "${cfg}.bak" ] || mv $cfg $cfg.bak
+cat <<EOF > $cfg
 storage:
   dbPath: /var/lib/mongodb
   journal:
@@ -60,6 +64,7 @@ net:
   port: 27017
   bindIp: 0.0.0.0
 EOF
+unset cfg
 systemctl enable mongod
 systemctl restart mongod
 
@@ -91,14 +96,14 @@ if ! _skip_install elasticsearch; then
 fi
 
 # tune elasticsearch
-config='/etc/elasticsearch/elasticsearch.yml'
-[ -f "${config}.bak" ] || mv $config $config.bak
+cfg='/etc/elasticsearch/elasticsearch.yml'
+[ -f "${cfg}.bak" ] || mv $cfg $cfg.bak
 es_backups=/var/tmp/elasticsearch
 if [ ! -d "$es_backups" ]; then
     mkdir $es_backups
     chown elasticsearch:elasticsearch $es_backups
 fi
-cat <<EOF > $config
+cat <<EOF > $cfg
 network.bind_host: 0.0.0.0
 node.local: true
 discovery.zen.ping.multicast: false
@@ -112,7 +117,7 @@ wait_elastic
 
 curl -s -XPUT 'http://localhost:9200/_snapshot/backups' \
     -d '{"type": "fs", "settings": {"location": "'$es_backups'"}}'
-unset config es_backups
+unset cfg es_backups
 
 
 ### build
@@ -127,9 +132,40 @@ libfreetype6-dev liblcms2-dev libwebp-dev \
 curl libfontconfig libssl-dev \
 libxml2-dev libxslt1-dev
 
+# node & npm
+if ! _skip_install nodejs; then
+    curl -sL https://deb.nodesource.com/setup_7.x | bash -
+    apt-get install -y nodejs
+
+    npm install -g grunt-cli
+fi
+
+node --version
+npm --version
+grunt --version
+
+## virtualenv and activate script
+env=/opt/superdesk/env
+[ -d $env ] && rm -rf $env
+python3 -m venv $env
+unset env
+
+cat <<"EOF" > /opt/superdesk/activate.sh
+. /opt/superdesk/env/bin/activate
+
+set -a
+# some settings required by client
+PATH=/opt/superdesk/client/node_modules/.bin/:$PATH
+SUPERDESK_URL='http://localhost/api'
+SUPERDESK_WS_URL='ws://localhost/ws'
+set +a
+EOF
+
+_activate
+pip install -U pip wheel
 
 ## prepare source code
-repo=/opt/superdesk
+repo=${repo:-'/opt/superdesk'}
 [ -d $repo ] || mkdir $repo
 cd $repo
 if [ ! -d $repo/.git ]; then
@@ -143,104 +179,54 @@ if [ ! -d $repo/.git ]; then
     unset repo repo_ref
 fi
 
-
-## server part
-# init virtualenv
-env=/opt/superdesk/env
-[ -d $env ] && rm -rf $env
-python3 -m venv $env
-echo 'export PATH=./node_modules/.bin/:$PATH' >> $env/bin/activate
-unset env
-
-_activate
-pip install -U pip wheel
-
 cd /opt/superdesk/server
-time pip install -U -r requirements.txt
-
-
-## client part
-# node & npm
-if ! _skip_install nodejs; then
-    curl -sL https://deb.nodesource.com/setup_7.x | bash -
-    apt-get install -y nodejs
-
-    npm install -g grunt-cli
-fi
-
-node --version
-npm --version
-grunt --version
+[ -f dev-requirements.txt ] && req=dev-requirements.txt || req=requirements.txt
+time pip install -U -r $req
 
 cd /opt/superdesk/client
 time npm install
 
-# use default urls here
-time \
-SUPERDESK_URL=http://localhost/api \
-SUPERDESK_WS_URL=ws://localhost/ws \
-grunt build --webpack-no-progress
-
 
 ### deploy
-# write config if not exist
-config=/etc/superdesk.sh
-[ -f $config ] || cat <<EOF > $config
-# put your variables here!
-HOST=${host:-'localhost'}
-HOST_SSL=${host_ssl:-''}
+cat <<"EOF" > /opt/superdesk/activate.sh
+# you could write variables to /opt/superdesk/env.sh
+. /opt/superdesk/env/bin/activate
 
-DB_HOST=${db_host:-'localhost'}
-DB_NAME=${db_name:-'superdesk'}
-
-# keep using redis on localhost
-REDIS_URL=redis://localhost:6379/1
-
-SUPERDESK_TESTING=${testing:-''}
-EOF
-
-# env.sh
-envfile=/opt/superdesk/env.sh
-cat <<"EOF" > $envfile
-# don't change this file
-# variables are loading in /opt/superdesk/env/bin/activate by the next order
-# 1. /etc/superdesk.sh
-# 2. this file
-# so rewrite you variables in /etc/superdesk.sh
+set -a
 LANG=en_US.UTF-8
 LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8
 PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
+PATH=/opt/superdesk/client/node_modules/.bin/:$PATH
 
-HOST=${HOST:-localhost}
-DB_HOST=${DB_HOST:-localhost}
+[ ! -f /opt/superdesk/env.sh ] || . /opt/superdesk/env.sh
+
+HOST=${HOST:-'localhost'}
+HOST_SSL=${HOST_SSL:-}
+DB_HOST=${DB_HOST:-'localhost'}
 DB_NAME=${DB_NAME:-'superdesk'}
-[ -n "${HOST_SSL:-}" ] && [ "$HOST" != 'localhost' ] && SSL='s' || SSL=''
 
-# TODO: client related
-SUPERDESK_WS_URL=${SUPERDESK_WS_URL:-"ws$SSL://$HOST/ws"}
-
-# TODO: need to get rid this for proper SaaS
-SUPERDESK_CLIENT_URL=${SUPERDESK_CLIENT_URL:-"http$SSL://$HOST"}
-
+[ -n "${HOST_SSL:-}" ] && SSL='s' || SSL=''
 # To work properly inside and outside container, must be
 # - "proxy_set_header Host <host>;" in nginx
 # - the same "<host>" for next two settings
 # TODO: try to fix at backend side, it should accept any host
-SUPERDESK_URL=${SUPERDESK_URL:-"http$SSL://$HOST/api"}
-CONTENTAPI_URL=${CONTENTAPI_URL:-"http$SSL://$HOST/contentapi"}
+SUPERDESK_URL="http$SSL://$HOST/api"
+CONTENTAPI_URL="http$SSL://$HOST/contentapi"
+SUPERDESK_WS_URL="ws$SSL://$HOST/ws"
+SUPERDESK_CLIENT_URL="http$SSL://$HOST"
 
-MONGO_URI=${MONGO_URI:-"mongodb://$DB_HOST/$DB_NAME"}
-LEGAL_ARCHIVE_URI=${LEGAL_ARCHIVE_URI:-"mongodb://$DB_HOST/${DB_NAME}_la"}
-ARCHIVED_URI=${ARCHIVED_URI:-"mongodb://$DB_HOST/${DB_NAME}_ar"}
-ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-"http://$DB_HOST:9200"}
-ELASTICSEARCH_INDEX=${ELASTICSEARCH_INDEX:-"$DB_NAME"}
+MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
+LEGAL_ARCHIVE_URI="mongodb://$DB_HOST/${DB_NAME}_la"
+ARCHIVED_URI="mongodb://$DB_HOST/${DB_NAME}_ar"
+ELASTICSEARCH_URL="http://$DB_HOST:9200"
+ELASTICSEARCH_INDEX="$DB_NAME"
 
-CONTENTAPI_ELASTICSEARCH_INDEX=${CONTENTAPI_ELASTICSEARCH_INDEX:-"${DB_NAME}_ca"}
+CONTENTAPI_ELASTICSEARCH_INDEX="${DB_NAME}_ca"
 # TODO: fix will be in 1.6 release, keep it for a while
 CONTENTAPI_ELASTIC_INDEX=$CONTENTAPI_ELASTICSEARCH_INDEX
-CONTENTAPI_MONGO_URI=${CONTENTAPI_MONGO_URI:-"mongodb://$DB_HOST/${CONTENTAPI_ELASTICSEARCH_INDEX}"}
+CONTENTAPI_MONGO_URI="mongodb://$DB_HOST/${CONTENTAPI_ELASTICSEARCH_INDEX}"
 
 REDIS_URL=${REDIS_URL:-redis://$DB_HOST:6379/1}
 
@@ -248,33 +234,88 @@ C_FORCE_ROOT=1
 CELERYBEAT_SCHEDULE_FILENAME=${CELERYBEAT_SCHEDULE_FILENAME:-/tmp/celerybeatschedule}
 CELERY_BROKER_URL=${CELERY_BROKER_URL:-$REDIS_URL}
 
-# TODO: remove after full adoption of MEDIA_PREFIX
-AMAZON_SERVE_DIRECT_LINKS=${AMAZON_SERVE_DIRECT_LINKS:-True}
-AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-True}
 if [ -n "$AMAZON_CONTAINER_NAME" ]; then
     AMAZON_S3_SUBFOLDER=${AMAZON_S3_SUBFOLDER:-'superdesk'}
     MEDIA_PREFIX=${MEDIA_PREFIX:-"http$SSL://$HOST/api/upload-raw"}
+
+    # TODO: remove after full adoption of MEDIA_PREFIX
+    AMAZON_SERVE_DIRECT_LINKS=${AMAZON_SERVE_DIRECT_LINKS:-True}
+    AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-True}
 fi
 
-if [ -n "${SUPERDESK_TESTING:-}" ]; then
+if [ -n "${SUPERDESK_TESTING:-''}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
     ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
     LEGAL_ARCHIVE=True
 fi
-EOF
-
-# load env.sh and config in activation script
-activate=/opt/superdesk/env/bin/activate
-grep "$envfile" $activate || cat <<EOF >> $activate
-set -a
-[ -f $config ] && . $config
-. $envfile
 set +a
 EOF
-unset envfile activate config
+
 _activate
 
+
+[ -z "${prepopulate-1}" ] || (
+### prepopulate
+_activate
+cd /opt/superdesk/server
+
+_sample_data() {
+    sample_data=${sample_data:-}
+    [ -z "$sample_data" ] || sample_data='--sample-data'
+    (python manage.py app:initialize_data --help | grep -- --sample-data) && sample_data=$sample_data || sample_data=
+}
+
+if _missing_db; then
+    _sample_data
+    python manage.py app:initialize_data $sample_data
+    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+else
+    python manage.py app:initialize_data
+fi
+unset sample_data
+)
+
+[ -z "${grunt_build-1}" ] || (
+cd /opt/superdesk/client
+time grunt build --webpack-no-progress
+)
+
+[ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
+systemctl disable rsyslog
+systemctl stop rsyslog
+
+# Use latest honcho with --no-colour option
+pip install -U honcho gunicorn
+
+gunicorn_opts='-t 300 -w 1 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
+cat <<EOF > /opt/superdesk/server/Procfile
+logs: journalctl -u superdesk* -f >> /var/log/superdesk/main.log
+rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
+wamp: python3 -u ws.py
+work: celery -A worker worker -c 1
+beat: celery -A worker beat --pid=
+capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
+EOF
+
+
+cat <<"EOF" > /etc/systemd/system/superdesk.service
+[Unit]
+Description=superdesk
+Wants=network.target
+After=network.target
+
+[Service]
+ExecStart=/bin/sh -c '. /opt/superdesk/activate.sh && exec honcho start --no-colour'
+WorkingDirectory=/opt/superdesk/server
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable superdesk
+systemctl restart superdesk
 
 # nginx
 if ! _skip_install nginx; then
@@ -365,7 +406,6 @@ location /contentapi {
 location /.well-known {
     root /var/tmp;
 }
-
 location / {
     root /opt/superdesk/client/dist;
 
@@ -379,66 +419,6 @@ EOF
 unset path
 systemctl enable nginx
 systemctl restart nginx
-
-
-[ -z "${prepopulate-1}" ] || (
-### prepopulate
-_activate
-cd /opt/superdesk/server
-
-_sample_data() {
-    sample_data=${sample_data:-}
-    [ -z "$sample_data" ] || sample_data='--sample-data'
-    (python manage.py app:initialize_data --help | grep -- --sample-data) && sample_data=$sample_data || sample_data=
-}
-
-if curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404; then
-    _sample_data
-    python manage.py app:initialize_data $sample_data
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
-else
-    python manage.py app:initialize_data
-fi
-unset sample_data
-)
-
-
-[ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
-systemctl disable rsyslog
-systemctl stop rsyslog
-
-# Use latest honcho with --no-colour option
-_activate
-pip install -U honcho
-
-gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
-cat <<EOF > /opt/superdesk/server/Procfile
-logs: journalctl -u superdesk* -f >> /var/log/superdesk/main.log
-rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
-wamp: python3 -u ws.py
-work: celery -A worker worker -c 2
-beat: celery -A worker beat --pid=
-capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
-EOF
-
-service=superdesk
-cat <<"EOF" > /etc/systemd/system/$service.service
-[Unit]
-Description=superdesk
-Wants=network.target
-After=network.target
-
-[Service]
-ExecStart=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec honcho start --no-colour'
-WorkingDirectory=/opt/superdesk/server
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable $service
-systemctl restart $service
-unset service
 
 
 [ -z "${smtp-1}" ] || (
@@ -505,9 +485,6 @@ EOF
 
 cat <<EOF >> /etc/nginx/conf.d/default.inc
 location /mail {
-    return 302 \$scheme://\$host/mail/;
-}
-location /mail/ {
     alias $mails/;
     default_type text/plain;
     autoindex on;

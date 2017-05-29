@@ -10,8 +10,12 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    . /opt/liveblog/env/bin/activate
+    . /opt/liveblog/activate.sh
     set -ux
+}
+
+_missing_db() {
+    curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404
 }
 
 _skip_install() {
@@ -75,6 +79,10 @@ systemctl restart sshd
 EOF
 fi
 [ -n "$no_login" ] || (
-./fire lxc-wait $name
+name=$name
+start=${start-}
+[ -z "$start" ] || lxc-start -n $name
+lxc-wait -n $name -s RUNNING
+while ! timeout 1 bash -c "</dev/tcp/$name/22" &> /dev/null; do sleep 3; done
 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $(lxc-info -n $name -iH)
 )

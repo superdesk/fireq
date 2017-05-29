@@ -27,7 +27,7 @@ iptables -t nat -A PREROUTING -p tcp -i eth0 --dport 80 -j DNAT --to-destination
 ## Stuff after installation
 ```sh
 ll {{repo_env}} # virtualenv
-source {activate} # activate virtualenv and loads env variables
+source {{activate}} # activate virtualenv and loads env variables
 
 systemctl status {{name}}
 systemctl restart {{name}}
@@ -105,27 +105,32 @@ cd /opt/superdesk/server
 {{/is_superdesk}}
 
 ## Development
-For development it's better to install stuff to containers.
-### [Prepare LXC](../../docs/lxc.md)
+For development it's better to install stuff to containers ([prepare LXC](../../docs/lxc.md)).
+
 ```sh
 # create clean directory
-path=~/{{name}}
-mkdir $path && cd $path
+repo=~/{{name}}
+mkdir $repo && cd $repo
 # it mounts next directories inside the container
-# - current directory $(pwd) to /opt/superdesk
+# - current directory $(pwd) to {{repo}}
 # - /var/cache/fireq for pip, npm, dpkg caches and logs
-sudo bash -c "name={{scope}} mount_src=$(pwd); $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/lxc-init)"
-(echo host=$(hostname); curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/install-dev) | bash
+sudo bash -c "name={{scope}} mount_src=$(pwd); $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/lxc-init)"
+# inside the container install {{name}}
+curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/install-dev | bash
 
-# open http://{{scope}} in browser to access superdesk
+# there are two watchers for file changes
+cat {{repo}}/watch-server # restart server
+cat {{repo}}/watch-client # rebuild client
+
+# open http://{{scope}} in browser to access {{name}}
 
 # current directory is mounted inside the container,
 # some files could be created by root during installation, so
 sudo chown -R <your_user> .
+
 {{#is_superdesk}}
 ls -l ./client-core # superdesk-client-core
 ls -l ./server-core # superdesk-core
 {{/is_superdesk}}
 ls -l /var/cache/fireq/log/{{scope}}/ # logs
 ```
-There are two watchers for file changes in {{#is_superdesk}}`client-core` and `server-core`{{/is_superdesk}}{{^is_superdesk}}`client` and `server`{{/is_superdesk}} directories which automatically restart server part and rebuild client part.

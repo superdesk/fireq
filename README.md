@@ -2,11 +2,13 @@
 
 # Installations
 - [Superdesk for users](https://github.com/superdesk/fireq/tree/master/files/superdesk)
-- [Superdesk for developers](https://github.com/superdesk/fireq/tree/master/files/superdesk-dev)
+- [Superdesk for developers](https://github.com/superdesk/fireq/tree/master/files/superdesk#development)
 - [Liveblog for users](https://github.com/superdesk/fireq/tree/master/files/liveblog)
+- [Liveblog for developers](https://github.com/superdesk/fireq/tree/master/files/liveblog#development)
 
+# Generate files
 To test install scripts:
-```
+```sh
 ./fire gen-files
 
 # superdesk

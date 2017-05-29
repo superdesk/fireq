@@ -55,7 +55,7 @@ EOF
 {{#develop}}
 {{>testing.sh}}
 
-[ _skip_install inotify-tools ] || (
+_skip_install inotify-tools || (
     apt-get update
     apt-get -y install inotify-tools
 )

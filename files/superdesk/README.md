@@ -26,9 +26,8 @@ iptables -t nat -A PREROUTING -p tcp -i eth0 --dport 80 -j DNAT --to-destination
 
 ## Stuff after installation
 ```sh
-cat /etc/superdesk.sh # config
 ll /opt/superdesk/env # virtualenv
-source /opt/superdesk/env/bin/activate # activate virtualenv and loads variables from /etc/superdesk.sh
+source /opt/superdesk/activate.sh # activate virtualenv and loads env variables
 
 systemctl status superdesk
 systemctl restart superdesk
@@ -44,9 +43,9 @@ ll /var/log/superdesk
 
 ## Update
 ```sh
+soucre /opt/superdesk/activate.sh
 cd /opt/superdesk
 git pull
-source env/bin/activate
 
 cd /opt/superdesk/server
 pip install -U -r requirements.txt
@@ -54,16 +53,16 @@ pip install -U -r requirements.txt
 ./manage.py app:initialize_data
 
 cd /opt/superdesk/client
-npm i
+npm install
 grunt build
 
 systemctl restart superdesk
 ```
 
 ## Emails
-By default it uses dev SMTP server, which logs all emails to files, you can access them by http://<ip_or_domain>/mail/. If you want real emails, then you should have a proper SMTP server configured and then update settings in `/etc/superdesk.sh`:
+By default it uses dev SMTP server, which logs all emails to files, you can access them by http://<ip_or_domain>/mail/. If you want real emails, then you should have a proper SMTP server configured and then update settings in `/opt/superdesk/env.sh`:
 ```sh
-$ cat << EOF >> /etc/superdesk.sh
+$ cat << EOF >> /opt/superdesk/env.sh
 # Uses for build urls in emails
 SUPERDESK_CLIENT_URL=http://<ip_or_domain>
 
@@ -89,8 +88,8 @@ systemctl disable superdesk-smtp
 ## Sample data
 By default install script creates minimal database for Superdesk with one `admin` user. If you want more data on the test instance try this:
 ```sh
-# modify DB_NAME in /etc/superdesk.sh
-source /opt/superdesk/env/bin/activate
+# modify DB_NAME in /opt/superdesk/activate.sh
+source /opt/superdesk/activate.sh
 cd /opt/superdesk/server
 
 # way #1
@@ -101,4 +100,33 @@ cd /opt/superdesk/server
 ./manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 
 # go http://<ip_or_domain> in browser
+```
+
+## Development
+For development it's better to install stuff to containers ([prepare LXC](../../docs/lxc.md)).
+
+```sh
+# create clean directory
+repo=~/superdesk
+mkdir $repo && cd $repo
+# it mounts next directories inside the container
+# - current directory $(pwd) to /opt/superdesk
+# - /var/cache/fireq for pip, npm, dpkg caches and logs
+sudo bash -c "name=sd mount_src=$(pwd); $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/lxc-init)"
+# inside the container install superdesk
+curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/superdesk/install-dev | bash
+
+# there are two watchers for file changes
+cat /opt/superdesk/watch-server # restart server
+cat /opt/superdesk/watch-client # rebuild client
+
+# open http://sd in browser to access superdesk
+
+# current directory is mounted inside the container,
+# some files could be created by root during installation, so
+sudo chown -R <your_user> .
+
+ls -l ./client-core # superdesk-client-core
+ls -l ./server-core # superdesk-core
+ls -l /var/cache/fireq/log/sd/ # logs
 ```

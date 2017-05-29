@@ -56,6 +56,6 @@ systemctl restart sshd
 EOF
 fi
 [ -n "$no_login" ] || (
-./fire lxc-wait $name
+{{>lxc-wait.sh}}
 {{ssh}} $(lxc-info -n $name -iH)
 )
