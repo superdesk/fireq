@@ -1,11 +1,11 @@
 {{>build-init.sh}}
 
 #branch=1.4
-{{>superdesk/build-src-dev.sh}}
+{{>superdesk/build-src-cores.sh}}
 
 repo={{repo}}/server-core
 rm -rf $repo
-{{>superdesk/build-src.sh}}
+{{>superdesk/build-src-repo.sh}}
 
 # we always need all packages from main repo to prevent
 # errors like: "ImportError: No module named 'analytics'"

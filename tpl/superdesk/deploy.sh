@@ -73,8 +73,10 @@ EOF
 # client watcher
 cat <<"EOF" > {{repo}}/watch-client
 . {{activate}}
-[ -d {{repo}}/client-core ] && cd {{repo}}/client-core || cd {{repo_client}}
+cd {{repo_client}}
 grunt build --webpack-devtool=cheap-eval-source-map --webpack-no-progress
+
+[ -d {{repo}}/client-core ] && cd {{repo}}/client-core
 while inotifywait -e modify -e create -e delete -r .; do
     systemctl restart {{name}}-client
 done

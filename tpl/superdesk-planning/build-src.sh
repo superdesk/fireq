@@ -18,4 +18,4 @@ fi
 unset repo github
 
 repo={{repo}}/planning
-{{>superdesk/build-src.sh}}
+{{>superdesk/build-src-repo.sh}}
