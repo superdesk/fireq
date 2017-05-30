@@ -62,6 +62,10 @@ RequiredBy=local-fs.target
 EOF
 systemctl enable fix-run-directory
 
+cat <<EOF > /etc/profile.d/activate.sh
+[ -f {{activate}} ] && . {{activate}}
+EOF
+
 # cleanup
 rm -rf {{repo}}
 rm /etc/systemd/system/{{name}}* || true

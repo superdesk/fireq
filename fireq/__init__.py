@@ -57,6 +57,9 @@ def get_conf():
         datefmt='%Y-%m-%d %H:%M:%S %Z',
         format=fmt
     )
+    tmp = Path(conf['tmp_root'])
+    if not tmp.exists():
+        tmp.mkdir()
     return conf
 
 

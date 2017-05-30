@@ -666,6 +666,7 @@ def main(args=None):
             '{{>header.sh}}\n'
             '{{>lxc-db.sh}}\n'
             'EOF2',
+            re.sub('pr$', '', (a.db_name or a.lxc_name).split('-', 1)[0]),
             header=False,
             expand={
                 'lxc_name': a.lxc_name,

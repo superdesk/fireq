@@ -11,6 +11,10 @@ db_name='{{db_name}}'
 db_host='{{lxc_name}}'
 {{/db_name}}
 {{^db_name}}
+[ -f {{activate}} ] || (
+    echo '. {{repo_env}}/bin/activate' > {{activate}}
+)
+_activate
 db_name=$DB_NAME
 db_host=$DB_HOST
 {{/db_name}}
@@ -53,7 +57,6 @@ done
 
 [ -z "$restore" ] || (
 systemctl stop {{name}}
-_activate
 cd {{repo}}/server
 
 if _missing_db; then
