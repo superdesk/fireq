@@ -8,8 +8,12 @@ if _missing_db; then
     python manage.py users:create --help | grep -- '-a ADMIN' && admin='--admin=true' || admin='--admin'
     python manage.py users:create -u admin -p admin -e 'admin@example.com' $admin
 
-    python manage.py register_local_themes
 else
     python manage.py app:initialize_data
-    python manage.py register_local_themes
 fi
+
+# fix 'IndexMissingException[[lb-*] missing]' errors
+curl -s -XPUT $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX
+
+python manage.py register_local_themes
+python manage.py register_bloglist
