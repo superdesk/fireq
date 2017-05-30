@@ -1,6 +1,6 @@
 ### deploy
 cd {{repo}}
-cat <<"EOF" > activate
+cat <<"EOF" > {{activate}}
 # use virtualenv
 . {{repo_env}}/bin/activate
 
@@ -40,7 +40,7 @@ systemctl stop rsyslog
 _activate
 pip install -U honcho gunicorn
 
-gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"{{#dev}} --reload{{/dev}}'
+gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
 cat <<EOF > {{repo}}/Procfile
 logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
 rest: gunicorn -b 0.0.0.0:5000 manage $gunicorn_opts
@@ -60,7 +60,7 @@ Wants=network.target
 After=network.target
 
 [Service]
-ExecStart=/bin/sh -c '. {{repo}}/activate; exec honcho start --no-colour'
+ExecStart=/bin/sh -c '. {{activate}}; exec honcho start --no-colour'
 WorkingDirectory={{repo}}
 Restart=always
 RestartSec=10s

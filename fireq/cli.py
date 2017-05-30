@@ -411,6 +411,9 @@ def gen_files():
             ('lxc-init.sh', 'lxc-init', {}),
             ('README.md', None, {}),
         ]),
+        ('sd', 'superdesk-new', [
+            ('install.sh', 'install', {}),
+        ]),
     ]
     for scope_name, tpldir, files in items:
         for target, filename, opts in files:
