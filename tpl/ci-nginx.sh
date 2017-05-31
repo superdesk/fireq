@@ -62,4 +62,28 @@ server {
 }
 {{/hosts}}
 EOF
+# proxy ssh ports
+cat <<"EOF" > /etc/nginx/sites-ssh-enabled/{{label}}
+{{#proxy_ssh}}
+server {
+    listen {{port}};
+    proxy_pass {{name}}:22;
+}
+{{/proxy_ssh}}
+EOF
+{{#proxy_ssh}}
+cat <<"EOF2" | {{ssh}} {{name}}
+cat <<"EOF" >> /root/.ssh/authorized_keys
+{{>init/.authorized_keys}}
+EOF
+
+cat <<"EOF" > /etc/nginx/conf.d/ssh.inc
+location /ssh {
+    add_header Content-Type text/plain;
+    return 200 '{{ssh}} root@{{host}} -p {{port}}';
+}
+EOF
+nginx -s reload
+EOF2
+{{/proxy_ssh}}
 nginx -s reload
