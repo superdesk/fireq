@@ -21,6 +21,19 @@ time grunt build --webpack-no-progress
 systemctl disable rsyslog
 systemctl stop rsyslog
 
+cat <<"EOF" > /etc/logrotate.d/{{name}}
+{{logs}}/*.log {
+    rotate 7
+    daily
+    missingok
+    copytruncate
+    notifempty
+    nocompress
+    size 20M
+}
+EOF
+logrotate /etc/logrotate.conf
+
 # Use latest honcho with --no-colour option
 pip install -U honcho gunicorn
 
