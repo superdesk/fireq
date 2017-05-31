@@ -452,11 +452,18 @@ def ci_nginx(lxc_prefix=None, ssl=False, live=False):
         'host': '%s.%s' % (n, conf['domain']),
         'ssl': not n.split('-', 1)[0].endswith('pr') and ssl,
     } for n in names]
+    proxy_ssh = [{
+        'port': p,
+        'name': n,
+        'host': '%s.%s' % (n, conf['domain'])
+    } for p, n in conf['proxy_ssh'].items()]
     txt = render_tpl('{{>ci-nginx.sh}}', {
         'label': label,
         'hosts': hosts,
         'cert': ssl,
         'live': live and 1 or '',
+        'proxy_ssh': proxy_ssh,
+        'ssh': 'ssh %s' % ssh_opts,
     })
     sh(txt, quiet=True)
 

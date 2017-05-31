@@ -31,6 +31,7 @@ def get_conf():
         ('url_prefix', ''),
         ('status_prefix', 'fire:'),
         ('protected_dbs', []),
+        ('proxy_ssh', {}),
 
         ('github_id', None),
         ('github_secret', None),
