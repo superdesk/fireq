@@ -26,6 +26,7 @@ _skip_install() {
 if ! _skip_install redis-server; then
     apt-get -y install software-properties-common
     add-apt-repository -y ppa:chris-lea/redis-server
+    apt-get -y update
     apt-get -y install --no-install-recommends redis-server
 
     systemctl enable redis-server
@@ -129,7 +130,8 @@ build-essential libffi-dev \
 libtiff5-dev libjpeg8-dev zlib1g-dev \
 libfreetype6-dev liblcms2-dev libwebp-dev \
 curl libfontconfig libssl-dev \
-libxml2-dev libxslt1-dev
+libxml2-dev libxslt1-dev \
+libxmlsec1-dev
 
 # node & npm
 if ! _skip_install nodejs; then
