@@ -38,6 +38,7 @@ def get_conf():
         ('github_basic', None),
         ('github_orgs', ['superdesk']),
         ('github_callback', '/oauth_callback/github'),
+        ('uri_priv_repo', ''),
 
         ('log_url', lambda c: 'http://%s/logs/' % c['domain']),
         ('log_root', lambda c: '%s/logs' % c['tmp_root']),

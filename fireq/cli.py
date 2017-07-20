@@ -25,15 +25,17 @@ from . import log, conf, pretty_json, gh, lock
 dry_run = False
 ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
 
-Scope = namedtuple('Scope', 'name, tpldir, repo')
+fil_priv_repo = conf['uri_priv_repo'] + 'sdp/superdesk-fidelity'
+
+Scope = namedtuple('Scope', 'name, tpldir, repo, priv_repo')
 scopes = [
-    Scope('sd', 'superdesk', 'superdesk/superdesk'),
-    Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
-    Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
-    Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
-    Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
-    Scope('fil', 'superdesk', 'superdesk/superdesk-fidelity'),
-    Scope('lb', 'liveblog', 'liveblog/liveblog'),
+    Scope('sd', 'superdesk', 'superdesk/superdesk', ''),
+    Scope('sds', 'superdesk-server', 'superdesk/superdesk-core', ''),
+    Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core', ''),
+    Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning', ''),
+    Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb', ''),
+    Scope('fil', 'superdesk', 'superdesk/superdesk-fidelity', fil_priv_repo),
+    Scope('lb', 'liveblog', 'liveblog/liveblog', ''),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
@@ -138,6 +140,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         repo_remote = val('repo_remote') or (
             'https://github.com/superdesk/superdesk.git'
         )
+        priv_repo_remote = val('priv_repo_remote') or ''
         repo_server = val('repo_server', '%s/server' % repo)
         repo_client = val('repo_client', '%s/client' % repo)
 
@@ -171,9 +174,14 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         search_dirs.insert(0, tpldir)
 
     # TODO: move superdesk based logic to separate file
+    priv_repo_remote = ''
+    if scope.priv_repo:
+        priv_repo_remote = scope.priv_repo + '.git'
+
     expand.update({
         'scope': scope.name,
-        'repo_remote': 'https://github.com/%s.git' % scope.repo
+        'repo_remote': 'https://github.com/%s.git' % scope.repo,
+        'priv_repo_remote': priv_repo_remote
     })
     if scope == scopes.sd:
         pass
