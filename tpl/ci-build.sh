@@ -14,6 +14,9 @@ lxc-destroy -fn $lxc || true
 
 # create new container and build code
 lxc-copy -s -n {{lxc_base}} -N $lxc
+{{#priv_repo_remote}}
+cp /root/.ssh/* /var/lib/lxc/$lxc/rootfs/root/.ssh/
+{{/priv_repo_remote}}
 ./fire lxc-wait --start $lxc
 cat <<"EOF2" | {{ssh}} $lxc
 {{>header.sh}}
