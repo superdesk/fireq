@@ -8,6 +8,10 @@ no_login=${no_login:-}
 
 lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 
+cat <<EOF >> /var/lib/lxc/$name/config
+lxc.mount.entry = /root/.ssh root/.ssh none bind,create=dir
+EOF
+
 [ -z "$mount_src" ] || cat <<EOF >> /var/lib/lxc/$name/config
 lxc.mount.entry = $mount_src opt/$proj none bind,create=dir
 EOF
@@ -35,7 +39,7 @@ apt-get update
 apt-get install -y --no-install-recommends openssh-server curl ca-certificates
 EOF
 
-if [ -n "$authorized_keys" ]; then
+if [ -n "$authorized_keys" ] && [ ! -f "/root/.ssh/authorized_keys" ]; then
     cat $authorized_keys | $lxc_attach -c "
 /bin/mkdir -p /root/.ssh
 /bin/cat > /root/.ssh/authorized_keys
