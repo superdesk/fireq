@@ -32,7 +32,7 @@ scopes = [
     Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
     Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
-    Scope('fil', 'superdesk', 'superdesk/superdesk-fidelity'),
+    Scope('fil', 'superdesk-fidelity', 'superdesk/superdesk-fidelity'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
