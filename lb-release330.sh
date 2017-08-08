@@ -4,4 +4,5 @@ EOF
 
 cat <<EOF >> {{config}}
 SYNDICATION=true
+MARKETPLACE_APP_URL=https://market.liveblog.pro/api
 EOF
