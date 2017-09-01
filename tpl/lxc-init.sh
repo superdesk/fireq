@@ -39,8 +39,8 @@ apt-get update
 apt-get install -y --no-install-recommends openssh-server curl ca-certificates
 EOF
 
-if [ -n "$authorized_keys" ] && [ ! -f "/root/.ssh/authorized_keys" ]; then
-    cat $authorized_keys | $lxc_attach -c "
+if [ -n "$authorized_keys" ]; then
+    [ -f "/root/.ssh/authorized_keys" ] || cat $authorized_keys | $lxc_attach -c "
 /bin/mkdir -p /root/.ssh
 /bin/cat > /root/.ssh/authorized_keys
 "
