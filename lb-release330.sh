@@ -1,6 +1,4 @@
-cat <<"EOF" >> {{config}}
-{{>init/.liveblog.sh}}
-EOF
+{{>init/lb.sh}}
 
 cat <<EOF >> {{config}}
 SYNDICATION=true
