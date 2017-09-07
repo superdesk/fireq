@@ -1,5 +1,4 @@
 #!/bin/bash
-{{{header_doc}}}
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -exuo pipefail
 
