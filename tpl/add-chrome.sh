@@ -1,10 +1,18 @@
-# chrome instead of chromium.
-# chromium 59.0.3071.109 fails at creating session.
-if ! _skip_install google-chrome-stable; then
-    curl -s https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list
-    apt-get update
-    apt-get install -y --no-install-recommends xvfb google-chrome-stable
+# chromium instead of chrome :)
+if ! _skip_install chromium-browser; then
+    # without gconf-service, chromium fails at creating session %)
+    apt-get install -y --no-install-recommends chromium-browser gconf-service
 fi
+chromium-browser --version
 
-export CHROME_BIN=$(which google-chrome-stable) && $CHROME_BIN --version
+chrome_opts=${chrome_opts:-""}
+export CHROME_BIN=/tmp/chrome
+cat <<EOF > $CHROME_BIN
+#!/bin/sh
+/usr/bin/chromium-browser\
+    --headless --disable-gpu\
+    --window-size=1920x1080\
+    $chrome_opts\
+    "\$@"
+EOF
+chmod +x $CHROME_BIN
