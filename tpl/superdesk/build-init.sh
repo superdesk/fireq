@@ -22,6 +22,8 @@ cat <<"EOF" > {{activate}}
 . {{repo_env}}/bin/activate
 
 set -a
+LC_ALL=en_US.UTF-8
+
 # some settings required by client
 PATH={{repo_client}}/node_modules/.bin/:$PATH
 SUPERDESK_URL='http://localhost/api'

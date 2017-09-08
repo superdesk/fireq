@@ -2,10 +2,7 @@
 . {{repo_env}}/bin/activate
 
 set -a
-LANG=en_US.UTF-8
-LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8
-PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
 PATH={{repo_client}}/node_modules/.bin/:$PATH
 

@@ -6,10 +6,7 @@ cat <<"EOF" > {{activate}}
 
 set -a
 PATH=./node_modules/.bin/:$PATH
-LANG=en_US.UTF-8
-LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8
-PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
 C_FORCE_ROOT=1
 
