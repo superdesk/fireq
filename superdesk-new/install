@@ -152,6 +152,8 @@ cat <<"EOF" > /opt/superdesk/activate.sh
 . /opt/superdesk/env/bin/activate
 
 set -a
+LC_ALL=en_US.UTF-8
+
 # some settings required by client
 PATH=/opt/superdesk/client/node_modules/.bin/:$PATH
 SUPERDESK_URL='http://localhost/api'
@@ -192,10 +194,7 @@ cat <<"EOF" > /opt/superdesk/activate.sh
 
 set -a
 PATH=./node_modules/.bin/:$PATH
-LANG=en_US.UTF-8
-LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8
-PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
 C_FORCE_ROOT=1
 

@@ -153,6 +153,8 @@ cat <<"EOF" > /opt/liveblog/activate.sh
 . /opt/liveblog/env/bin/activate
 
 set -a
+LC_ALL=en_US.UTF-8
+
 # some settings required by client
 PATH=/opt/liveblog/client/node_modules/.bin/:$PATH
 SUPERDESK_URL='http://localhost/api'
@@ -202,10 +204,7 @@ cat <<"EOF" > /opt/liveblog/activate.sh
 . /opt/liveblog/env/bin/activate
 
 set -a
-LANG=en_US.UTF-8
-LANGUAGE=en_US:en
 LC_ALL=en_US.UTF-8
-PYTHONIOENCODING="utf-8"
 PYTHONUNBUFFERED=1
 PATH=/opt/liveblog/client/node_modules/.bin/:$PATH
 
