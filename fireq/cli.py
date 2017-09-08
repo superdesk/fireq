@@ -376,7 +376,7 @@ def run_jobs(ref, targets=None, all=False):
         raise SystemExit(code)
 
 
-def gen_files():
+def gen_files(commit):
     def save(target, name, tpldir, filename, **opts):
         is_bash = True if target.endswith('.sh') else False
         txt = endpoint(
@@ -414,7 +414,15 @@ def gen_files():
         for target, filename, opts in files:
             save(target, scope_name, tpldir, filename, **opts)
 
-    sh('cd files; git add -A; git commit -m "Update files"; git push')
+    if not commit:
+        return
+
+    sh('''
+    cd files
+    git add -A
+    git commit -m "{}"
+    git push
+    '''.format(commit))
 
 
 def lxc_ls(opts):
@@ -610,7 +618,8 @@ def main(args=None):
 
     cmd('gen-files')\
         .inf('generate install scripts')\
-        .exe(lambda a: gen_files())
+        .arg('-c', '--commit', help='provide commit message')\
+        .exe(lambda a: gen_files(a.commit))
 
     cmd('render', alias='r')\
         .inf('render endpoint from "tpl" directory')\

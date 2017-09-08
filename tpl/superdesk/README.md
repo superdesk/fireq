@@ -5,7 +5,7 @@ Replace `<ip_or_domain>` with public IP address or domain where {{name}}'ll be a
 
 ## Install on fresh Ubuntu 16.04
 ```sh
-curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/install | sudo bash
+curl -s https://raw.githubusercontent.com/superdesk/fireq/files/{{name}}/install | sudo bash
 # Open http://<ip_or_domain> in browser
 # login: admin
 # password: admin
@@ -17,9 +17,9 @@ curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/
 
 ```sh
 # initilize new container
-sudo bash -c "name={{scope}}; $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/lxc-init)"
+sudo bash -c "name={{scope}}; $(curl -s https://raw.githubusercontent.com/superdesk/fireq/files/{{name}}/lxc-init)"
 # inside the container install {{name}}
-curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/install | bash
+curl -s https://raw.githubusercontent.com/superdesk/fireq/files/{{name}}/install | bash
 # expose port 80 from container to host
 iptables -t nat -A PREROUTING -p tcp -i eth0 --dport 80 -j DNAT --to-destination $(sudo lxc-info -iH -n {{scope}})
 ```
@@ -114,9 +114,9 @@ mkdir $repo && cd $repo
 # it mounts next directories inside the container
 # - current directory $(pwd) to {{repo}}
 # - /var/cache/fireq for pip, npm, dpkg caches and logs
-sudo bash -c "name={{scope}} mount_src=$(pwd); $(curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/lxc-init)"
+sudo bash -c "name={{scope}} mount_src=$(pwd); $(curl -s https://raw.githubusercontent.com/superdesk/fireq/files/{{name}}/lxc-init)"
 # inside the container install {{name}}
-curl -s https://raw.githubusercontent.com/superdesk/fireq/master/files/{{name}}/install-dev | bash
+curl -s https://raw.githubusercontent.com/superdesk/fireq/files/{{name}}/install-dev | bash
 
 # there are two watchers for file changes
 cat {{repo}}/watch-server # restart server
