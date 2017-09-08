@@ -380,7 +380,7 @@ def run_jobs(ref, targets=None, all=False):
         raise SystemExit(code)
 
 
-def gen_files(commit):
+def gen_files(commit, no_diff):
     def save(target, name, tpldir, filename, **opts):
         is_bash = True if target.endswith('.sh') else False
         txt = endpoint(
@@ -418,6 +418,8 @@ def gen_files(commit):
         for target, filename, opts in files:
             save(target, scope_name, tpldir, filename, **opts)
 
+    if not no_diff:
+        sh('cd files; git diff')
     if not commit:
         return
 
@@ -623,7 +625,8 @@ def main(args=None):
     cmd('gen-files')\
         .inf('generate install scripts')\
         .arg('-c', '--commit', help='provide commit message')\
-        .exe(lambda a: gen_files(a.commit))
+        .arg('--no-diff', help='skip "git diff" on files branch')\
+        .exe(lambda a: gen_files(a.commit, a.no_diff))
 
     cmd('render', alias='r')\
         .inf('render endpoint from "tpl" directory')\
