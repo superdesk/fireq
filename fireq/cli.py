@@ -23,7 +23,11 @@ from pystache import Renderer
 from . import log, conf, pretty_json, gh, lock
 
 dry_run = False
-ssh_opts = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+ssh_opts = (
+    '-o StrictHostKeyChecking=no '
+    '-o UserKnownHostsFile=/dev/null '
+    '-o LogLevel=Error'
+)
 
 Scope = namedtuple('Scope', 'name, tpldir, repo')
 scopes = [
@@ -716,13 +720,14 @@ def main(args=None):
         .arg('name')\
         .arg('--mount-src', default='')\
         .arg('--mount-cache', default='/var/cache/fireq')\
+        .arg('--mount-ssh', action='store_true', default='')\
         .arg('-k', '--authorized-keys', default='')\
         .arg('--no-login', action='store_true', default='')\
         .arg('--opts', default=conf['lxc_opts'], help='lxc-create options')\
         .exe(lambda a: sh(endpoint('{{>lxc-init.sh}}', header=False), env={
             k: getattr(a, k)
             for k in (
-                'name opts mount_src mount_cache '
+                'name opts mount_src mount_cache mount_ssh '
                 'authorized_keys no_login'
                 .split()
             ) if getattr(a, k)

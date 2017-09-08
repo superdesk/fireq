@@ -1,14 +1,16 @@
 proj={{name}}
 name=${name:-$proj}
 opts=${opts:-}
-authorized_keys=${authorized_keys:-}
 mount_src=${mount_src:-}
 mount_cache=${mount_cache:-}
+mount_ssh=${mount_ssh:-}
+authorized_keys=${authorized_keys:-}
 no_login=${no_login:-}
 
 lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 
-cat <<EOF >> /var/lib/lxc/$name/config
+[ -z "$mount_ssh" ] || authorized_keys=${authorized_keys:-'/root/.ssh/authorized_keys'}
+[ -z "$mount_ssh" ] || cat <<EOF >> /var/lib/lxc/$name/config
 lxc.mount.entry = /root/.ssh root/.ssh none bind,create=dir
 EOF
 
@@ -37,16 +39,20 @@ set -exuo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends openssh-server curl ca-certificates
+
+# disable banner after login
+touch ~/.hushlogin
 EOF
 
-if [ -n "$authorized_keys" ]; then
-    [ -f "/root/.ssh/authorized_keys" ] || cat $authorized_keys | $lxc_attach -c "
+# put authorized_keys if no such file in container
+[ -z "$authorized_keys" ] || cat $authorized_keys | $lxc_attach -c "
+/bin/ls /root/.ssh/authorized_keys && exit
 /bin/mkdir -p /root/.ssh
 /bin/cat > /root/.ssh/authorized_keys
 "
-else
-    # use password-less root login instead
-    cat <<"EOF" | $lxc_attach
+
+# use password-less root login if no authorized_keys
+[ -n "$authorized_keys" ] || cat <<"EOF" | $lxc_attach
 set -exuo pipefail
 
 passwd -d root
@@ -58,7 +64,7 @@ sed -i \
     /etc/ssh/sshd_config
 systemctl restart sshd
 EOF
-fi
+
 [ -n "$no_login" ] || (
 {{>lxc-wait.sh}}
 {{ssh}} $(lxc-info -n $name -iH)

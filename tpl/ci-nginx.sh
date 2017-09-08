@@ -73,10 +73,6 @@ server {
 EOF
 {{#proxy_ssh}}
 cat <<"EOF2" | {{ssh}} {{name}}
-cat <<"EOF" > /root/.ssh/authorized_keys
-{{>init/.authorized_keys}}
-EOF
-
 cat <<"EOF" > /etc/nginx/conf.d/ssh.inc
 location /ssh {
     add_header Content-Type text/plain;
