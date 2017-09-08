@@ -29,7 +29,6 @@ no_login=${no_login:-}
 
 lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
 
-[ -z "$mount_ssh" ] || authorized_keys=${authorized_keys:-'/root/.ssh/authorized_keys'}
 [ -z "$mount_ssh" ] || cat <<EOF >> /var/lib/lxc/$name/config
 lxc.mount.entry = /root/.ssh root/.ssh none bind,create=dir
 EOF
@@ -64,15 +63,14 @@ apt-get install -y --no-install-recommends openssh-server curl ca-certificates
 touch ~/.hushlogin
 EOF
 
-# put authorized_keys if no such file in container
+# put authorized_keys into container
 [ -z "$authorized_keys" ] || cat $authorized_keys | $lxc_attach -c "
-/bin/ls /root/.ssh/authorized_keys && exit
 /bin/mkdir -p /root/.ssh
 /bin/cat > /root/.ssh/authorized_keys
 "
 
-# use password-less root login if no authorized_keys
-[ -n "$authorized_keys" ] || cat <<"EOF" | $lxc_attach
+# use password-less root login if no $authorized_keys and no $mount_ssh
+[ -n "$mount_ssh" ] || [ -n "$authorized_keys" ] || cat <<"EOF" | $lxc_attach
 set -exuo pipefail
 
 passwd -d root
