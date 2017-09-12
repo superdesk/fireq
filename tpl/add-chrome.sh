@@ -1,15 +1,18 @@
-# chromium instead of chrome :)
-if ! _skip_install chromium-browser; then
-    # without gconf-service, chromium fails at creating session %)
-    apt-get install -y --no-install-recommends chromium-browser gconf-service
+# seams google-chrome is more stable on CI then chromium
+if ! _skip_install google-chrome-stable; then
+    # we use chrome in headless mode, so no need for xvfb
+    curl -s https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list
+    apt-get update
+    apt-get install -y --no-install-recommends google-chrome-stable
 fi
-chromium-browser --version
+google-chrome --version
 
 chrome_opts=${chrome_opts:-""}
 export CHROME_BIN=/tmp/chrome
 cat <<EOF > $CHROME_BIN
 #!/bin/sh
-/usr/bin/chromium-browser\
+google-chrome\
     --headless --disable-gpu\
     --window-size=1920x1080\
     $chrome_opts\
