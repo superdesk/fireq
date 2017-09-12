@@ -13,7 +13,7 @@ curl -s https://raw.githubusercontent.com/superdesk/fireq/files/liveblog/install
 
 ## Install to LXC container
 
-### [Prepare LXC](../../docs/lxc.md)
+### [Prepare LXC](../../master/docs/lxc.md)
 
 ```sh
 # initilize new container
@@ -86,7 +86,7 @@ systemctl disable liveblog-smtp
 ```
 
 ## Development
-For development it's better to install stuff to containers ([prepare LXC](../../docs/lxc.md)).
+For development it's better to install stuff to containers ([prepare LXC](../../master/docs/lxc.md)).
 
 ```sh
 # create clean directory
