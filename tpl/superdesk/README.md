@@ -13,7 +13,7 @@ curl -s https://raw.githubusercontent.com/superdesk/fireq/files/{{name}}/install
 
 ## Install to LXC container
 
-### [Prepare LXC](../../docs/lxc.md)
+### [Prepare LXC](../../master/docs/lxc.md)
 
 ```sh
 # initilize new container
@@ -105,7 +105,7 @@ cd /opt/superdesk/server
 {{/is_superdesk}}
 
 ## Development
-For development it's better to install stuff to containers ([prepare LXC](../../docs/lxc.md)).
+For development it's better to install stuff to containers ([prepare LXC](../../master/docs/lxc.md)).
 
 ```sh
 # create clean directory
