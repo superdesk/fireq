@@ -17,7 +17,8 @@ systemctl restart superdesk
 cd {{repo_client}}
 time npm i protractor-flake
 time webdriver-manager update
-export SCREENSHOTS_DIR=/tmp/screenshots
+
+export SCREENSHOTS_DIR=/var/tmp/data/screenshots/{{uid}}
 [ -n $E2E_NUM ] && specs="--specs $(cat /var/tmp/specs-part${E2E_NUM:-1})" || specs=
 
 protractor-flake --max-attempts=2 --\
@@ -25,5 +26,3 @@ protractor-flake --max-attempts=2 --\
     --baseUrl 'http://localhost'\
     --params.baseBackendUrl 'http://localhost/api'\
     $specs
-
-[ ! -d $SCREENSHOTS_DIR ] || cp -r $SCREENSHOTS_DIR {{logs}}/screenshots

@@ -12,6 +12,8 @@ mount_cache=${mount_cache:-"/var/cache/fireq"}
 # create required directories
 mkdir -p $mount_cache/{pip,npm}
 mkdir -p /var/tmp/data /var/spool/ftp
+# uses for screenshots during e2e failing tests
+mkdir -p /var/tmp/data/screenshots
 
 sed -i '/'$placeholder'/Q' $config
 cat <<EOF >> $config
