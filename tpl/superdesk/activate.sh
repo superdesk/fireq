@@ -49,7 +49,7 @@ if [ -n "$AMAZON_CONTAINER_NAME" ]; then
     AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-True}
 fi
 
-if [ -n "${SUPERDESK_TESTING:-'{{testing}}'}" ]; then
+if [ -n "${SUPERDESK_TESTING:-}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
     ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
