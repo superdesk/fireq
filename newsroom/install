@@ -7,7 +7,7 @@ export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 _activate() {
     set +ux
-    . /opt/superdesk/activate.sh
+    . /opt/newsroom/activate.sh
     set -ux
 }
 
@@ -126,7 +126,6 @@ curl -s -XPUT 'http://localhost:9200/_snapshot/backups' \
 unset cfg es_backups
 
 
-### build
 locale-gen en_US.UTF-8
 
 apt-get update
@@ -152,160 +151,55 @@ npm --version
 grunt --version
 
 ## virtualenv and activate script
-env=/opt/superdesk/env
+env=/opt/newsroom/env
 [ -d $env ] && rm -rf $env
 python3 -m venv $env
 unset env
 
-cat <<"EOF" > /opt/superdesk/activate.sh
-. /opt/superdesk/env/bin/activate
+cat <<"EOF" > /opt/newsroom/activate.sh
+. /opt/newsroom/env/bin/activate
 
 set -a
 LC_ALL=en_US.UTF-8
 
 # some settings required by client
-PATH=/opt/superdesk/client/node_modules/.bin/:$PATH
+PATH=/opt/newsroom/client/node_modules/.bin/:$PATH
 SUPERDESK_URL='http://localhost/api'
 SUPERDESK_WS_URL='ws://localhost/ws'
 set +a
-EOF
-cat <<EOF > /etc/profile.d/activate.sh
-[ -f /opt/superdesk/activate.sh ] && . /opt/superdesk/activate.sh
 EOF
 
 _activate
 pip install -U pip wheel
 
-repo=/opt/superdesk
-github=https://github.com/superdesk
-branch=${branch:-master}
-
+## prepare source code
+repo=${repo:-'/opt/newsroom'}
 [ -d $repo ] || mkdir $repo
 cd $repo
 if [ ! -d $repo/.git ]; then
     git init
-    git remote add origin $github/superdesk.git
-
-    git fetch origin $branch
-    git checkout $branch
-    sed -i 's/.*superdesk-core.git.*/-e ..\/server-core/' server/requirements.txt
-    sed -i -re 's/("superdesk-core":)[^,]*(,?)/\1 "file:..\/client-core"\2/' client/package.json
-
-    git clone $github/superdesk-core.git server-core
-    git clone $github/superdesk-client-core.git client-core
+    git remote add origin https://github.com/superdesk/newsroom.git
+    repo_ref=${repo_ref:-'heads/master'}
+    repo_sha=
+    git fetch origin $repo_ref:
+    git checkout ${repo_sha:-FETCH_HEAD}
+    unset repo_sha
+    unset repo repo_ref
 fi
-unset repo github branch
 
-cd /opt/superdesk/client-core
-time npm link
+cd /opt/newsroom
+time pip install -r requirements.txt
 
-cd /opt/superdesk/server
-[ -f dev-requirements.txt ] && req=dev-requirements.txt || req=requirements.txt
-time pip install -U -r $req
-
-cd /opt/superdesk/client
 time npm install
+time npm run build
 
 
-### deploy
-cat <<"EOF" > /opt/superdesk/activate.sh
-# you could write variables to /opt/superdesk/env.sh
-. /opt/superdesk/env/bin/activate
-
-set -a
-LC_ALL=en_US.UTF-8
-PYTHONUNBUFFERED=1
-PATH=/opt/superdesk/client/node_modules/.bin/:$PATH
-
-[ ! -f /opt/superdesk/env.sh ] || . /opt/superdesk/env.sh
-
-HOST=${HOST:-'localhost'}
-HOST_SSL=${HOST_SSL:-}
-DB_HOST=${DB_HOST:-'localhost'}
-DB_NAME=${DB_NAME:-'superdesk'}
-
-[ -n "${HOST_SSL:-}" ] && SSL='s' || SSL=''
-# To work properly inside and outside container, must be
-# - "proxy_set_header Host <host>;" in nginx
-# - the same "<host>" for next two settings
-# TODO: try to fix at backend side, it should accept any host
-SUPERDESK_URL="http$SSL://$HOST/api"
-CONTENTAPI_URL="http$SSL://$HOST/contentapi"
-SUPERDESK_WS_URL="ws$SSL://$HOST/ws"
-SUPERDESK_CLIENT_URL="http$SSL://$HOST"
-
-MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
-LEGAL_ARCHIVE_URI="mongodb://$DB_HOST/${DB_NAME}_la"
-ARCHIVED_URI="mongodb://$DB_HOST/${DB_NAME}_ar"
-ELASTICSEARCH_URL="http://$DB_HOST:9200"
-ELASTICSEARCH_INDEX="$DB_NAME"
-
-CONTENTAPI_ELASTICSEARCH_INDEX="${DB_NAME}_ca"
-# TODO: fix will be in 1.6 release, keep it for a while
-CONTENTAPI_ELASTIC_INDEX=$CONTENTAPI_ELASTICSEARCH_INDEX
-CONTENTAPI_MONGO_URI="mongodb://$DB_HOST/${CONTENTAPI_ELASTICSEARCH_INDEX}"
-
-REDIS_URL=${REDIS_URL:-redis://$DB_HOST:6379/1}
-
-C_FORCE_ROOT=1
-CELERYBEAT_SCHEDULE_FILENAME=${CELERYBEAT_SCHEDULE_FILENAME:-/tmp/celerybeatschedule}
-CELERY_BROKER_URL=${CELERY_BROKER_URL:-$REDIS_URL}
-
-if [ -n "$AMAZON_CONTAINER_NAME" ]; then
-    AMAZON_S3_SUBFOLDER=${AMAZON_S3_SUBFOLDER:-'superdesk'}
-    MEDIA_PREFIX=${MEDIA_PREFIX:-"http$SSL://$HOST/api/upload-raw"}
-
-    # TODO: remove after full adoption of MEDIA_PREFIX
-    AMAZON_SERVE_DIRECT_LINKS=${AMAZON_SERVE_DIRECT_LINKS:-True}
-    AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-True}
-fi
-
-if [ -n "${SUPERDESK_TESTING:-}" ]; then
-    SUPERDESK_TESTING=True
-    CELERY_ALWAYS_EAGER=True
-    ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
-    LEGAL_ARCHIVE=True
-fi
-set +a
-EOF
-
-_activate
-
-
-[ -z "${prepopulate-1}" ] || (
-### prepopulate
-_activate
-cd /opt/superdesk/server
-
-_sample_data() {
-    sample_data=${sample_data:-}
-    [ -z "$sample_data" ] || sample_data='--sample-data'
-    (python manage.py app:initialize_data --help | grep -- --sample-data) && sample_data=$sample_data || sample_data=
-}
-
-if _missing_db; then
-    _sample_data
-    # add default vocabularies
-    python manage.py app:initialize_data --entity-name vocabularies
-    # add default validators
-    python manage.py app:initialize_data --entity-name validators
-    # add Forbes ingest source
-    python manage.py app:initialize_data --entity-name ingest_providers $sample_data
-    # Use data from e2e tests
-    python manage.py app:prepopulate
-else
-    python manage.py app:initialize_data
-fi
-unset sample_data
-)
-
-
-[ -d /var/log/superdesk ] || mkdir -p /var/log/superdesk
+[ -d /var/log/newsroom ] || mkdir -p /var/log/newsroom
 systemctl disable rsyslog
 systemctl stop rsyslog
 
-cat <<"EOF" > /etc/logrotate.d/superdesk
-/var/log/superdesk/*.log {
+cat <<"EOF" > /etc/logrotate.d/newsroom
+/var/log/newsroom/*.log {
     rotate 7
     daily
     missingok
@@ -317,117 +211,70 @@ cat <<"EOF" > /etc/logrotate.d/superdesk
 EOF
 logrotate /etc/logrotate.conf
 
+cat <<"EOF" > /opt/newsroom/activate.sh
+. /opt/newsroom/env/bin/activate
+
+set -a
+LC_ALL=en_US.UTF-8
+PYTHONUNBUFFERED=1
+PATH=node_modules/.bin/:$PATH
+
+[ ! -f /opt/newsroom/env.sh ] || . /opt/newsroom/env.sh
+
+NEWSROOM_SETTINGS=settings.py
+
+CONTENTAPI_ELASTIC_INDEX=sd-master_ca
+CONTENTAPI_ELASTICSEARCH_INDEX=sd-master_ca
+CONTENTAPI_MONGO_URI=mongodb://data-sd/sd-master_ca
+CONTENTAPI_URL=https://sd-master.test.superdesk.org/contentapi
+ELASTICSEARCH_URL=http://data-sd:9200
+set +a
+EOF
+
+_activate
+
+cat <<EOF > /opt/newsroom/settings.py
+import os
+
+env = os.environ.get
+
+DEBUG=False
+WEBPACK_ASSETS_URL="http://localhost/assets/"
+
+MAIL_SERVER = env('MAIL_SERVER', 'localhost')
+MAIL_PORT = int(env('MAIL_PORT', 25))
+MAIL_USE_TLS = env('MAIL_USE_TLS', False)
+MAIL_USE_SSL = env('MAIL_USE_SSL', False)
+MAIL_USERNAME = env('MAIL_USERNAME', '')
+MAIL_PASSWORD = env('MAIL_PASSWORD', '')
+EOF
+
 # Use latest honcho with --no-colour option
 pip install -U honcho gunicorn
 
-gunicorn_opts='-t 300 -w 1 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
-cat <<EOF > /opt/superdesk/server/Procfile
-logs: journalctl -u superdesk* -f >> /var/log/superdesk/main.log
-rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
-wamp: python3 -u ws.py
-work: celery -A worker worker -c 1
-beat: celery -A worker beat --pid=
-capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
+cat <<EOF > /opt/newsroom/Procfile
+app: python app.py
+logs: journalctl -u newsroom* -f >> /var/log/newsroom/main.log
 EOF
 
-
-cat <<"EOF" > /etc/systemd/system/superdesk.service
+cat <<"EOF" > /etc/systemd/system/newsroom.service
 [Unit]
-Description=superdesk
+Description=newsroom
 Wants=network.target
 After=network.target
 
 [Service]
-ExecStart=/bin/sh -c '. /opt/superdesk/activate.sh && exec honcho start --no-colour'
-WorkingDirectory=/opt/superdesk/server
+ExecStart=/bin/sh -c '. /opt/newsroom/activate.sh && exec honcho start --no-colour'
+WorkingDirectory=/opt/newsroom
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOF
-# tune elasticsearch
-cat <<EOF > /etc/elasticsearch/elasticsearch.yml
-network.bind_host: 0.0.0.0
-node.local: true
-discovery.zen.ping.multicast: false
-path.repo: /var/tmp/elasticsearch
-index.number_of_replicas: 0
-#index.store.type: memory
-#index.refresh_interval: 30s
 
-# Next setting break behave tests
-# index.number_of_shards: 1
-EOF
-echo 'log4j.rootLogger=OFF' > /etc/elasticsearch/logging.yml
-
-# tune mongo
-cat <<EOF > /etc/mongod.conf
-storage:
-  dbPath: /var/lib/mongodb
-  journal:
-    enabled: false
-  engine: wiredTiger
-
-net:
-  port: 27017
-  bindIp: 0.0.0.0
-EOF
-
-systemctl restart elasticsearch mongod
-! type wait_elastic || wait_elastic
-
-# TODO: update superdesk-core to check elastic instead of directory
-# "/tmp/es-backups" because need to fix superdesk/tests/__init__.py#L78
-mkdir -p /tmp/es-backups /var/tmp/elasticsearch
-
-_skip_install inotify-tools || (
-    apt-get update
-    apt-get -y install inotify-tools
-)
-# server watcher
-cat <<"EOF" > /opt/superdesk/watch-server
-[ -d /opt/superdesk/server-core ] && cd /opt/superdesk/server-core || cd /opt/superdesk/server
-while inotifywait -e modify -e create -e delete -r .; do
-    systemctl restart superdesk
-done
-EOF
-cat <<EOF >> /opt/superdesk/server/Procfile
-watch: sh /opt/superdesk/watch-server
-EOF
-
-# client watcher
-cat <<"EOF" > /opt/superdesk/watch-client
-. /opt/superdesk/activate.sh
-cd /opt/superdesk/client
-grunt build --webpack-devtool=cheap-eval-source-map --webpack-no-progress
-
-[ -d /opt/superdesk/client-core ] && cd /opt/superdesk/client-core
-while inotifywait -e modify -e create -e delete -r .; do
-    systemctl restart superdesk-client
-done
-EOF
-service=superdesk-client
-cat <<"EOF" > /etc/systemd/system/$service.service
-[Unit]
-Description=superdesk client watcher
-Wants=network.target
-After=network.target
-
-[Service]
-ExecStart=/bin/sh watch-client
-WorkingDirectory=/opt/superdesk
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable $service
-systemctl restart $service
-unset service
-
-systemctl enable superdesk
-systemctl restart superdesk
+systemctl enable newsroom
+systemctl restart newsroom
 
 # nginx
 if ! _skip_install nginx; then
@@ -490,18 +337,8 @@ server {
 }
 EOF
 cat <<EOF > $path/default.inc
-location /ws {
-    proxy_pass http://localhost:5100;
-    proxy_http_version 1.1;
-    proxy_buffering off;
-    proxy_read_timeout 3600;
-    proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "Upgrade";
-}
-
-location /api {
+location / {
     proxy_pass http://localhost:5000;
-    proxy_set_header Host $HOST;
     expires epoch;
 
     sub_filter_once off;
@@ -509,23 +346,12 @@ location /api {
     sub_filter 'http://localhost' 'http://\$host';
 }
 
-location /contentapi {
-    proxy_pass http://localhost:5400;
-    proxy_set_header Host $HOST;
-    expires epoch;
-}
+location /assets {
+    alias /opt/newsroom/dist;
 
-location /.well-known {
-    root /var/tmp;
-}
-location / {
-    root /opt/superdesk/client/dist;
-
-    # TODO: use "config.js:server" for user installations
     sub_filter_once off;
     sub_filter_types application/javascript;
     sub_filter 'http://localhost' 'http://\$host';
-    sub_filter 'ws://localhost/ws' 'ws://\$host/ws';
 }
 EOF
 unset path
@@ -534,7 +360,7 @@ systemctl restart nginx
 
 
 [ -z "${smtp-1}" ] || (
-mails=/var/log/superdesk/mail
+mails=/var/log/newsroom/mail
 mkdir -p $mails
 
 smtp_py=/var/tmp/smtp.py
@@ -604,16 +430,16 @@ location /mail {
 }
 EOF
 
-service=superdesk-smtp
+service=newsroom-smtp
 cat <<EOF > /etc/systemd/system/$service.service
 [Unit]
-Description=Dev SMTP server for superdesk, it doesn't send real emails
+Description=Dev SMTP server for newsroom, it doesn't send real emails
 Wants=network.target
 After=network.target
 
 [Service]
-ExecStart=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec python3 $smtp_py localhost 25 $mails'
-WorkingDirectory=/opt/superdesk
+ExecStart=/bin/sh -c '. /opt/newsroom/env/bin/activate && exec python3 $smtp_py localhost 25 $mails'
+WorkingDirectory=/opt/newsroom
 Restart=always
 
 [Install]

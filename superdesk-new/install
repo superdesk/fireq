@@ -517,7 +517,7 @@ After=network.target
 
 [Service]
 ExecStart=/bin/sh -c '. /opt/superdesk/env/bin/activate && exec python3 $smtp_py localhost 25 $mails'
-WorkingDirectory=/opt/superdesk/server
+WorkingDirectory=/opt/superdesk
 Restart=always
 
 [Install]

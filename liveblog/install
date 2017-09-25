@@ -256,7 +256,7 @@ if [ -n "$AMAZON_CONTAINER_NAME" ]; then
     AMAZON_S3_USE_HTTPS=${AMAZON_S3_USE_HTTPS:-True}
 fi
 
-if [ -n "${SUPERDESK_TESTING:-''}" ]; then
+if [ -n "${SUPERDESK_TESTING:-}" ]; then
     SUPERDESK_TESTING=True
     CELERY_ALWAYS_EAGER=True
     ELASTICSEARCH_BACKUPS_PATH=/var/tmp/elasticsearch
@@ -526,7 +526,7 @@ After=network.target
 
 [Service]
 ExecStart=/bin/sh -c '. /opt/liveblog/env/bin/activate && exec python3 $smtp_py localhost 25 $mails'
-WorkingDirectory=/opt/liveblog/server
+WorkingDirectory=/opt/liveblog
 Restart=always
 
 [Install]
