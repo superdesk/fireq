@@ -128,6 +128,23 @@ unset cfg es_backups
 
 locale-gen en_US.UTF-8
 
+[ -d /var/log/newsroom ] || mkdir -p /var/log/newsroom
+systemctl disable rsyslog
+systemctl stop rsyslog
+
+cat <<"EOF" > /etc/logrotate.d/newsroom
+/var/log/newsroom/*.log {
+    rotate 7
+    daily
+    missingok
+    copytruncate
+    notifempty
+    nocompress
+    size 20M
+}
+EOF
+logrotate /etc/logrotate.conf
+
 apt-get update
 apt-get -y install --no-install-recommends \
 git python3 python3-dev python3-venv \
@@ -193,23 +210,6 @@ time pip install -r requirements.txt
 time npm install
 time npm run build
 
-
-[ -d /var/log/newsroom ] || mkdir -p /var/log/newsroom
-systemctl disable rsyslog
-systemctl stop rsyslog
-
-cat <<"EOF" > /etc/logrotate.d/newsroom
-/var/log/newsroom/*.log {
-    rotate 7
-    daily
-    missingok
-    copytruncate
-    notifempty
-    nocompress
-    size 20M
-}
-EOF
-logrotate /etc/logrotate.conf
 
 cat <<"EOF" > /opt/newsroom/activate.sh
 . /opt/newsroom/env/bin/activate
@@ -287,6 +287,27 @@ if ! _skip_install nginx; then
 fi
 
 path=/etc/nginx/conf.d
+cat <<EOF > $path/default.conf
+server {
+    listen 80 default;
+
+    include $path/*.inc;
+}
+EOF
+cat <<EOF > $path/default.inc
+location / {
+    proxy_pass http://localhost:5000;
+    expires epoch;
+
+    sub_filter_once off;
+    sub_filter_types application/json;
+    sub_filter 'http://localhost' 'http://\$host';
+}
+
+location /assets {
+    alias /opt/newsroom/dist;
+}
+EOF
 cat <<"EOF" > $path/params.conf
 tcp_nopush on;
 tcp_nodelay on;
@@ -327,32 +348,6 @@ proxy_send_timeout 300;
 proxy_read_timeout 300;
 proxy_cache_min_uses 1;
 proxy_temp_path /var/tmp;
-EOF
-
-cat <<EOF > $path/default.conf
-server {
-    listen 80 default;
-
-    include $path/*.inc;
-}
-EOF
-cat <<EOF > $path/default.inc
-location / {
-    proxy_pass http://localhost:5000;
-    expires epoch;
-
-    sub_filter_once off;
-    sub_filter_types application/json;
-    sub_filter 'http://localhost' 'http://\$host';
-}
-
-location /assets {
-    alias /opt/newsroom/dist;
-
-    sub_filter_once off;
-    sub_filter_types application/javascript;
-    sub_filter 'http://localhost' 'http://\$host';
-}
 EOF
 unset path
 systemctl enable nginx
