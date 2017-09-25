@@ -1,20 +1,3 @@
-[ -d {{logs}} ] || mkdir -p {{logs}}
-systemctl disable rsyslog
-systemctl stop rsyslog
-
-cat <<"EOF" > /etc/logrotate.d/{{name}}
-{{logs}}/*.log {
-    rotate 7
-    daily
-    missingok
-    copytruncate
-    notifempty
-    nocompress
-    size 20M
-}
-EOF
-logrotate /etc/logrotate.conf
-
 cat <<"EOF" > {{activate}}
 . {{repo_env}}/bin/activate
 
@@ -43,7 +26,7 @@ import os
 env = os.environ.get
 
 DEBUG=False
-WEBPACK_ASSETS_URL="http://localhost/assets/"
+WEBPACK_ASSETS_URL="http{{#host_ssl}}s{{/host_ssl}}://{{host}}/assets/"
 
 MAIL_SERVER = env('MAIL_SERVER', 'localhost')
 MAIL_PORT = int(env('MAIL_PORT', 25))

@@ -9,10 +9,6 @@ if ! _skip_install nginx; then
 fi
 
 path=/etc/nginx/conf.d
-cat <<"EOF" > $path/params.conf
-{{>nginx-params.conf}}
-EOF
-
 cat <<EOF > $path/default.conf
 server {
     listen 80 default;
@@ -22,6 +18,9 @@ server {
 EOF
 cat <<EOF > $path/default.inc
 {{>nginx.conf}}
+EOF
+cat <<"EOF" > $path/params.conf
+{{>nginx-params.conf}}
 EOF
 unset path
 systemctl enable nginx

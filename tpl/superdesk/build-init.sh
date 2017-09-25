@@ -1,5 +1,22 @@
 locale-gen en_US.UTF-8
 
+[ -d {{logs}} ] || mkdir -p {{logs}}
+systemctl disable rsyslog
+systemctl stop rsyslog
+
+cat <<"EOF" > /etc/logrotate.d/{{name}}
+{{logs}}/*.log {
+    rotate 7
+    daily
+    missingok
+    copytruncate
+    notifempty
+    nocompress
+    size 20M
+}
+EOF
+logrotate /etc/logrotate.conf
+
 apt-get update
 apt-get -y install --no-install-recommends \
 git python3 python3-dev python3-venv \
