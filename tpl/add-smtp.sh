@@ -24,7 +24,7 @@ After=network.target
 
 [Service]
 ExecStart=/bin/sh -c '. {{repo_env}}/bin/activate && exec python3 $smtp_py localhost 25 $mails'
-WorkingDirectory={{repo}}/server
+WorkingDirectory={{repo}}
 Restart=always
 
 [Install]

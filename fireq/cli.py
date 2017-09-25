@@ -39,6 +39,7 @@ scopes = [
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('fil', 'superdesk-fidelity', 'superdesk/superdesk-fi'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
+    Scope('nr', 'newsroom', 'superdesk/newsroom'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
@@ -183,7 +184,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         pass
     elif scope == scopes.sds:
         expand.update({
-            'repo_server': '/opt/superdesk/server-core'
+            'repo_server': '/opt/superdesk/server-core',
         })
     elif scope == scopes.sdc:
         expand.update({
@@ -191,7 +192,11 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         })
     elif scope == scopes.lb:
         expand.update({
-            'name': 'liveblog'
+            'name': 'liveblog',
+        })
+    elif scope == scopes.nr:
+        expand.update({
+            'name': 'newsroom',
         })
     else:
         expand.update({
@@ -412,6 +417,9 @@ def gen_files(commit, no_diff):
             ('README.md', None, {}),
         ]),
         ('sd', 'superdesk-new', [
+            ('install.sh', 'install', {}),
+        ]),
+        ('nr', 'newsroom', [
             ('install.sh', 'install', {}),
         ]),
     ]
