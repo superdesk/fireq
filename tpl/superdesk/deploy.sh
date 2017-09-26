@@ -2,9 +2,12 @@
 cat <<"EOF" > {{activate}}
 {{>activate.sh}}
 EOF
-
+{{#testing}}
+cat <<"EOF" >> {{config}}
+SUPERDESK_TESTING=1
+EOF
+{{/testing}}
 _activate
-
 
 [ -z "${prepopulate-1}" ] || (
 {{>prepopulate.sh}}
