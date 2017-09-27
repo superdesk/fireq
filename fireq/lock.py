@@ -18,8 +18,8 @@ def kill_previous(name):
         pid = int(txt.decode().rsplit(':', 1)[1])
         try:
             os.kill(pid, signal.SIGTERM)
-            # wait a little when process will be cleaned
-            time.sleep(5)
+            # wait a bit when process and related containers will be cleaned
+            time.sleep(10)
         except Exception as e:
             log.exception(e)
 
@@ -34,3 +34,6 @@ def kill_previous(name):
     except socket.error as e:
         log.exception(e)
         raise SystemExit(1)
+    finally:
+        sock0.close()
+        sock1.close()
