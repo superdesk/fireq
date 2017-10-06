@@ -14,6 +14,8 @@ A repository page contains a list of **Pull Requests** and **Branches** with rel
 - `[restart all]` runs all steps (including `build` step)
 - `[reset db]` resets databases for the test instance
 
+When you press them it redirects you to according log directory and you can refresh proper file (like `build.log`, `www.log`, `reset.log`) to see what happens here.
+
 ![A repository page](images/ci-repo-page.png)
 
 ## Test instance
@@ -28,6 +30,10 @@ Logs for particular instance can be found by url `<domain>/logs`:
 ### Docs
 Docs are generated for `superdek-core` and can be found by url `<domain>/docs/`:
 - https://sds-master.test.superdesk.org/docs/
+
+### Screenshots for failed e2e tests
+When e2e test fails it saves screenshot for failed step, so it could give some insight.
+- https://test.superdesk.org/logs/screenshots/
 
 ### Init
 Environment variables can be defined in **init files**, they are stored in separate branch [init][init]. Proper file invokes after build step. You can update existing files or [create new one][init-new] via github interface.
