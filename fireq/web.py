@@ -22,6 +22,12 @@ from pystache import render
 from . import log, conf, root, pretty_json, get_restart_url, gh
 from .cli import scopes, Ref
 
+about = '''
+<h2><a href="https://github.com/superdesk/fireq/blob/master/docs/ci.md">
+    About Fireq
+</a></h2>
+'''
+
 
 def get_app():
     middlewares = [
@@ -147,9 +153,6 @@ login_tpl = '''
 You should be a member of
 <a href="https://github.com/orgs/superdesk/people">Superdesk Organization</a>
 </p>
-<p><a href="https://github.com/superdesk/fireq/blob/master/docs/ci.md">
-    About
-</a></p>
 '''
 
 
@@ -376,6 +379,7 @@ def init_loop(loop=None):
 
 
 def render_tpl(tpl, ctx, status=200, content_type='text/html'):
+    tpl = about + tpl
     resp = web.Response(text=render(tpl, ctx))
     resp.content_type = content_type
     resp.set_status(status)
