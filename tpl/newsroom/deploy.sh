@@ -14,7 +14,12 @@ CONTENTAPI_ELASTIC_INDEX=sd-master_ca
 CONTENTAPI_ELASTICSEARCH_INDEX=sd-master_ca
 CONTENTAPI_MONGO_URI=mongodb://data-sd/sd-master_ca
 CONTENTAPI_URL=https://sd-master.test.superdesk.org/contentapi
+NEWSROOM_WEBSOCKET_URL="wss://$HOST/ws"
 ELASTICSEARCH_URL=http://data-sd:9200
+REDIS_URL=redis://localhost:6379/1
+CELERY_BROKER_URL="$REDIS_URL"
+NOTIFICATION_KEY="newsroom"
+
 set +a
 EOF
 
@@ -37,10 +42,11 @@ MAIL_PASSWORD = env('MAIL_PASSWORD', '')
 EOF
 
 # Use latest honcho with --no-colour option
-pip install -U honcho gunicorn
+pip install -U honcho
 
 cat <<EOF > {{repo}}/Procfile
 app: python app.py
+websocket: python -m newsroom.websocket
 logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
 EOF
 
