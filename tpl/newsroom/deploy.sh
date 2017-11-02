@@ -31,7 +31,6 @@ import os
 env = os.environ.get
 
 DEBUG=False
-WEBPACK_ASSETS_URL="http://localhost/assets/"
 
 MAIL_SERVER = env('MAIL_SERVER', 'localhost')
 MAIL_PORT = int(env('MAIL_PORT', 25))
