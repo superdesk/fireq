@@ -2,6 +2,7 @@
 _activate
 cd {{repo}}/server
 if _missing_db; then
+    [ -f app_init_elastic.py ] && python app_init_elastic.py
     python manage.py app:initialize_data
 
     # for master it should be '--admin=true' for devel just '--admin'
