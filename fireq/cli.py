@@ -38,6 +38,7 @@ scopes = [
     Scope('sda', 'superdesk-analytics', 'superdesk/superdesk-analytics'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('fil', 'superdesk-fidelity', 'superdesk/superdesk-fi'),
+    Scope('stt', 'superdesk-stt', 'superdesk/superdesk-stt'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
     Scope('nr', 'newsroom', 'superdesk/newsroom'),
 ]
