@@ -10,15 +10,20 @@ PATH=node_modules/.bin/:$PATH
 
 NEWSROOM_SETTINGS=settings.py
 
-CONTENTAPI_ELASTIC_INDEX=sd-master_ca
-CONTENTAPI_ELASTICSEARCH_INDEX=sd-master_ca
-CONTENTAPI_MONGO_URI=mongodb://data-sd/sd-master_ca
-CONTENTAPI_URL=https://sd-master.test.superdesk.org/contentapi
+CONTENTAPI_ELASTIC_INDEX=$DB_NAME
+CONTENTAPI_ELASTICSEARCH_INDEX=$DB_NAME
+CONTENTAPI_MONGO_URI=mongodb://data-sd/$DB_NAME
 NEWSROOM_WEBSOCKET_URL="ws{{^is_pr}}s{{/is_pr}}://$HOST/ws"
 ELASTICSEARCH_URL=http://data-sd:9200
 REDIS_URL=redis://localhost:6379/1
 CELERY_BROKER_URL="$REDIS_URL"
 NOTIFICATION_KEY="newsroom"
+
+{{#is_pr}}
+CONTENTAPI_ELASTIC_INDEX=nr-master
+CONTENTAPI_ELASTICSEARCH_INDEX=nr-master
+CONTENTAPI_MONGO_URI=mongodb://data-sd/nr-master
+{{/is_pr}}
 
 set +a
 EOF
@@ -70,6 +75,9 @@ systemctl restart {{name}}
 
 {{>add-nginx.sh}}
 
+[ -z "${prepopulate-1}" ] || (
+{{>prepopulate.sh}}
+)
 
 [ -z "${smtp-1}" ] || (
 {{>add-smtp.sh}}
