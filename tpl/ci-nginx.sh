@@ -1,22 +1,9 @@
-{{#cert}}
-path=/etc/nginx/certs/{{label}}
-if [ -n "{{live}}" ] || [ ! -d $path ]; then
-    mkdir -p $path
-    /root/.acme.sh/acme.sh --issue -w /var/tmp/ {{^live}} --test{{/live}} --force\
-        --home /root/.acme.sh\
-        --keypath $path/privkey.pem\
-        --fullchainpath $path/fullchain.pem\
-        {{#hosts}}{{#ssl}}-d {{host}} {{/ssl}}{{/hosts}}
-fi
-{{/cert}}
-
 cat <<"EOF" > /etc/nginx/sites-enabled/{{label}}
 {{#hosts}}
 server {
     listen  80;
     listen [::]:80;
 
-{{#ssl}}
     server_name {{host}};
     access_log /var/log/nginx/{{name}}.access.log;
 
@@ -30,9 +17,6 @@ server {
 server {
     listen  443 ssl http2;
     listen [::]:443 ssl http2;
-    ssl_certificate /etc/nginx/certs/{{label}}/fullchain.pem;
-    ssl_certificate_key /etc/nginx/certs/{{label}}/privkey.pem;
-{{/ssl}}
     server_name {{host}};
     access_log /var/log/nginx/{{name}}.access.log;
 

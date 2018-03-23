@@ -151,7 +151,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         develop = val('develop', False) and 1 or ''
         testing = val('testing') and 1 or ''
         host = val('host', 'localhost')
-        host_ssl = val('host_ssl', False) and 1 or ''
+        host_ssl = 1
         host_url = 'http%s://%s/' % (host_ssl and 's', host)
         db_host = val('db_host', 'localhost')
         db_name = name
@@ -288,7 +288,7 @@ def run_jobs(ref, targets=None, all=False):
         lxc_base = conf['lxc_base']
         lxc_build = '%s--build' % uid
         host = '%s.%s' % (uid, conf['domain'])
-        host_ssl = not _ref.is_pr
+        host_ssl = True
         host_logs = _logs.www
         logs_url = '%swww/%s' % (conf['log_url'], uid)
         db_host = conf['lxc_data']
