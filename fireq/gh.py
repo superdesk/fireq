@@ -40,7 +40,6 @@ def call(url, data=None):
             pretty_json(data),
             pretty_json(e.fp.read()),
         )
-        raise Error(e)
 
 
 def get_sha(ref):
