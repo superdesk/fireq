@@ -1,8 +1,9 @@
-import base64
 import json
 import re
 import urllib.error
 import urllib.request
+import jwt
+import time
 
 from . import conf, log, pretty_json
 
@@ -13,21 +14,48 @@ class Error(Exception):
     pass
 
 
-def auth():
-    b64auth = base64.b64encode(conf['github_basic'].encode()).decode()
-    headers = {'Authorization': 'Basic %s' % b64auth}
+def get_jwt():
+    with open(conf['github_app_secret_key'], mode='r') as key:
+        private_key = key.read()
+    app_id = conf['github_app_id']
+    payload = {
+        'iat': int(time.time()),
+        'exp': int(time.time()) + 10 * 60,
+        'iss': app_id,
+    }
+
+    return jwt.encode(payload, private_key, algorithm='RS256')
+
+
+def auth_jwt():
+    headers = {'Authorization': 'Bearer %s' % get_jwt().decode()}
     return headers
 
 
-def call(url, data=None):
+def auth_token():
+    url = 'https://api.github.com/installations/%s/access_tokens' % \
+        conf['github_installation_id']
+    headers = auth_jwt()
+    headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
+    try:
+        req = urllib.request.Request(url, headers=headers, method='POST')
+        res = urllib.request.urlopen(req)
+    except urllib.error.HTTPError as e:
+        log.exception(e)
+        print('url', url, 'headers', headers)
+        raise
+    token = json.loads(res.read().decode())
+    return {'Authorization': 'token %s' % token['token']}
+
+
+def call(url, data=None, method=None):
     if not url.startswith('https://'):
         url = 'https://api.github.com/' + url
     try:
-        method = None
         if data is not None:
             method = 'POST'
             data = json.dumps(data).encode()
-        req = urllib.request.Request(url, headers=auth(), method=method)
+        req = urllib.request.Request(url, headers=auth_token(), method=method)
         res = urllib.request.urlopen(req, data=data)
         log.debug('%s url=%r', res.status, url)
         return json.loads(res.read().decode())

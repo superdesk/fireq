@@ -4,3 +4,4 @@ aiohttp_session
 cryptography
 gunicorn
 pystache
+pyjwt==1.6.1
