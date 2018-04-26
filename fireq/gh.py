@@ -32,7 +32,7 @@ def auth_jwt():
     return headers
 
 
-def auth_token():
+def auth():
     url = 'https://api.github.com/installations/%s/access_tokens' % \
         conf['github_installation_id']
     headers = auth_jwt()
@@ -55,7 +55,7 @@ def call(url, data=None, method=None):
         if data is not None:
             method = 'POST'
             data = json.dumps(data).encode()
-        req = urllib.request.Request(url, headers=auth_token(), method=method)
+        req = urllib.request.Request(url, headers=auth(), method=method)
         res = urllib.request.urlopen(req, data=data)
         log.debug('%s url=%r', res.status, url)
         return json.loads(res.read().decode())
