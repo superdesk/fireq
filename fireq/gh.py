@@ -32,13 +32,16 @@ def auth_jwt():
     return headers
 
 
-def auth():
-    url = 'https://api.github.com/installations/%s/access_tokens' % \
-        conf['github_installation_id']
+def auth(url=None):
+    org = 'superdesk'
+    if url and 'liveblog' in url:
+        org = 'liveblog'
+    auth_url = 'https://api.github.com/installations/%s/access_tokens' % \
+        conf['github_installations'][org]
     headers = auth_jwt()
     headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
     try:
-        req = urllib.request.Request(url, headers=headers, method='POST')
+        req = urllib.request.Request(auth_url, headers=headers, method='POST')
         res = urllib.request.urlopen(req)
     except urllib.error.HTTPError as e:
         log.exception(e)
@@ -55,7 +58,7 @@ def call(url, data=None, method=None):
         if data is not None:
             method = 'POST'
             data = json.dumps(data).encode()
-        req = urllib.request.Request(url, headers=auth(), method=method)
+        req = urllib.request.Request(url, headers=auth(url), method=method)
         res = urllib.request.urlopen(req, data=data)
         log.debug('%s url=%r', res.status, url)
         return json.loads(res.read().decode())
