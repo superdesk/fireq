@@ -33,7 +33,7 @@ EOF
 
 _activate
 
-cat <<EOF > {{repo}}/settings.py
+cat <<EOF >> {{repo}}/settings.py
 import os
 
 env = os.environ.get
