@@ -30,6 +30,7 @@ if _missing_db; then
     python manage.py app:prepopulate
 else
     python manage.py app:initialize_data
+    python manage.py data:upgrade
 fi
 {{/test_data}}
 unset sample_data
