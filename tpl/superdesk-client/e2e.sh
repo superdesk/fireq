@@ -16,7 +16,7 @@ systemctl restart superdesk
 
 cd {{repo_client}}
 time npm i protractor-flake
-time webdriver-manager update
+time webdriver-manager update --gecko false
 
 export SCREENSHOTS_DIR=/var/tmp/data/screenshots/{{uid}}
 [ -n $E2E_NUM ] && specs="--specs $(cat /var/tmp/specs-part${E2E_NUM:-1})" || specs=
