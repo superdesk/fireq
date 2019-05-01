@@ -83,22 +83,16 @@ wait_elastic() {
         curl -s "http://localhost:9200" 2>&1 > /dev/null \
             && elastic=1 \
             || echo "waiting for elastic..."
-        sleep 5
+        sleep .5
     done
 }
 if ! _skip_install elasticsearch; then
-    # for elasticsearch 2.4.x declare next
-    # elastic_version=2.x
-    version=${elastic_version:-1.7}
-    curl -s https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-    echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \
-        > /etc/apt/sources.list.d/elastic.list
-
+    wget --continue https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/deb/elasticsearch/2.4.6/elasticsearch-2.4.6.deb
+    wget https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/deb/elasticsearch/2.4.6/elasticsearch-2.4.6.deb.sha1 -O elasticsearch-2.4.6.deb.sha1
+    echo "  elasticsearch-2.4.6.deb" >>elasticsearch-2.4.6.deb.sha1
+    sha1sum -c elasticsearch-2.4.6.deb.sha1 && dpkg -i elasticsearch-2.4.6.deb
     apt-get -y update
-    apt-get -y install --no-install-recommends \
-        openjdk-8-jre-headless \
-        elasticsearch
-    unset version
+    apt-get -y install --no-install-recommends openjdk-8-jre-headless
 fi
 
 # tune elasticsearch
