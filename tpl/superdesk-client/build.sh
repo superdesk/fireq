@@ -24,6 +24,6 @@ cd {{repo_client}}/test-server
 time pip install -Ur requirements.txt
 
 cd {{repo_client}}
-time npm install
+time npm install --unsafe-perm
 # will be used for e2e tests
 time grunt build --webpack-no-progress
