@@ -8,4 +8,4 @@ cd {{repo_server}}
 time pip install -U -r $req
 
 cd {{repo_client}}
-time npm install
+time npm install --unsafe-perm
