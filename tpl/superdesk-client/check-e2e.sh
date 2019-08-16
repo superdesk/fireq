@@ -19,10 +19,10 @@ time npm i protractor-flake
 time webdriver-manager update --gecko false
 
 export SCREENSHOTS_DIR=/var/tmp/data/screenshots/{{uid}}
-[ -n $E2E_NUM ] && specs="--specs $(cat /var/tmp/specs-part${E2E_NUM:-1})" || specs=
+
+# [ -n $E2E_NUM ] && specs="--specs $(cat /var/tmp/specs-part${E2E_NUM:-1})" || specs=
 
 protractor-flake --max-attempts=2 --\
     protractor.conf.js --stackTrace --verbose --troubleshoot\
     --baseUrl 'http://localhost'\
-    --params.baseBackendUrl 'http://localhost/api'\
-    $specs
+    --params.baseBackendUrl 'http://localhost/api'
