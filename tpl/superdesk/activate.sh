@@ -27,8 +27,13 @@ SUPERDESK_CLIENT_URL="http$SSL://$HOST"
 MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
 LEGAL_ARCHIVE_URI="mongodb://$DB_HOST/${DB_NAME}_la"
 ARCHIVED_URI="mongodb://$DB_HOST/${DB_NAME}_ar"
+
+# use elastic based on superdesk-core config
+ELASTIC_PORT=9200
+[ -f {{repo_server}}/.fireq.json ] && [ `jq ".elastic?" {{repo_server}}/.fireq.json` -eq 7 ] && ELASTIC_PORT=9201
 ELASTICSEARCH_URL="http://$DB_HOST:$ELASTIC_PORT"
 ELASTICSEARCH_INDEX="$DB_NAME"
+
 
 CONTENTAPI_ELASTICSEARCH_INDEX="${DB_NAME}_ca"
 # TODO: fix will be in 1.6 release, keep it for a while
