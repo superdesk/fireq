@@ -183,6 +183,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         'scope': scope.name,
         'repo_remote': 'https://github.com/%s.git' % scope.repo
     })
+
     if scope == scopes.sd:
         pass
     elif scope == scopes.sds:
@@ -211,6 +212,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         ctx.update(expand)
     if header:
         tpl = '{{>header.sh}}\n' + tpl
+
     return render_tpl(tpl, ctx, search_dirs)
 
 
