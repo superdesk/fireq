@@ -150,6 +150,8 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         repo_server = val('repo_server', '%s/server' % repo)
         repo_client = val('repo_client', '%s/client' % repo)
 
+        fireq_json = val('fireq_json', '/opt/superdesk/env/src/superdesk-core/.fireq.json')
+
         develop = val('develop', False) and 1 or ''
         testing = val('testing') and 1 or ''
         host = val('host', 'localhost')
@@ -189,6 +191,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     elif scope == scopes.sds:
         expand.update({
             'repo_server': '/opt/superdesk/server-core',
+            'fireq_json': '/opt/superdesk/server-core/.fireq.json',
         })
     elif scope == scopes.sdc:
         expand.update({
