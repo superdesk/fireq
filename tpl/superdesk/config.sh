@@ -13,7 +13,7 @@ SUPERDESK_TESTING=${testing:-'{{testing}}'}
 # use elastic based on superdesk-core config
 if [ -f {{repo_server}}/.fireq.json ] && [ `jq ".elastic?" {{repo_server}}/.fireq.json` -eq 7 ]
     then
-    ELASTIC_PORT=9700
+    ELASTIC_PORT=9201
     else
     ELASTIC_PORT=9200
 fi
