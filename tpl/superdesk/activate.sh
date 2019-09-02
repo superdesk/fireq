@@ -12,7 +12,6 @@ HOST=${HOST:-'localhost'}
 HOST_SSL=${HOST_SSL:-}
 DB_HOST=${DB_HOST:-'localhost'}
 DB_NAME=${DB_NAME:-'{{name}}'}
-ELASTIC_PORT=${ELASTIC_PORT:-'9200'}
 
 [ -n "${HOST_SSL:-}" ] && SSL='s' || SSL=''
 # To work properly inside and outside container, must be
@@ -29,9 +28,9 @@ LEGAL_ARCHIVE_URI="mongodb://$DB_HOST/${DB_NAME}_la"
 ARCHIVED_URI="mongodb://$DB_HOST/${DB_NAME}_ar"
 
 # use elastic based on superdesk-core config
-ELASTIC_PORT=${ELASTIC_PORT:-'9200'}
-[ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}/.fireq.json` -eq 7 ] && ELASTIC_PORT=9201
-ELASTICSEARCH_URL="http://$DB_HOST:$ELASTIC_PORT"
+_ELASTIC_PORT=${ELASTIC_PORT:-'9200'}
+[ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}/.fireq.json` -eq 7 ] && _ELASTIC_PORT=9201
+ELASTICSEARCH_URL="http://$DB_HOST:$_ELASTIC_PORT"
 ELASTICSEARCH_INDEX="$DB_NAME"
 
 
