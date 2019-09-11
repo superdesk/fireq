@@ -11,7 +11,7 @@ if [ ! -d $repo/.git ]; then
     git fetch origin $branch
     git checkout $branch
 
-    git clone $github/superdesk-core.git server-core
-    git clone $github/superdesk-client-core.git client-core
+    # git clone $github/superdesk-core.git server-core
+    # git clone $github/superdesk-client-core.git client-core
 fi
 unset repo github branch
