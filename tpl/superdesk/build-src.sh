@@ -3,7 +3,4 @@
 {{/develop}}
 {{#develop}}
 {{>build-src-cores.sh}}
-
-cd {{repo}}/client-core
-time npm link
 {{/develop}}
