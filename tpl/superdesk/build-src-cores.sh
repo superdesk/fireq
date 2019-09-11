@@ -10,6 +10,11 @@ if [ ! -d $repo/.git ]; then
 
     git fetch origin $branch
     git checkout $branch
+
+    # make sure there are dependencies in client/node_modules
+    cd client && time npm install --unsafe-perm
+    cd $repo
+
     sed -i 's/.*superdesk-core.git.*/-e ..\/server-core/' server/requirements.txt
     sed -i -re 's/("superdesk-core":)[^,]*(,?)/\1 "file:..\/client-core"\2/' client/package.json
 
