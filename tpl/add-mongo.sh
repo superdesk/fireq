@@ -33,3 +33,9 @@ EOF
 unset cfg
 systemctl enable mongod
 systemctl restart mongod
+
+# set compatibility to latest mongo
+# added by abbas
+sleep 90
+mongo admin --eval 'db.runCommand({setFeatureCompatibilityVersion: "3.4"})'
+
