@@ -22,6 +22,7 @@ SUPERDESK_URL="http$SSL://$HOST/api"
 CONTENTAPI_URL="http$SSL://$HOST/contentapi"
 SUPERDESK_WS_URL="ws$SSL://$HOST/ws"
 SUPERDESK_CLIENT_URL="http$SSL://$HOST"
+PRODAPI_URL="http$SSL://$HOST/prodapi"
 
 MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
 LEGAL_ARCHIVE_URI="mongodb://$DB_HOST/${DB_NAME}_la"
