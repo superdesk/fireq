@@ -26,14 +26,7 @@ pip install -U honcho gunicorn
 
 gunicorn_opts='-t 300 -w 1 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
 cat <<EOF > {{repo}}/server/Procfile
-logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
-rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
-wamp: python3 -u ws.py
-work: celery -A worker worker -c 1
-beat: celery -A worker beat --pid=
-{{#is_superdesk}}
-capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
-{{/is_superdesk}}
+{{>Procfile}}
 EOF
 
 
