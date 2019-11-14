@@ -51,6 +51,7 @@ checks = {
     scopes.sd.name: ('npmtest', 'flake8'),
     scopes.sds.name: ('flake8', 'nose', 'behave', 'docs'),
     scopes.sdc.name: ('npmtest', 'e2e'),
+    scopes.bel.name: ('pytest',),
 }
 
 
@@ -206,6 +207,10 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     elif scope == scopes.nr:
         expand.update({
             'name': 'newsroom',
+        })
+    elif scope == scopes.bel:
+        expand.update({
+            'prod_api_path': '/opt/superdesk/env/src/superdesk-core/prod_api',
         })
     else:
         expand.update({
