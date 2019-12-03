@@ -50,11 +50,13 @@ MAIL_PASSWORD = env('MAIL_PASSWORD', '')
 EOF
 
 # Use latest honcho with --no-colour option
-pip install -U honcho
+pip install -U honcho gunicorn
 
 cat <<EOF > {{repo}}/Procfile
-app: python app.py
+web: gunicorn -b 0.0.0.0:$PORT -w 3 app:app
 websocket: python -m newsroom.websocket
+worker: celery -A newsroom.worker.celery -Q "${SUPERDESK_CELERY_PREFIX}newsroom" worker
+beat: celery -A newsroom.worker.celery beat --pid=
 logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
 EOF
 
