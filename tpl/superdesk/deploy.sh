@@ -16,8 +16,7 @@ _activate
 {{^develop}}
 [ -z "${grunt_build-1}" ] || (
 cd {{repo_client}}
-export NODE_OPTIONS=--max_old_space_size=4096
-time grunt build --webpack-no-progress
+time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
 )
 {{/develop}}
 
@@ -67,7 +66,7 @@ EOF
 cat <<"EOF" > {{repo}}/watch-client
 . {{activate}}
 cd {{repo_client}}
-grunt build --webpack-devtool=cheap-eval-source-map --webpack-no-progress
+time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
 
 [ -d {{repo}}/client-core ] && cd {{repo}}/client-core
 while inotifywait -e modify -e create -e delete -r .; do

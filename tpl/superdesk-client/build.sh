@@ -26,4 +26,4 @@ time pip install -Ur requirements.txt
 cd {{repo_client}}
 time npm install --unsafe-perm
 # will be used for e2e tests
-time grunt build --webpack-no-progress
+time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
