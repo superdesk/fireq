@@ -53,9 +53,9 @@ EOF
 pip install -U honcho gunicorn
 
 cat <<EOF > {{repo}}/Procfile
-web: gunicorn -b 0.0.0.0:$PORT -w 3 app:app
+web: gunicorn -b 0.0.0.0:\$PORT -w 3 app:app
 websocket: python -m newsroom.websocket
-worker: celery -A newsroom.worker.celery -Q "${SUPERDESK_CELERY_PREFIX}newsroom" worker
+worker: celery -A newsroom.worker.celery -Q "\${SUPERDESK_CELERY_PREFIX}newsroom" worker
 beat: celery -A newsroom.worker.celery beat --pid=
 logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
 EOF
