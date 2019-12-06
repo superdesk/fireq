@@ -1,4 +1,3 @@
-# elasticsearch
 wait_elastic() {
     elastic=0
     while [ $elastic -eq 0 ]
@@ -10,13 +9,14 @@ wait_elastic() {
     done
 }
 
-if ! _skip_install elasticsearch; then
-    if [ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 7 ]; then
-        wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-        apt-get install apt-transport-https
-        echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
-        apt-get update && apt-get install elasticsearch
-    else
+# make sure there is new elastic if needed
+if [ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 7 ]; then
+    wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+    apt-get install apt-transport-https
+    echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
+    apt-get update && apt-get install --no-install-recommends elasticsearch
+else
+    if ! _skip_install elasticsearch; then
         # for elasticsearch 2.4.x declare next
         # elastic_version=2.x
         version=${elastic_version:-1.7}
