@@ -9,19 +9,27 @@ wait_elastic() {
         sleep 5
     done
 }
-if ! _skip_install elasticsearch; then
-    # for elasticsearch 2.4.x declare next
-    # elastic_version=2.x
-    version=${elastic_version:-1.7}
-    curl -s https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-    echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \
-        > /etc/apt/sources.list.d/elastic.list
 
-    apt-get -y update
-    apt-get -y install --no-install-recommends \
-        openjdk-8-jre-headless \
-        elasticsearch
-    unset version
+if ! _skip_install elasticsearch; then
+    if [ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 7 ]; then
+        wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+        apt-get install apt-transport-https
+        echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
+        apt-get update && apt-get install elasticsearch
+    else
+        # for elasticsearch 2.4.x declare next
+        # elastic_version=2.x
+        version=${elastic_version:-1.7}
+        curl -s https://packages.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+        echo "deb https://packages.elastic.co/elasticsearch/$version/debian stable main" \
+            > /etc/apt/sources.list.d/elastic.list
+
+        apt-get -y update
+        apt-get -y install --no-install-recommends \
+            openjdk-8-jre-headless \
+            elasticsearch
+        unset version
+    fi
 fi
 
 # tune elasticsearch
