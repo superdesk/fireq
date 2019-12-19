@@ -180,7 +180,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         except (KeyError, TypeError):
             env = {}
         env_string = '\n'.join([
-            '{key}={val}'.format(key=key, val=val) for key, val in env.items() if val
+            '{key}={val}'.format(key=key, val=val) for key, val in env.items()
         ])
 
         return locals()
