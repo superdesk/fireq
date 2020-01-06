@@ -25,6 +25,9 @@ SUPERDESK_CLIENT_URL="http$SSL://$HOST"
 PRODAPI_URL="http$SSL://$HOST"
 PRODAPI_URL_PREFIX=prodapi
 AUTH_SERVER_SHARED_SECRET=7fZOf0VI9T70vU5uNlKLrc5GlabxVgl6
+# internal request is http not https
+# see nginx.conf
+AUTHLIB_INSECURE_TRANSPORT=1
 
 MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
 LEGAL_ARCHIVE_URI="mongodb://$DB_HOST/${DB_NAME}_la"
