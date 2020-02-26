@@ -53,8 +53,10 @@ checks = {
     scopes.sd.name: ('npmtest', 'flake8'),
     scopes.sds.name: ('flake8', 'nose', 'behave', 'docs'),
     scopes.sdc.name: ('npmtest', 'e2e'),
-    scopes.bel.name: ('pytest',),
-    scopes.tlp.name: ('pytest',),
+    # this checks are trigerred from superdesk-core using travis job
+    # keeping it commented here for now
+    # scopes.bel.name: ('pytest',),
+    # scopes.tlp.name: ('pytest',),
 }
 
 
