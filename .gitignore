@@ -6,3 +6,4 @@ env
 config.json
 tpl/init
 files
+.idea

@@ -46,14 +46,17 @@ scopes = [
     Scope('scl', 'superdesk', 'superdesk/superdesk-cp-lji'),
     Scope('ncl', 'newshub-cp', 'superdesk/newshub-cp-lji'),
     Scope('scp', 'superdesk', 'superdesk/superdesk-cp'),
-    Scope('tlp', 'superdesk', 'superdesk/superdesk-tlp'),
+    Scope('tlp', 'superdesk-tlp', 'superdesk/superdesk-tlp'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
     scopes.sd.name: ('npmtest', 'flake8'),
-    scopes.sds.name: ('flake8', 'nose', 'behave', 'docs'),
     scopes.sdc.name: ('npmtest', 'e2e'),
-    scopes.bel.name: ('pytest',),
+    # this checks are trigerred from superdesk-core using travis job
+    # keeping it commented here for now
+    # scopes.sds.name: ('flake8', 'nose', 'behave', 'docs'),
+    # scopes.bel.name: ('pytest',),
+    # scopes.tlp.name: ('pytest',),
 }
 
 
@@ -219,7 +222,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         expand.update({
             'name': 'newsroom',
         })
-    elif scope == scopes.bel:
+    elif scope in (scopes.bel, scopes.tlp):
         expand.update({
             'prod_api_path': '/opt/superdesk/env/src/superdesk-core/prod_api',
         })
