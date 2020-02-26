@@ -54,6 +54,7 @@ checks = {
     scopes.sds.name: ('flake8', 'nose', 'behave', 'docs'),
     scopes.sdc.name: ('npmtest', 'e2e'),
     scopes.bel.name: ('pytest',),
+    scopes.tlp.name: ('pytest',),
 }
 
 
