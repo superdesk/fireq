@@ -36,7 +36,7 @@ def auth(url=None):
     org = 'superdesk'
     if url and 'liveblog' in url:
         org = 'liveblog'
-    auth_url = 'https://api.github.com/installations/%s/access_tokens' % \
+    auth_url = 'https://api.github.com/app/installations/%s/access_tokens' % \
         conf['github_installations'][org]
     headers = auth_jwt()
     headers['Accept'] = 'application/vnd.github.machine-man-preview+json'
