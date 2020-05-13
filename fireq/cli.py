@@ -13,6 +13,7 @@ import re
 import signal
 import subprocess as sp
 import time
+import tempfile
 import urllib.request
 from concurrent import futures
 from collections import namedtuple, OrderedDict
@@ -260,7 +261,14 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False, env=None):
         log.info('Dry run!')
         return 0
 
-    code = sp.call(cmd, executable='/bin/bash', shell=True)
+    if len(cmd) > 100:
+        with tempfile.NamedTemporaryFile('w', encoding='utf-8') as tmp:
+            tmp.write(cmd)
+            tmp.flush()
+            code = sp.call('/bin/bash {}'.format(tmp.name), shell=True)
+    else:
+        code = sp.call(cmd, executable='/bin/bash', shell=True)
+
     if exit and code:
         raise SystemExit(code)
     return code
