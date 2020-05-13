@@ -54,4 +54,4 @@ EOF
 {{/develop}}
 
 _activate
-pip install -U pip wheel
+pip install -U pip wheel setuptools
