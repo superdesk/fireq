@@ -70,12 +70,22 @@ if [ -n "${SUPERDESK_TESTING:-}" ]; then
     LEGAL_ARCHIVE=True
 fi
 
-# scope custom env for {{scope}}
-{{env_string}}
+{{#is_superdesk}}
+week_minutes=$(expr 60 \* 24 \* 7)
+CONTENT_EXPIRY_MINUTES=$week_minutes
+PUBLISHED_CONTENT_EXPIRY_MINUTES=$week_minutes
+AUDIT_EXPIRY_MINUTES=$week_minutes
+PUBLISH_QUEUE_EXPIRY_MINUTES=$week_minutes
+ARCHIVED_EXPIRY_MINUTES=$(expr 2 \* $week_minutes)
+{{/is_superdesk}}
 
 {{^is_superdesk}}
 ### Liveblog custom
 S3_THEMES_PREFIX=${S3_THEMES_PREFIX:-"/{{db_name}}/"}
 EMBEDLY_KEY=${EMBEDLY_KEY:-}
 {{/is_superdesk}}
+
+# scope custom env for {{scope}}
+{{env_string}}
+
 set +a
