@@ -77,6 +77,7 @@ PUBLISHED_CONTENT_EXPIRY_MINUTES=$week_minutes
 AUDIT_EXPIRY_MINUTES=$week_minutes
 PUBLISH_QUEUE_EXPIRY_MINUTES=$week_minutes
 ARCHIVED_EXPIRY_MINUTES=$(expr 2 \* $week_minutes)
+MAX_EXPIRY_QUERY_LIMIT=500
 {{/is_superdesk}}
 
 {{^is_superdesk}}
