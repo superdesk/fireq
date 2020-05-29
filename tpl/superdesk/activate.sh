@@ -71,13 +71,13 @@ if [ -n "${SUPERDESK_TESTING:-}" ]; then
 fi
 
 {{#is_superdesk}}
-week_minutes=10080
-CONTENT_EXPIRY_MINUTES=$week_minutes
-PUBLISHED_CONTENT_EXPIRY_MINUTES=$week_minutes
-AUDIT_EXPIRY_MINUTES=$week_minutes
-PUBLISH_QUEUE_EXPIRY_MINUTES=$week_minutes
-ARCHIVED_EXPIRY_MINUTES=10080
-MAX_EXPIRY_QUERY_LIMIT=500
+week_minutes="10080"
+CONTENT_EXPIRY_MINUTES="$week_minutes"
+PUBLISHED_CONTENT_EXPIRY_MINUTES="$week_minutes"
+AUDIT_EXPIRY_MINUTES="$week_minutes"
+PUBLISH_QUEUE_EXPIRY_MINUTES="$week_minutes"
+ARCHIVED_EXPIRY_MINUTES="10080"
+MAX_EXPIRY_QUERY_LIMIT="500"
 {{/is_superdesk}}
 
 {{^is_superdesk}}
