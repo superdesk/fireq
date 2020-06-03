@@ -11,10 +11,14 @@ wait_elastic() {
 
 # make sure there is new elastic if needed
 if [ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 7 ]; then
-    wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-    apt-get install apt-transport-https
-    echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
-    apt-get -y update && apt-get -y install --no-install-recommends elasticsearch
+    apt-get -y purge elasticsearch
+    dpkg-statoverride --remove /var/log/elasticsearch
+    dpkg-statoverride --remove /var/lib/elasticsearch
+
+    wget --quiet https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.0-amd64.deb
+    wget --quiet https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.0-amd64.deb.sha512
+    shasum -a 512 -c elasticsearch-7.7.0-amd64.deb.sha512 
+    sudo dpkg -i elasticsearch-7.7.0-amd64.deb
 else
     if ! _skip_install elasticsearch; then
         # for elasticsearch 2.4.x declare next
@@ -32,26 +36,6 @@ else
     fi
 fi
 
-# tune elasticsearch
-cfg='/etc/elasticsearch/elasticsearch.yml'
-[ -f "${cfg}.bak" ] || mv $cfg $cfg.bak
-es_backups=/var/tmp/elasticsearch
-if [ ! -d "$es_backups" ]; then
-    mkdir $es_backups
-    chown elasticsearch:elasticsearch $es_backups
-fi
-cat <<EOF > $cfg
-network.bind_host: 0.0.0.0
-node.local: true
-discovery.zen.ping.multicast: false
-path.repo: $es_backups
-index.number_of_replicas: 0
-EOF
-
 systemctl enable elasticsearch
-systemctl restart elasticsearch
+systemctl restart elasticsearch || journalctl -xe
 wait_elastic
-
-curl -s -XPUT 'http://localhost:9200/_snapshot/backups' \
-    -d '{"type": "fs", "settings": {"location": "'$es_backups'"}}'
-unset cfg es_backups
