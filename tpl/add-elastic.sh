@@ -17,7 +17,7 @@ if [ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 7 ]; then
 
     wget --quiet https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.0-amd64.deb
     wget --quiet https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.0-amd64.deb.sha512
-    shasum -a 512 -c elasticsearch-7.7.0-amd64.deb.sha512 
+    shasum -a 512 -c elasticsearch-7.7.0-amd64.deb.sha512
     sudo dpkg -i elasticsearch-7.7.0-amd64.deb
 else
     if ! _skip_install elasticsearch; then
