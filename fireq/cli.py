@@ -223,7 +223,12 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         expand.update({
             'name': 'newsroom',
         })
-    elif scope in (scopes.bel, scopes.tlp):
+    elif scope == scopes.bel:
+        expand.update({
+            'prod_api_path': '/opt/superdesk/env/src/superdesk-core/prod_api',
+            'fireq_json': '/opt/superdesk/.fireq.json',
+        })
+    elif scope == scopes.tlp:
         expand.update({
             'prod_api_path': '/opt/superdesk/env/src/superdesk-core/prod_api',
         })
