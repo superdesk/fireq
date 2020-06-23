@@ -50,6 +50,7 @@ echo "Done: $backup"
 
 [ -z "$clean" ] || (
 curl -s -XDELETE $db_host:9200/$db_name*
+curl -s -XDELETE $db_host:9201/$db_name*
 for i in $(dbs); do
      echo "db.dropDatabase()" | $mongo $i
 done
