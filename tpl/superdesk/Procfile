@@ -6,6 +6,3 @@ beat: celery -A worker beat --pid=
 {{#is_superdesk}}
 capi: gunicorn -b 0.0.0.0:5400 content_api.wsgi $gunicorn_opts
 {{/is_superdesk}}
-{{#sams_enabled}}
-sams: gunicorn -b localhost:5700 --chdir {{repo}}/server/sams sams.wsgi $gunicorn_opts
-{{/sams_enabled}}

@@ -145,17 +145,6 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
             return expand.pop(name)
         return default
 
-    def json_val(fireq_json, name, default=None):
-        """Return value from .fireq.json file"""
-
-        if not getattr(json_val, 'data', None):
-            path = Path(fireq_json)
-            if path.exists():
-                json_val.data = json.loads(path.read_text())
-
-        data = getattr(json_val, 'data', {})
-        return data.get(name) or default
-
     def get_ctx():
         # TODO: move superdesk based logic to separate file
         name = val('name', 'superdesk')
@@ -171,7 +160,6 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         repo_client = val('repo_client', '%s/client' % repo)
 
         fireq_json = val('fireq_json', '/opt/superdesk/env/src/superdesk-core/.fireq.json')
-        sams_enabled = json_val(fireq_json, 'sams') and 1 or ''
 
         develop = val('develop', False) and 1 or ''
         testing = val('testing') and 1 or ''
