@@ -91,7 +91,7 @@ S3_THEMES_PREFIX=${S3_THEMES_PREFIX:-"/{{db_name}}/"}
 EMBEDLY_KEY=${EMBEDLY_KEY:-}
 {{/is_superdesk}}
 
-if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` = "true" ]; then
+if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
     SAMS_HOST="localhost"
     SAMS_PORT="5700"
     SAMS_URL="http://localhost:5700"
