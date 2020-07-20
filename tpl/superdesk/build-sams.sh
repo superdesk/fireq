@@ -1,4 +1,4 @@
-if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` = "true" ]; then
+if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
     ## clone SAMS repo
     [ -d {{repo}}/sams ] || (
         mkdir -p {{repo}}
