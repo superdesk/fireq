@@ -16,7 +16,7 @@ systemctl restart superdesk
 
 cd {{repo_client}}
 time npm i protractor-flake
-time webdriver-manager update --gecko false
+time npm run webdriver-manager
 
 export SCREENSHOTS_DIR=/var/tmp/data/screenshots/{{uid}}
 
