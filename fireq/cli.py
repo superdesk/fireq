@@ -214,6 +214,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     elif scope == scopes.sdc:
         expand.update({
             'repo_client': '/opt/superdesk/client-core',
+            'fireq_json': '/opt/superdesk/client-core/.fireq.json',
         })
     elif scope == scopes.lb:
         expand.update({
