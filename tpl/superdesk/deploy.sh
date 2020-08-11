@@ -50,6 +50,12 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# if grammalecte is enabled in fireq.json, add & run correspondent service
+if [ -f {{fireq_json}} ] && [ `jq ".grammalecte?" {{fireq_json}}` == "true" ]; then
+{{>service-grammalecte.sh}}
+fi
+
 {{#develop}}
 {{>testing.sh}}
 
@@ -79,6 +85,7 @@ while inotifywait -e modify -e create -e delete -r .; do
     systemctl restart {{name}}-client
 done
 EOF
+
 service={{name}}-client
 cat <<"EOF" > /etc/systemd/system/$service.service
 [Unit]
