@@ -7,7 +7,7 @@ StartLimitIntervalSec=0
 
 [Service]
 ExecStart=/usr/bin/python3 grammalecte-server.py --host localhost --port 9999
-WorkingDirectory=/grammalecte
+WorkingDirectory=/opt/grammalecte
 Restart=always
 RestartSec=5
 
