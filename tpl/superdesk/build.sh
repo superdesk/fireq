@@ -9,5 +9,8 @@ time pip install -Ur $req
 
 {{>build-sams.sh}}
 
+# if grammalecte is enabled in fireq.json, install grammalecte server
+{{>build-grammalecte.sh}}
+
 cd {{repo_client}}
 time npm install --unsafe-perm
