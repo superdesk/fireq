@@ -102,6 +102,10 @@ if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
     STORAGE_DESTINATION_1="MongoGridFS,Default,$SAMS_MONGO_URI"
 fi
 
+if [ -f {{fireq_json}} ] && [ `jq ".videoserver?" {{fireq_json}}` == "true" ]; then
+  VIDEO_SERVER_ENABLED=True
+fi
+
 # scope custom env for {{scope}}
 {{env_string}}
 

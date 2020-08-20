@@ -56,6 +56,11 @@ if [ -f {{fireq_json}} ] && [ `jq ".grammalecte?" {{fireq_json}}` == "true" ]; t
 {{>service-grammalecte.sh}}
 fi
 
+# if videoserver is enabled in fireq.json, add & run correspondent service
+if [ -f {{fireq_json}} ] && [ `jq ".videoserver?" {{fireq_json}}` == "true" ]; then
+{{>service-videoserver.sh}}
+fi
+
 {{#develop}}
 {{>testing.sh}}
 

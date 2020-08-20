@@ -12,5 +12,8 @@ time pip install -Ur $req
 # if grammalecte is enabled in fireq.json, install grammalecte server
 {{>build-grammalecte.sh}}
 
+# if video server is enabled in fireq.json, install it
+{{>build-videoserver.sh}}
+
 cd {{repo_client}}
 time npm install --unsafe-perm
