@@ -35,21 +35,7 @@ sams: gunicorn -b localhost:5700 --chdir {{repo}}/server/sams sams.wsgi $gunicor
 EOF
 fi
 
-cat <<"EOF" > /etc/systemd/system/{{name}}.service
-[Unit]
-Description={{name}}
-Wants=network.target
-After=network.target
-
-[Service]
-ExecStart=/bin/sh -c '. {{activate}} && exec honcho start --no-colour'
-WorkingDirectory={{repo}}/server
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
+{{>service-superdesk.sh}}
 
 # if grammalecte is enabled in fireq.json, add & run correspondent service
 if [ -f {{fireq_json}} ] && [ `jq ".grammalecte?" {{fireq_json}}` == "true" ]; then
