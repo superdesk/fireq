@@ -24,7 +24,7 @@ EOF
 mkdir -p /var/log/videoserver/
 
 cat <<EOF >> /opt/videoserver/video-server-app/Procfile
-logs: journalctl -u videoserver -f >> /var/log/videoserver/main.log
+logs: journalctl -u videoserver -f >> {{logs}}/videoserver.log
 EOF
 
 systemctl enable videoserver
