@@ -59,7 +59,7 @@ C_FORCE_ROOT=1
 CELERYBEAT_SCHEDULE_FILENAME=${CELERYBEAT_SCHEDULE_FILENAME:-/tmp/celerybeatschedule}
 CELERY_BROKER_URL=${CELERY_BROKER_URL:-$REDIS_URL}
 
-if [ -n "$AMAZON_CONTAINER_NAME" ]; then
+if [ -n "${AMAZON_CONTAINER_NAME:+isset}" ]; then
     AMAZON_S3_SUBFOLDER=${AMAZON_S3_SUBFOLDER:-'{{db_name}}'}
     MEDIA_PREFIX=${MEDIA_PREFIX:-"http$SSL://$HOST/api/upload-raw"}
 
@@ -100,6 +100,10 @@ if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
     SAMS_ELASTICSEARCH_URL="$ELASTICSEARCH_URL"
     SAMS_ELASTICSEARCH_INDEX="$SAMS_MONGO_DBNAME"
     STORAGE_DESTINATION_1="MongoGridFS,Default,$SAMS_MONGO_URI"
+fi
+
+if [ -f {{fireq_json}} ] && [ `jq ".videoserver?" {{fireq_json}}` == "true" ]; then
+  VIDEO_SERVER_ENABLED=True
 fi
 
 # scope custom env for {{scope}}

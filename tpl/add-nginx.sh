@@ -19,6 +19,13 @@ EOF
 cat <<EOF > $path/default.inc
 {{>nginx.conf}}
 EOF
+
+if [ -f {{fireq_json}} ] && [ `jq ".videoserver?" {{fireq_json}}` == "true" ]; then
+cat <<EOF > $path/videoserver.inc
+{{>nginx-videoserver.conf}}
+EOF
+fi
+
 cat <<"EOF" > $path/params.conf
 {{>nginx-params.conf}}
 EOF
