@@ -34,4 +34,15 @@ else
     python manage.py data:upgrade
 fi
 {{/test_data}}
+
+# If SAMS is enabled in fireq.json, initialise elasticsearch
+# Deletes elastic indices, recreate the types/mapping, then reindex from mongo
+if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
+    # Use pushd/popd so we can return to the current working directory
+    # Change directory to where the sams `settings.py` file resides
+    pushd {{repo}}/server/sams
+    python -m sams.manage app:flush_elastic_index
+    popd
+fi
+
 unset sample_data
