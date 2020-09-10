@@ -24,7 +24,7 @@ class Server(smtpd.SMTPServer, object):
         path.mkdir(exist_ok=True)
         self._path = path
 
-    def process_message(self, peer, mailfrom, rcpttos, data):
+    def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
         msg = Parser().parsestr(data)
         subject = msg['subject']
         log.info('to=%r subject=%r', rcpttos, subject)
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     log.info('Starting SMTP server at {0}:{1}'.format(args.addr, args.port))
-    server = Server(args.path, (args.addr, args.port), None)
+    server = Server(args.path, (args.addr, args.port), None, decode_data=True)
     try:
         asyncore.loop()
     except KeyboardInterrupt:
