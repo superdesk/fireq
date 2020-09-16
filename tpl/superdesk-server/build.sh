@@ -15,5 +15,7 @@ time pip install -r requirements.txt
 cd {{repo_server}}
 time pip install -Ur requirements.txt
 
+{{>superdesk/build-sams.sh}}
+
 cd {{repo_client}}
 time npm install
