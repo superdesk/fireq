@@ -23,6 +23,8 @@ time pip install -r requirements.txt
 cd {{repo_client}}/test-server
 time pip install -Ur requirements.txt
 
+{{>superdesk/build-sams.sh}}
+
 cd {{repo_client}}
 time npm install --unsafe-perm
 # will be used for e2e tests
