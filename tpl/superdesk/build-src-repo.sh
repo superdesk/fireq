@@ -23,7 +23,7 @@ fi
 if [ -f .fireq.json ]; then
     # If the `superdesk_branch` config is set in the repo,
     # then we will use that branch from github.com/superdesk/superdesk
-    if [ `js ".superdesk_branch?" .fireq.json` != "null" ]; then
+    if [ `jq ".superdesk_branch?" .fireq.json` != "null" ]; then
         _set_config "superdesk_branch=`jq -r ".superdesk_branch?" .fireq.json`"
     fi
 fi
