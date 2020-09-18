@@ -1,11 +1,14 @@
 {{>build-init.sh}}
 
-#branch=1.4
-{{>superdesk/build-src-cores.sh}}
-
+# Fetch the superdesk-client-core repo first
+# So that we can load the config values from .fireq.json
+# In case we need a different branch from the superdesk/superdesk repo
 repo={{repo}}/client-core
 rm -rf $repo
 {{>superdesk/build-src-repo.sh}}
+
+#branch=1.4
+{{>superdesk/build-src-cores.sh}}
 
 chunks=/var/tmp/e2e-chunks.py
 cat <<"EOF" > $chunks
