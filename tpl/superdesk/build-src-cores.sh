@@ -1,6 +1,10 @@
 repo={{repo}}
 github=https://github.com/superdesk
-branch=${branch:-master}
+
+# Use the config `superdesk_branch` if set
+# Otherwise use the `branch` value passed in
+# and default to `master`
+branch=`_get_config_value superdesk_branch ${branch:-master}`
 
 [ -d $repo ] || mkdir $repo
 cd $repo
