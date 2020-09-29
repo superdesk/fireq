@@ -1,38 +1,5 @@
 cat <<"EOF" > {{activate}}
-. {{repo_env}}/bin/activate
-
-set -a
-LC_ALL=en_US.UTF-8
-PYTHONUNBUFFERED=1
-PATH=node_modules/.bin/:$PATH
-
-[ ! -f {{config}} ] || . {{config}}
-
-NEWSROOM_SETTINGS=settings.py
-
-MONGO_URI=mongodb://data-sd/$DB_NAME
-CONTENTAPI_ELASTIC_INDEX=$DB_NAME
-CONTENTAPI_ELASTICSEARCH_INDEX=$DB_NAME
-CONTENTAPI_MONGO_URI=mongodb://data-sd/$DB_NAME
-NEWSROOM_WEBSOCKET_URL="ws{{^is_pr}}s{{/is_pr}}://$HOST/ws"
-ELASTICSEARCH_URL=http://data-sd:9200
-REDIS_URL=redis://localhost:6379/1
-CELERY_BROKER_URL="$REDIS_URL"
-NOTIFICATION_KEY="newsroom"
-RECAPTCHA_PUBLIC_KEY="$RECAPTCHA_PUBLIC_KEY"
-RECAPTCHA_PRIVATE_KEY="$RECAPTCHA_PRIVATE_KEY"
-GOOGLE_MAPS_KEY="AIzaSyC14_pEv1mUFFDfUA2zNEzij3RFTcJk5wM"
-SECRET_KEY=$DB_NAME
-
-{{#is_pr}}
-MONGO_URI=mongodb://data-sd/nr-master
-CONTENTAPI_ELASTIC_INDEX=nr-master
-CONTENTAPI_ELASTICSEARCH_INDEX=nr-master
-CONTENTAPI_MONGO_URI=mongodb://data-sd/nr-master
-NEWS_API_ENABLED=true
-{{/is_pr}}
-
-set +a
+{{>activate.sh}}
 EOF
 
 _activate

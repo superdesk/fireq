@@ -222,6 +222,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     elif scope == scopes.nr:
         expand.update({
             'name': 'newsroom',
+            'fireq_json': '/opt/newsroom/.fireq.json',
         })
     elif scope == scopes.bel:
         expand.update({
