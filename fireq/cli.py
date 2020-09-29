@@ -43,11 +43,11 @@ scopes = [
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
     Scope('nr', 'newsroom', 'superdesk/newsroom'),
     Scope('bel', 'superdesk-belga', 'superdesk/superdesk-belga'),
-    Scope('anp', 'superdesk', 'superdesk/superdesk-anp'),
+    #Scope('anp', 'superdesk', 'superdesk/superdesk-anp'),
     Scope('scl', 'superdesk', 'superdesk/superdesk-cp-lji'),
     Scope('ncl', 'newshub-cp', 'superdesk/newshub-cp-lji'),
     Scope('scp', 'superdesk', 'superdesk/superdesk-cp'),
-    Scope('tlp', 'superdesk-tlp', 'superdesk/superdesk-tlp'),
+    #Scope('tlp', 'superdesk-tlp', 'superdesk/superdesk-tlp'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
