@@ -4,11 +4,26 @@ lxc-destroy -fn $lxc || true
 lxc-copy -s -n {{lxc_build}} -N $lxc
 ./fire lxc-wait --start $lxc
 
-{{>ci-deploy.sh}}
+deploy() {
+    {{>ci-deploy.sh}}
+}
+
+# workaround to stop deploy on error but let the script continue
+# so it will destroy the old container and make the error visible
+error=0
+deploy &
+wait $! || {
+    error=$?
+}
 
 lxc-stop -n $lxc
 lxc-destroy -fn {{uid}} || true
-lxc-copy -n $lxc -N {{uid}} -R
+
+if [ "$error" -eq "0" ]; then
+    lxc-copy -n $lxc -N {{uid}} -R
+else
+    exit $error
+fi
 
 # mount logs directory
 mkdir -p {{host_logs}}
