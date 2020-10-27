@@ -5,5 +5,5 @@
 cd {{repo}}
 time pip install -r requirements.txt
 
-time npm install
+time npm install --no-audit
 time npm run build
