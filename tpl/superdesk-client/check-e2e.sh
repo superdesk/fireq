@@ -15,7 +15,7 @@ EOF
 systemctl restart superdesk
 
 cd {{repo_client}}
-time npm i protractor-flake
+time npm install protractor-flake --no-audit
 time npm run webdriver-manager
 
 export SCREENSHOTS_DIR=/var/tmp/data/screenshots/{{uid}}
