@@ -8,8 +8,8 @@ cd {{repo_server}}
 time pip install -U -r $req
 
 cd {{repo}}
-time npm i monorepo
-time npm install --unsafe-perm
-time npm i gulp grunt grunt-cli
+time npm install monorepo --no-audit
+time npm install --unsafe-perm --no-audit
+time npm install gulp grunt grunt-cli --no-audit
 time npm run build
 

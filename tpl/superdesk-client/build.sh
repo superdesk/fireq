@@ -29,6 +29,6 @@ time pip install -Ur requirements.txt
 {{>superdesk/build-sams.sh}}
 
 cd {{repo_client}}
-time npm install --unsafe-perm
+time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
 # will be used for e2e tests
 time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress

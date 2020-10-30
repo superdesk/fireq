@@ -21,4 +21,4 @@ time pip install -Ur requirements.txt
 {{>superdesk/build-sams.sh}}
 
 cd {{repo_client}}
-time npm install
+time npm ci || time npm install --no-audit

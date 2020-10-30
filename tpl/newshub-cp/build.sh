@@ -8,6 +8,6 @@ time pip install -r requirements.txt
 # required for minimal setup of newshub-cp-lji.git
 cp -r -n env/src/newsroom/* .
 
-time npm install
+time npm install --no-audit
 time npm run build
 

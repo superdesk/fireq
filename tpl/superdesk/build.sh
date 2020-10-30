@@ -16,4 +16,4 @@ time pip install -Ur $req
 {{>build-videoserver.sh}}
 
 cd {{repo_client}}
-time npm install --unsafe-perm
+time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
