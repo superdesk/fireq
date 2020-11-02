@@ -28,7 +28,7 @@ if _missing_db; then
     # add Forbes ingest source
     python manage.py app:initialize_data --entity-name ingest_providers $sample_data
     # Use data from e2e tests
-    python manage.py app:prepopulate
+    python manage.py app:prepopulate || :
 else
     python manage.py app:initialize_data
     python manage.py data:upgrade
