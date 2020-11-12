@@ -1,5 +1,5 @@
 repo={{repo}}
-github=https://github.com/superdesk
+github=git@github.com:superdesk
 
 # Use the config `superdesk_branch` if set
 # Otherwise use the `branch` value passed in

@@ -155,7 +155,7 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
         repo_ref = val('repo_ref') or 'heads/master'
         repo_sha = val('repo_sha', '')
         repo_remote = val('repo_remote') or (
-            'https://github.com/superdesk/superdesk.git'
+            'git@github.com:superdesk/superdesk.git'
         )
         repo_server = val('repo_server', '%s/server' % repo)
         repo_client = val('repo_client', '%s/client' % repo)
