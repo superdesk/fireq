@@ -5,5 +5,5 @@ if [ -d $path ]; then
 else
     mkdir $path
     cd $path
-    git clone -b files --single-branch https://github.com/superdesk/fireq.git .
+    git clone -b files --single-branch git@github.com:superdesk/fireq.git .
 fi

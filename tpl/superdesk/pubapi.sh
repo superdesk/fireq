@@ -1,6 +1,6 @@
 ## superdesk-content-api external repository
 # it's deprecated but needed in some cases
-github=https://github.com/superdesk/superdesk-content-api
+github=git@github.com:superdesk/superdesk-content-api
 path=/opt/superdesk-content-api
 env=$path/env
 

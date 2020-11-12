@@ -4,7 +4,7 @@ if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
         mkdir -p {{repo}}
         cd {{repo}}
 
-        github=https://github.com/superdesk
+        github=git@github.com:superdesk
         git clone -b develop --single-branch $github/sams.git sams
         unset github
     )

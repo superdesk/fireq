@@ -15,7 +15,7 @@ if [ -d $path ]; then
 else
     mkdir $path
     cd $path
-    git clone -b init --single-branch https://github.com/superdesk/fireq.git .
+    git clone -b init --single-branch git@github.com:superdesk/fireq.git .
 fi
 if [ -f {{uid}}.sh ]; then
     cfg={{uid}}

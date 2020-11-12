@@ -5,7 +5,7 @@
 mkdir -p {{repo}}
 cd {{repo}}
 
-github=https://github.com/superdesk
+github=git@github.com:superdesk
 git clone $github/superdesk-core.git server-core
 git clone $github/superdesk-client-core.git client-core
 unset github
