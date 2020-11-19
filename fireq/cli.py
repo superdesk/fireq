@@ -49,7 +49,7 @@ scopes = [
     Scope('scp', 'superdesk', 'superdesk/superdesk-cp'),
     #Scope('tlp', 'superdesk-tlp', 'superdesk/superdesk-tlp'),
     Scope('sdpriv', 'superdesk-private', 'superdesk/superdesk-private'),
-    Scope('nh-stt', 'newshub-stt', 'superdesk/newshub-stt'),
+    Scope('nhstt', 'newshub-stt', 'superdesk/newshub-stt'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
