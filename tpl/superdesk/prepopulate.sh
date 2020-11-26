@@ -16,6 +16,7 @@ if _missing_db; then
 else
     python manage.py data:upgrade
     python manage.py app:initialize_data
+    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 fi
 {{/test_data}}
 {{#test_data}}
