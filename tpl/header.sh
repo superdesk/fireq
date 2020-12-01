@@ -12,7 +12,7 @@ _activate() {
 }
 
 _missing_db() {
-    ! { curl -sI "$ELASTICSEARCH_URL/${ELASTICSEARCH_INDEX}_archive" | grep -q 404 && curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404 ;}
+    curl -sI "$ELASTICSEARCH_URL/${ELASTICSEARCH_INDEX}_archive" | grep -q 404 && curl -sI $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX | grep -q 404
 }
 
 _skip_install() {
