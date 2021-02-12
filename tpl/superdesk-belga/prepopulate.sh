@@ -9,5 +9,6 @@ if _missing_db; then
 else
     python manage.py data:upgrade
     python manage.py app:initialize_data
+    python manage.py schema:migrate || :
 fi
 {{/test_data}}
