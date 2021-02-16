@@ -1,10 +1,12 @@
 _activate
 cd {{repo}}/server
 if _missing_db; then
-    ./manage.py app:initialize_data
-    ./manage.py app:initialize_data -p {{repo}}/planning/server/data/
-    ./manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
+    python manage.py app:initialize_data
+    python manage.py app:initialize_data -p {{repo}}/planning/server/data/
+    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 else
-    ./manage.py app:initialize_data
-    ./manage.py app:initialize_data -p {{repo}}/planning/server/data/
+    python manage.py data:upgrade
+    python manage.py schema:migrate || :
+    python manage.py app:initialize_data
+    python manage.py app:initialize_data -p {{repo}}/planning/server/data/
 fi
