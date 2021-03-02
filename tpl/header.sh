@@ -82,7 +82,7 @@ _get_json_value() {
     fi
 }
 
-_print_json_config() {1
+_print_json_config() {
     echo "FireQ JSON Config:"
     cat $FIREQ_JSON
 }
