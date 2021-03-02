@@ -42,7 +42,7 @@ _get_config_value() {
     fi
 }
 
-FIREQ_JSON=/opt/fireq/fireq.json
+FIREQ_JSON=/opt/fireq.json
 
 if [ ! -f $FIREQ_JSON ]; then
     echo '{}' > $FIREQ_JSON
@@ -53,8 +53,8 @@ _merge_json_from_cwd() {
     # without overriding attributes already existing in
     # /opt/fireq.json
     if [ -f .fireq.json ]; then
-        # Use a temporary file for JSON source
-        # otherwise `jq` will override the file it's trying to read
+        # Use a temporary file for the JSON destination
+        # otherwise `jq` will override the file it's trying to read & write from/to
         mv $FIREQ_JSON $FIREQ_JSON.tmp
         jq -s '.[0] + .[1]' .fireq.json $FIREQ_JSON.tmp > $FIREQ_JSON
         rm $FIREQ_JSON.tmp
