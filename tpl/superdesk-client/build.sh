@@ -10,6 +10,12 @@ rm -rf $repo
 #branch=1.4
 {{>superdesk/build-src-cores.sh}}
 
+# Merge the `.fireq.json` file using the `{{fireq_json}}` variable
+# which is set from the scope, for superdesk defaults to:
+# /opt/superdesk/env/src/superdesk-core/.fireq.json
+_merge_json_from_env_file
+_print_json_config
+
 chunks=/var/tmp/e2e-chunks.py
 cat <<"EOF" > $chunks
 {{>e2e-chunks.py}}

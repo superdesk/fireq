@@ -29,7 +29,7 @@ cat <<EOF > {{repo}}/server/Procfile
 EOF
 
 # If SAMS is enabled in fireq.json, add SAMS WSGI to the Procfile
-if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
+if [ `_get_json_value sams` == "true" ]; then
     cat <<EOF >> {{repo}}/server/Procfile
 sams: gunicorn -b localhost:5700 --chdir {{repo}}/server/sams sams.apps.api.wsgi $gunicorn_opts
 EOF
