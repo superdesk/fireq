@@ -20,10 +20,5 @@ if [ ! -d $repo/.git ]; then
     unset repo repo_ref
 fi
 
-if [ -f .fireq.json ]; then
-    # If the `superdesk_branch` config is set in the repo,
-    # then we will use that branch from github.com/superdesk/superdesk
-    if [ `jq ".superdesk_branch?" .fireq.json` != "null" ]; then
-        _set_config "superdesk_branch=`jq -r ".superdesk_branch?" .fireq.json`"
-    fi
-fi
+# Merge the `.fireq.json` file from the source repo (i.e. the repo/branch of a PR, or a customers repo/branch)
+_merge_json_from_cwd

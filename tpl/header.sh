@@ -41,3 +41,48 @@ _get_config_value() {
         grep -F "$1" /opt/fireq.config | awk -F= '{print $2}'
     fi
 }
+
+FIREQ_JSON=/opt/fireq.json
+
+if [ ! -f $FIREQ_JSON ]; then
+    echo '{}' > $FIREQ_JSON
+fi
+
+_merge_json_from_cwd() {
+    # Merges the two fireq.json files
+    # without overriding attributes already existing in
+    # /opt/fireq.json
+    if [ -f .fireq.json ]; then
+        # Use a temporary file for the JSON destination
+        # otherwise `jq` will override the file it's trying to read & write from/to
+        mv $FIREQ_JSON $FIREQ_JSON.tmp
+        jq -s '.[0] + .[1]' .fireq.json $FIREQ_JSON.tmp > $FIREQ_JSON
+        rm $FIREQ_JSON.tmp
+    fi
+}
+
+_merge_json_from_env_file() {
+    if [ -f {{fireq_json}} ]; then
+        pushd `dirname {{fireq_json}}`
+        _merge_json_from_cwd
+        popd
+    fi
+}
+
+_get_json_value() {
+    # Return the attribute name $1 from /opt/fireq.json
+    # Falling back to $2 if provided
+    # example: [ `_get_json_value elastic 2` -eq 7 ] && _ELASTIC_PORT=9201
+    # example: if [ `_get_json_value sams` == "true" ]; then
+    # example: BRANCH=`_get_json_value branch develop`
+    if [ $# -eq 2 ] && [ `jq ".$1?" $FIREQ_JSON` == "null" ]; then
+        echo $2
+    else
+        jq ".$1?" $FIREQ_JSON
+    fi
+}
+
+_print_json_config() {1
+    echo "FireQ JSON Config:"
+    cat $FIREQ_JSON
+}

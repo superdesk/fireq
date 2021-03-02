@@ -40,7 +40,7 @@ fi
 
 # If SAMS is enabled in fireq.json, initialise elasticsearch
 # Deletes elastic indices, recreate the types/mapping, then reindex from mongo
-if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
+if [ `_get_json_value sams` == "true" ]; then
     # Use pushd/popd so we can return to the current working directory
     # Change directory to where the sams `settings.py` file resides
     pushd {{repo}}/server/sams
