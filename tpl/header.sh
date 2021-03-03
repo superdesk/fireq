@@ -75,10 +75,10 @@ _get_json_value() {
     # example: [ `_get_json_value elastic 2` -eq 7 ] && _ELASTIC_PORT=9201
     # example: if [ `_get_json_value sams` == "true" ]; then
     # example: BRANCH=`_get_json_value branch develop`
-    if [ $# -eq 2 ] && [ `jq ".$1?" $FIREQ_JSON` == "null" ]; then
+    if [ $# -eq 2 ] && [ `jq -r ".$1?" $FIREQ_JSON` == "null" ]; then
         echo $2
     else
-        jq ".$1?" $FIREQ_JSON
+        jq -r ".$1?" $FIREQ_JSON
     fi
 }
 
