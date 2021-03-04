@@ -24,8 +24,15 @@ time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
 pip install -U honcho gunicorn
 
 gunicorn_opts='-t 300 -w 1 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
+
+# keep Procfile for superdesk, override it for others
 cat <<EOF > {{repo}}/server/Procfile
+{{#is_superdesk}}
+logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
+{{/is_superdesk}}
+{{^is_superdesk}}
 {{>Procfile}}
+{{/is_superdesk}}
 EOF
 
 # If SAMS is enabled in fireq.json, add SAMS WSGI to the Procfile
