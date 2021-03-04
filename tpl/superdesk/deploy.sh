@@ -25,15 +25,17 @@ pip install -U honcho gunicorn
 
 gunicorn_opts='-t 300 -w 1 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
 
-# keep Procfile for superdesk, override it for others
-cat <<EOF > {{repo}}/server/Procfile
+# keep repo Procfile for superdesk
 {{#is_superdesk}}
+cat <<EOF >> {{repo}}/server/Procfile
 logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
 {{/is_superdesk}}
+
 {{^is_superdesk}}
+cat <<EOF > {{repo}}/server/Procfile
 {{>Procfile}}
-{{/is_superdesk}}
 EOF
+{{/is_superdesk}}
 
 # If SAMS is enabled in fireq.json, add SAMS WSGI to the Procfile
 if [ `_get_json_value sams` == "true" ]; then
