@@ -256,6 +256,35 @@ index_tpl = '''
 '''
 
 
+LOGS_PATH = '/var/log/zfslog/fire/3/latest/'
+
+FAILURE_FILES = (
+    '!failure-build.json',
+    '!failure-www.json',
+)
+
+SUCCESS_FILES = (
+    '!success-build.json',
+    '!success-www.json'
+)
+
+
+def set_build_status(item):
+    """Get latest build status, 0 - OK, 1 - Failure, 2 - Pending"""
+    def file_status(files):
+        return [os.path.exists(os.path.join(LOGS_PATH, item['lxc'], filename)) for filename in files]
+
+    if all(file_status(SUCCESS_FILES)):
+        item['status_ok'] = True
+        return
+
+    if any(file_status(FAILURE_FILES)):
+        item['status_failure'] = True
+        return
+
+    item['status_pending'] = True
+
+
 async def repo(request):
     prefix = request.match_info['prefix']
     try:
@@ -273,7 +302,7 @@ async def repo(request):
             lxc = '%s-%s' % (prefix, name_cleaned)
             gh_url = 'https://github.com/%s/commits/%s' % (repo_name, ref)
 
-        return {
+        _info = {
             'protected_db': lxc in conf['protected_dbs'],
             'name': name,
             'lxc': lxc,
@@ -282,6 +311,9 @@ async def repo(request):
             'restart_url': get_restart_url(prefix, ref),
             'logs_url': '%slatest/%s/' % (conf['log_url'], lxc),
         }
+
+        set_build_status(_info)
+        return _info
 
     resp, body = await gh_api('repos/%s/pulls?per_page=100' % repo_name)
     pulls = [info(i['number'], True) for i in body]
@@ -301,7 +333,17 @@ repo_tpl = '''
 {{#items}}
     <li>
         <b style="font-size:120%">{{name}}</b>
-        <a href="{{url}}" style="color:green">[instance]</a>
+        <a href="{{url}}"
+		{{#status_ok}}
+		style="color:green"
+		{{/status_ok}}
+		{{#status_failure}}
+		style="color:red"
+		{{/status_failure}}
+		{{#status_pending}}
+		style="color:orange"
+		{{/status_pending}}
+	>[instance]</a>
         <a href="{{gh_url}}" style="color:gray">[github]</a>
         <a href="{{logs_url}}" style="color:black">[latest logs]</a>
         <a href="{{restart_url}}?t=www" style="color:black">[deploy]</a>
