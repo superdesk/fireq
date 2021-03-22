@@ -7,7 +7,7 @@
 The main page contains the list of enabled repositories.
 
 A repository page contains a list of **Pull Requests** and **Branches** with related links:
-- `[instance]` link to the test instance
+- `[instance]` link to the test instance (the instance build status is indicated by colours: green is ok, orange is build in progress, red is a failure)
 - `[latest logs]` link to the latest ci logs
 - `[deploy]` runs only deployment step
 - `[restart]` runs failed/waiting steps if they are exist or runs all steps
