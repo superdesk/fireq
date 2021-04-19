@@ -32,9 +32,9 @@ if _missing_db; then
     # Use data from e2e tests
     python manage.py app:prepopulate || :
 else
+    python manage.py app:initialize_data
     python manage.py data:upgrade
     python manage.py schema:migrate || :
-    python manage.py app:initialize_data
 fi
 {{/test_data}}
 
