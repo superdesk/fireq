@@ -48,7 +48,8 @@ scopes = [
     Scope('ncl', 'newshub-cp', 'superdesk/newshub-cp-lji'),
     Scope('scp', 'superdesk', 'superdesk/superdesk-cp'),
     #Scope('tlp', 'superdesk-tlp', 'superdesk/superdesk-tlp'),
-    Scope('sdpriv', 'superdesk-private', 'superdesk/superdesk-private')
+    Scope('sdpriv', 'superdesk-private', 'superdesk/superdesk-private'),
+    Scope('nra', 'newsroom-app', 'superdesk/newsroom-app'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
@@ -221,6 +222,11 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
             'name': 'liveblog',
         })
     elif scope == scopes.nr:
+        expand.update({
+            'name': 'newsroom',
+            'fireq_json': '/opt/newsroom/.fireq.json',
+        })
+    elif scope == scopes.nra:
         expand.update({
             'name': 'newsroom',
             'fireq_json': '/opt/newsroom/.fireq.json',
@@ -460,6 +466,9 @@ def gen_files(commit, no_diff):
             ('install.sh', 'install', {}),
         ]),
         ('nr', 'newsroom', [
+            ('install.sh', 'install', {}),
+        ]),
+        ('nra', 'newsroom-app', [
             ('install.sh', 'install', {}),
         ]),
     ]
