@@ -5,13 +5,13 @@ _missing_db() {
 _activate
 
 if _missing_db; then
-  cd {{repo}}
+  cd {{repo}}/server
   set +e
   python manage.py initialize_data
   python manage.py create_user admin@example.com admin Admin Admin true
   set -e
 else
-  cd {{repo}}
+  cd {{repo}}/server
   python manage.py initialize_data
   python manage.py data_upgrade
 fi
