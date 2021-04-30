@@ -21,9 +21,6 @@ EOF
     log=$mount_cache/log/$name
     mkdir -p $mount_cache/{pip,npm,dpkg} $log
     cat <<EOF >> /var/lib/lxc/$name/config
-lxc.mount.entry = $mount_cache/pip root/.cache/pip/ none bind,create=dir
-lxc.mount.entry = $mount_cache/npm root/.npm none bind,create=dir
-lxc.mount.entry = $mount_cache/dpkg var/cache/apt/archives/ none bind,create=dir
 lxc.mount.entry = $log var/log/$proj none bind,create=dir
 EOF
 )
