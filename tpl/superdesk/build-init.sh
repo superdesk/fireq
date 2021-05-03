@@ -25,7 +25,7 @@ libtiff5-dev libjpeg8-dev zlib1g-dev \
 libfreetype6-dev liblcms2-dev libwebp-dev \
 curl libfontconfig libssl-dev \
 libxml2-dev libxslt1-dev \
-libxmlsec1-dev jq
+libxmlsec1-dev jq libexempi3
 
 {{>add-node.sh}}
 
