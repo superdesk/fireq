@@ -15,9 +15,9 @@ _activate
 
 {{^develop}}
 [ -z "${grunt_build-1}" ] || (
-export NODE_OPTIONS=--max_old_space_size=2048
+export NODE_OPTIONS=--max_old_space_size=4096
 cd {{repo_client}}
-time (npm run build || time `which grunt` build --webpack-no-progress)
+time (npm run build || npx grunt build --webpack-no-progress)
 )
 {{/develop}}
 
