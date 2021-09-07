@@ -330,7 +330,7 @@ def run_jobs(ref, targets=None, all=False):
         repo_ref = _ref.val
         repo_name = _ref.scope.repo
         repo_sha = _ref.sha
-        lxc_base = conf['lxc_base']
+        lxc_base = "base-sd--18-04" if _ref.scope.name == "lb" else conf['lxc_base']
         lxc_build = '%s--build' % uid
         host = '%s.%s' % (uid, conf['domain'])
         host_ssl = True
