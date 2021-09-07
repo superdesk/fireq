@@ -330,6 +330,8 @@ def run_jobs(ref, targets=None, all=False):
         repo_ref = _ref.val
         repo_name = _ref.scope.repo
         repo_sha = _ref.sha
+        # liveblog does not work with python 3.8 yet,
+        # so using different base for it
         lxc_base = "base-sd--18-04" if _ref.scope.name == "lb" else conf['lxc_base']
         lxc_build = '%s--build' % uid
         host = '%s.%s' % (uid, conf['domain'])
