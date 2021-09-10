@@ -28,7 +28,7 @@ unset chunks
 cd {{repo}}/server
 time pip install -r requirements.txt
 
-if [ -d {{repo}}/e2e/server ]; then # handles new test server location: /client/e2e/server
+if [ -d {{repo_client}}/e2e/server ]; then # handles new test server location: /client/e2e/server
     # use superdesk-core from here
     cd {{repo_client}}/e2e/server
     time pip install -Ur requirements.txt
