@@ -28,13 +28,26 @@ unset chunks
 cd {{repo}}/server
 time pip install -r requirements.txt
 
-# use superdesk-core from here
-cd {{repo_client}}/test-server
-time pip install -Ur requirements.txt
+if [ -d {{repo_client}}/e2e/server ]; then # handles new test server location: /client/e2e/server
+    # use superdesk-core from here
+    cd {{repo_client}}/e2e/server
+    time pip install -Ur requirements.txt
 
-{{>superdesk/build-sams.sh}}
+    {{>superdesk/build-sams.sh}}
 
-cd {{repo_client}}
-time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
-# will be used for e2e tests
-time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
+    cd {{repo_client}}/e2e/client
+    time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
+    # will be used for e2e tests
+    time npm run build
+else # handles old test server location: /client/test-server (keeping to avoid existing releases from breaking)
+    # use superdesk-core from here
+    cd {{repo_client}}/test-server
+    time pip install -Ur requirements.txt
+
+    {{>superdesk/build-sams.sh}}
+
+    cd {{repo_client}}
+    time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
+    # will be used for e2e tests
+    time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
+fi
