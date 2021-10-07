@@ -50,6 +50,8 @@ scopes = [
     #Scope('tlp', 'superdesk-tlp', 'superdesk/superdesk-tlp'),
     Scope('sdpriv', 'superdesk-private', 'superdesk/superdesk-private'),
     Scope('nra', 'newsroom-app', 'superdesk/newsroom-app'),
+    Scope('tgas', 'superdesk', 'superdesk/superdesk-tga'),
+    Scope('tgan', 'newsroom-app', 'superdesk/newsroom-app-tga'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
@@ -226,7 +228,10 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
             'name': 'newsroom',
             'fireq_json': '/opt/newsroom/.fireq.json',
         })
-    elif scope == scopes.nra:
+    elif scope.tpldir == scopes.nra.tpldir:
+        # Check to see if this scope uses the ``newsroom-app`` template directory
+        # This is so customer repos such as ``newsroom-app-stt`` or ``newsroom-app-tga``
+        # will use these config changes as well as the ``newsroom-app`` test app
         expand.update({
             'name': 'newsroom',
             'fireq_json': '/opt/newsroom/.fireq.json',
