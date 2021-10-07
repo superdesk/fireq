@@ -4,7 +4,7 @@ github=git@github.com:superdesk
 # Use the config `superdesk_branch` if set
 # Otherwise use the `branch` value passed in
 # and default to `master`
-branch=`_get_json_value superdesk_branch ${branch:-master}`
+branch=`_get_json_value superdesk_branch ${branch:-develop}`
 
 [ -d $repo ] || mkdir $repo
 cd $repo
