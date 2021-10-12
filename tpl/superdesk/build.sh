@@ -4,8 +4,7 @@
 {{>build-src.sh}}
 
 cd {{repo_server}}
-[ -f dev-requirements.txt ] && req=dev-requirements.txt || req=requirements.txt
-time pip install -Ur $req
+time pip install -Ur requirements.txt
 
 # Merge the `.fireq.json` file using the `{{fireq_json}}` variable
 # which is set from the scope, for superdesk defaults to:
