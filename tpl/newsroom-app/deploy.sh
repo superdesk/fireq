@@ -7,6 +7,11 @@ _activate
 # Use latest honcho with --no-colour option
 pip install -U honcho gunicorn
 
+# Add logging to the Procfile
+cat <<EOF >> {{repo}}/server/Procfile
+logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
+EOF
+
 cat <<"EOF" > /etc/systemd/system/{{name}}.service
 [Unit]
 Description={{name}}
