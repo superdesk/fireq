@@ -207,7 +207,10 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     # TODO: move superdesk based logic to separate file
     expand.update({
         'scope': scope.name,
-        'repo_remote': 'git@github.com:%s.git' % scope.repo
+        'repo_remote': 'https://{github_access_token}@github.com/{repo}.git'.format(
+            github_access_token=conf["github_access_token"],
+            repo=scope.repo,
+        ),
     })
 
     if scope == scopes.sd:
