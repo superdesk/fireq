@@ -8,6 +8,7 @@ PATH=node_modules/.bin/:$PATH
 [ ! -f {{config}} ] || . {{config}}
 
 NEWSROOM_WEBSOCKET_URL="ws{{^is_pr}}s{{/is_pr}}://$HOST/ws"
+NEWSAPI_URL="http$SSL://$HOST/newsapi/v1"
 NOTIFICATION_KEY="newsroom"
 RECAPTCHA_PUBLIC_KEY="$RECAPTCHA_PUBLIC_KEY"
 RECAPTCHA_PRIVATE_KEY="$RECAPTCHA_PRIVATE_KEY"
