@@ -12,12 +12,10 @@ _sample_data() {
 if _missing_db; then
     _sample_data
     python manage.py app:initialize_data $sample_data
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 else
     python manage.py app:initialize_data
     python manage.py data:upgrade
     python manage.py schema:migrate || :
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 fi
 {{/test_data}}
 {{#test_data}}
@@ -37,6 +35,9 @@ else
     python manage.py schema:migrate || :
 fi
 {{/test_data}}
+
+# make sure there is admin at the end
+python manage.py users:create -u admin -p admin -e 'admin@example.com' --admin
 
 # If SAMS is enabled in fireq.json, initialise elasticsearch
 # Deletes elastic indices, recreate the types/mapping, then reindex from mongo
