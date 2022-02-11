@@ -17,6 +17,12 @@ GOOGLE_MAPS_KEY="AIzaSyC14_pEv1mUFFDfUA2zNEzij3RFTcJk5wM"
 SECRET_KEY=$DB_NAME
 WEBPACK_ASSETS_URL="/static/dist/"
 
+# Management API vars
+AUTH_SERVER_SHARED_SECRET=7fZOf0VI9T70vU5uNlKLrc5GlabxVgl6
+# internal request is http not https
+# see nginx.conf
+AUTHLIB_INSECURE_TRANSPORT=1
+
 # mongo
 MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
 CONTENTAPI_MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
