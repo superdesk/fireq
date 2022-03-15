@@ -94,16 +94,14 @@ S3_THEMES_PREFIX=${S3_THEMES_PREFIX:-"/{{db_name}}/"}
 EMBEDLY_KEY=${EMBEDLY_KEY:-}
 {{/is_superdesk}}
 
-if [ `_get_json_value sams` == "true" ]; then
-    SAMS_HOST="localhost"
-    SAMS_PORT="5700"
-    SAMS_URL="http://localhost:5700"
-    SAMS_MONGO_DBNAME="${DB_NAME}_sams"
-    SAMS_MONGO_URI="mongodb://$DB_HOST/$SAMS_MONGO_DBNAME"
-    SAMS_ELASTICSEARCH_URL="$ELASTICSEARCH_URL"
-    SAMS_ELASTICSEARCH_INDEX="$SAMS_MONGO_DBNAME"
-    STORAGE_DESTINATION_1="MongoGridFS,Default,$SAMS_MONGO_URI"
-fi
+SAMS_HOST="localhost"
+SAMS_PORT="5700"
+SAMS_URL="http://localhost:5700"
+SAMS_MONGO_DBNAME="${DB_NAME}_sams"
+SAMS_MONGO_URI="mongodb://$DB_HOST/$SAMS_MONGO_DBNAME"
+SAMS_ELASTICSEARCH_URL="$ELASTICSEARCH_URL"
+SAMS_ELASTICSEARCH_INDEX="$SAMS_MONGO_DBNAME"
+STORAGE_DESTINATION_1="MongoGridFS,Default,$SAMS_MONGO_URI"
 
 if [ -f {{fireq_json}} ] && [ `jq ".videoserver?" {{fireq_json}}` == "true" ]; then
   VIDEO_SERVER_ENABLED=True
