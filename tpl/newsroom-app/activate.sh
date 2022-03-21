@@ -46,4 +46,7 @@ CONTENTAPI_MONGO_URI="mongodb://$DB_HOST/nr-master"
 NEWS_API_ENABLED=true
 {{/is_pr}}
 
+# scope custom env for {{scope}}
+{{env_string}}
+
 set +a
