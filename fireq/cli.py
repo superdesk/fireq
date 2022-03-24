@@ -45,7 +45,7 @@ scopes = [
     Scope('bel', 'superdesk-belga', 'superdesk/superdesk-belga'),
     #Scope('anp', 'superdesk', 'superdesk/superdesk-anp'),
     Scope('scl', 'superdesk', 'superdesk/superdesk-cp-lji'),
-    Scope('ncl', 'newshub-cp', 'superdesk/newshub-cp-lji'),
+    Scope('ncl', 'newsroom-app', 'superdesk/newsroom-app-cp-lji'),
     Scope('scp', 'superdesk', 'superdesk/superdesk-cp'),
     Scope('ncp', 'newsroom-app', 'superdesk/newsroom-app-cp'),
     #Scope('tlp', 'superdesk-tlp', 'superdesk/superdesk-tlp'),
