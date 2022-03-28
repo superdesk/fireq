@@ -23,7 +23,7 @@ Wants=network.target
 After=network.target
 
 [Service]
-ExecStart=/bin/sh -c '. {{repo_env}}/bin/activate && exec python3 $smtp_py localhost 25 $mails'
+ExecStart=/bin/sh -c '. {{repo_env}}/bin/activate && exec python3 $smtp_py 127.0.0.1 25 $mails'
 WorkingDirectory={{repo}}
 Restart=always
 
