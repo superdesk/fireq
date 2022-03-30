@@ -38,6 +38,7 @@ CONTENTAPI_ELASTICSEARCH_INDEX=$DB_NAME
 # redis and celery
 REDIS_URL=redis://localhost:6379/1
 CELERY_BROKER_URL="$REDIS_URL"
+CACHE_TYPE=RedisCache
 
 {{#is_pr}}
 MONGO_URI="mongodb://$DB_HOST/nr-master"
