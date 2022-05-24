@@ -5,9 +5,6 @@ set -exuo pipefail
 export DEBIAN_FRONTEND=noninteractive
 export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
-# Make sure npm uses https when referencing packages from git
-git config --global url."https://git@".insteadOf git://
-
 _activate() {
     set +ux
     . {{activate}}
