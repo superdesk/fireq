@@ -22,10 +22,10 @@ CONTENTAPI_MONGO_URI="mongodb://$DB_HOST/$DB_NAME"
 
 # elastic
 # 9200 is elastic 2.4, 9201 is elastic 7
-_ELASTIC_PORT=${ELASTIC_PORT:-'9200'}
+_ELASTIC_PORT=${ELASTIC_PORT:-'9201'}
 
-if [ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 7 ]; then
-    _ELASTIC_PORT=9201
+if [ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 2 ]; then
+    _ELASTIC_PORT=9200
 fi
 ELASTICSEARCH_URL="http://$DB_HOST:$_ELASTIC_PORT"
 CONTENTAPI_ELASTIC_INDEX=$DB_NAME
