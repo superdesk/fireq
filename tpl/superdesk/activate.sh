@@ -36,9 +36,9 @@ ARCHIVED_DBNAME="${DB_NAME}_ar"
 ARCHIVED_URI="mongodb://$DB_HOST/${ARCHIVED_DBNAME}"
 
 # use elastic based on superdesk-core config
-_ELASTIC_PORT=${ELASTIC_PORT:-'9200'}
+_ELASTIC_PORT=${ELASTIC_PORT:-'9201'}
 {{^db_local}}
-[ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 7 ] && _ELASTIC_PORT=9201
+[ -f {{fireq_json}} ] && [ `jq ".elastic?" {{fireq_json}}` -eq 2 ] && _ELASTIC_PORT=9200
 {{/db_local}}
 ELASTICSEARCH_URL="http://$DB_HOST:$_ELASTIC_PORT"
 ELASTICSEARCH_INDEX="$DB_NAME"
