@@ -48,6 +48,9 @@ CONTENTAPI_MONGO_URI="mongodb://$DB_HOST/nr-master"
 NEWS_API_ENABLED=true
 {{/is_pr}}
 
+# SDESK-6573: Enable running `app:rebuild_elastic_index` if `app:initialize_data` es mapping fails
+REBUILD_ELASTIC_ON_INIT_DATA_ERROR=true
+
 # scope custom env for {{scope}}
 {{env_string}}
 

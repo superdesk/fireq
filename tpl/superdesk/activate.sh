@@ -107,6 +107,9 @@ if [ -f {{fireq_json}} ] && [ `jq ".videoserver?" {{fireq_json}}` == "true" ]; t
   VIDEO_SERVER_ENABLED=True
 fi
 
+# SDESK-6573: Enable running `app:rebuild_elastic_index` if `app:initialize_data` es mapping fails
+REBUILD_ELASTIC_ON_INIT_DATA_ERROR=true
+
 # scope custom env for {{scope}}
 {{env_string}}
 
