@@ -4,9 +4,9 @@ name={{lxc_name}}
 
 [ -z "{{create}}" ] || ./fire lxc-init $name --mount-cache= --mount-ssh --no-login
 
-lxc-stop -n $name || true
-config=/var/lib/lxc/$name/config
-placeholder='###fireq'
+lxc stop $name || true
+#config=/var/lib/lxc/$name/config - optional doesn't require it
+#placeholder='###fireq' 
 mount_cache=${mount_cache:-"/var/cache/fireq"}
 
 # create required directories
@@ -14,21 +14,21 @@ mkdir -p $mount_cache/{pip,npm}
 mkdir -p /var/tmp/data /var/spool/ftp
 # uses for screenshots during e2e failing tests
 mkdir -p /var/tmp/data/screenshots
-
-sed -i '/'$placeholder'/Q' $config
-cat <<EOF >> $config
-$placeholder
-
-lxc.mount.entry = /var/tmp/data var/tmp/data none bind,create=dir
-lxc.mount.entry = /var/spool/ftp var/tmp/ftp none bind,create=dir
+# adding mountponits
+lxc config device add $name data disk source=/var/tmp/data path=var/tmp/data
+lxc config device add $name ftp disk source=/var/spool/ftp path=var/tmp/ftp
+## since there's no way to set or define custom variables into lxd due to limitations sadly.
+#sed -i '/'$placeholder'/Q' $config
+#cat <<EOF >> $config
+#$placeholder
 
 # let's keep few cores for data containers and webhook
-#lxc.cgroup.cpuset.cpus = 0-8
+lxc config set $name limits.cpu 8
 
 # 12 cores, so let's use resources of 2 cores if full load
-lxc-cgroup.cpu.shares = 2
-EOF
-unset config placeholder mount_cache
+lxc config set $name limits.cpu.allowance 20%
+
+
 ./fire lxc-wait --start $name
 
 cat <<"EOF2" | ./fire lxc-ssh $name
@@ -77,4 +77,4 @@ rm /var/cache/apt/archives/lock || true
 # don't need unexpected apt-get running
 echo 'APT::Periodic::Enable "0";' > /etc/apt/apt.conf.d/10periodic
 EOF2
-lxc-stop -n $name
+lxc stop $name

@@ -23,9 +23,29 @@ from . import log, conf, root, pretty_json, get_restart_url, gh
 from .cli import scopes, Ref
 
 about = '''
-<h2><a href="https://github.com/superdesk/fireq/blob/master/docs/ci.md">
-    About Fireq
-</a></h2>
+<head>
+<title>Fireq Continuous Integration</title>
+    <link rel="icon" type="image/png" href="/html/theme/favicon.ico" sizes="16x16">
+<style>
+ body, h3>a {
+    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace !import
+ant;
+    max-width: none !important;
+    text-decoration: none !important;
+   }
+ img#logo {
+    margin: 0 3px -4px 1px;
+   }
+ h3>a:hover {
+    text-decoration: none;
+    border-bottom: 2px solid currentColor;
+   }
+</style>
+</head>
+<h3><a title="Fireq Continuous Integration system" href="https://github.com/superdesk/fireq/blob/mast
+er/docs/ci.md" target="_blank">
+    Fireq<img src="/html/theme/fire_1f525.gif" alt="fireq-lxd" id="logo">CI
+</a></h3>
 '''
 
 
@@ -256,7 +276,7 @@ index_tpl = '''
 '''
 
 
-LOGS_PATH = '/var/log/zfslog/fire/3/latest/'
+LOGS_PATH = '/var/log/fire/3/latest/'
 
 FAILURE_FILES = (
     '!failure-build.json',

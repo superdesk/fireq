@@ -324,7 +324,7 @@ def run_job(target, tpl, ctx, logs, lxc_clean=False):
             log.info('success: %s', info)
 
         if lxc_clean and conf['lxc_clean'] and error != 'terminated':
-            cmd = 'lxc-destroy -fn %s--%s || true' % (ctx['uid'], target)
+            cmd = 'lxc delete -f %s--%s || true' % (ctx['uid'], target)
             sh(cmd, log_file, exit=False, quiet=True)
     return code
 
@@ -506,7 +506,7 @@ def gen_files(commit, no_diff):
 
 
 def lxc_ls(opts):
-    names = sp.check_output('lxc-ls -1 %s' % opts, shell=True)
+    names = sp.check_output('lxc ls -c n --format csv %s' % opts, shell=True)
     return sorted(names.decode().split())
 
 
@@ -526,7 +526,7 @@ def ci_nginx(lxc_prefix=None, ssl=False, live=False):
         label = 'ci'
         ssl = True
 
-    names = lxc_ls('--filter="^%s(pr)?-[a-z0-9]*$" --running' % lxc_prefix)
+    names = lxc_ls('"^%s(pr)?-[a-z0-9]*$" status=running' % lxc_prefix)
     cert_name = 'sd-master'
     if cert_name in names:
         # acme.sh uses first domain for directory name
@@ -627,7 +627,7 @@ def gh_clean(scope, using_mongo=False):
         if using_mongo:
             return mongo_ls(pattern)
         else:
-            return lxc_ls('--filter="%s"' % pattern)
+            return lxc_ls('"%s"' % pattern)
 
     scopes_ = [getattr(scopes, s) for s in scope] if scope else scopes
     for s in scopes_:
@@ -779,7 +779,7 @@ def main(args=None):
         .arg('name')\
         .arg('-c', '--cmd', default='')\
         .exe(lambda a: sh(
-            'ssh {ssh_opts} $(lxc-info -n {name} -iH) {cmd}'
+            'ssh {ssh_opts} $(lxc exec {name} -- hostname -I) {cmd}'
             .format(ssh_opts=ssh_opts, name=a.name, cmd=a.cmd)
         ))
 
