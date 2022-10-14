@@ -69,7 +69,6 @@ systemctl enable $service
 systemctl restart $service
 unset service
 
-
 {{>add-nginx.sh}}
 
 

@@ -49,11 +49,12 @@ EOF
 systemctl enable {{name}}
 systemctl restart {{name}}
 
-{{>add-nginx.sh}}
-
 [ -z "${prepopulate-1}" ] || (
 {{>prepopulate.sh}}
 )
+
+
+{{>add-nginx.sh}}
 
 [ -z "${smtp-1}" ] || (
 {{>add-smtp.sh}}

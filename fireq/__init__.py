@@ -22,7 +22,7 @@ def get_conf():
         ('tmp_root', '/tmp/fireq'),
         ('lxc_base', 'base-sd'),
         ('lxc_data', 'data-sd'),
-        ('lxc_opts', '-B zfs'),
+        ('lxc_opts', ''),
         ('lxc_clean', True),
         ('domain', 'localhost'),
         ('e2e_chunks', 1),

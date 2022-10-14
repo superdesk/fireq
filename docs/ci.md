@@ -108,17 +108,17 @@ vim config.json     # config
 # shortcut for ssh-ing to container with no interruption and fully-worked shell
 ./fire lxc-ssh sd-master
 
-# lxc containers uses zfs
-zfs list
-ll /var/tmp/zpool.*
+[comment]:# lxc containers uses zfs
+[comment]:zfs list
+[comment]:ll /var/tmp/zpool.*
 
 # container with presistent mongo and elastic, local redis is used everywhere
 cat config.json | grep lxc_data
-lxc-ls -f | grep data-sd
+lxc ls | grep data-sd
 
 # base container with all packages installed for CI
 cat config.json | grep lxc_base
-lxc-ls -f | grep base-sd
+lxc ls | grep base-sd
 ```
 
 `fireq.cli` uses [mustache][mustache] templates in `tpl` directory to generate straightforward bash scripts.
@@ -193,10 +193,10 @@ systemd restart fireq
 If `[restart]` and `[restart-all]` is not working from Dashboard, then look at proper logs to find an issue.
 
 ```sh
-# Sometimes "lxc-destroy" is not working properly, because underlying ZFS
-zfs destroy lxc/sd-something
-lxc-destroy -fn sd-something
+[comment]:# Sometimes "lxc-destroy" is not working properly, because underlying ZFS
+[comment]:zfs destroy lxc/sd-something
+[comment]:lxc-destroy -fn sd-something
 
 # Sometimes it needs to run "lxc-destroy" manually for some reason
-lxc-destroy -fn sd-something
+lxc delete -f sd-something
 ```
