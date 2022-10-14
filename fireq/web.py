@@ -28,8 +28,7 @@ about = '''
     <link rel="icon" type="image/png" href="/html/theme/favicon.ico" sizes="16x16">
 <style>
  body, h3>a {
-    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace !import
-ant;
+    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace !important;
     max-width: none !important;
     text-decoration: none !important;
    }
@@ -42,8 +41,7 @@ ant;
    }
 </style>
 </head>
-<h3><a title="Fireq Continuous Integration system" href="https://github.com/superdesk/fireq/blob/mast
-er/docs/ci.md" target="_blank">
+<h3><a title="Fireq Continuous Integration system" href="https://github.com/superdesk/fireq/blob/master/docs/ci.md" target="_blank">
     Fireq<img src="/html/theme/fire_1f525.gif" alt="fireq-lxd" id="logo">CI
 </a></h3>
 '''
@@ -101,14 +99,14 @@ def get_app():
 async def auth_middleware(app, handler):
     """ Login via Github """
     def gh_client(**kw):
-        return GithubClient(conf['github_id'], conf['github_secret'], **kw)
+        return GithubClient(client_id=conf['github_id'], client_secret=conf['github_secret'], **kw)
 
     async def callback(request):
         session = await get_session(request)
-        log.debug('callback: session=%s GET=%s', session, request.GET)
-        if session.get('github_state') != request.GET.get('state'):
+        log.debug('callback: session=%s GET=%s', session, request.query_string)
+        if session.get('github_state') != request.query.get('state'):
             return web.HTTPBadRequest()
-        code = request.GET.get('code')
+        code = request.url.query['code']
         if not code:
             return web.HTTPBadRequest()
 
@@ -116,13 +114,14 @@ async def auth_middleware(app, handler):
         token, _ = await gh.get_access_token(code)
         gh = gh_client(access_token=token)
         req = await gh.request('GET', 'user')
-        user = await req.json()
-        req.close()
+        user = req
+        log.debug('user: %s \n\n', user)
         users = []
         for org in conf['github_orgs']:
             _, resp = await gh_api('orgs/%s/members?per_page=100' % org)
             users.extend(u['login'] for u in resp)
         log.debug('members %s: %s', len(users), users)
+        log.debug('login: %s\n\n', user.get('login'))
         if user.get('login') in users:
             session['login'] = user.get('login')
             session.pop('github_state', None)
@@ -255,8 +254,8 @@ async def restart(request):
 
     ref = request.match_info['ref']
     ref = Ref(repo, ref, '<sha>')
-    targets = request.GET.get('t', '').split(',')
-    all = request.GET.get('all')
+    targets = request.query.get('t', '').split(',')
+    all = request.query.get('all')
 
     request.app.loop.create_task(ci(ref, targets, all))
     await asyncio.sleep(2)
@@ -352,7 +351,7 @@ repo_tpl = '''
 <ul>
 {{#items}}
     <li>
-        <b style="font-size:120%">{{name}}</b>
+        <b style="font-size:100%">{{name}}</b>
         <a href="{{url}}"
 		{{#status_ok}}
 		style="color:green"
