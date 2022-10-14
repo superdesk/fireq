@@ -23,10 +23,10 @@ lxc config device add $name ftp disk source=/var/spool/ftp path=var/tmp/ftp
 #$placeholder
 
 # let's keep few cores for data containers and webhook
-lxc config set $name limits.cpu 8
+#lxc config set $name limits.cpu 8
 
 # 12 cores, so let's use resources of 2 cores if full load
-lxc config set $name limits.cpu.allowance 20%
+#lxc config set $name limits.cpu.allowance 20%
 
 
 ./fire lxc-wait --start $name
