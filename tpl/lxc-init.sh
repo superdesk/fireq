@@ -7,28 +7,24 @@ mount_ssh=${mount_ssh:-}
 authorized_keys=${authorized_keys:-}
 no_login=${no_login:-}
 
-lxc-create -t download -n $name $opts -- -d ubuntu -r xenial -a amd64
+lxc init images:ubuntu/20.04 $name -c 'security.privileged=true'
 
-[ -z "$mount_ssh" ] || cat <<EOF >> /var/lib/lxc/$name/config
-lxc.mount.entry = /root/.ssh root/.ssh none bind,create=dir
-EOF
+[ -z "$mount_ssh" ] || lxc config device add $name ssh disk source=/root/.ssh path=root/.ssh
 
-[ -z "$mount_src" ] || cat <<EOF >> /var/lib/lxc/$name/config
-lxc.mount.entry = $mount_src opt/$proj none bind,create=dir
-EOF
+
+[ -z "$mount_src" ] || lxc config device add $name src disk source=${mount_src} path=opt/${proj}
 
 [ -z "$mount_cache" ] || (
     log=$mount_cache/log/$name
     mkdir -p $mount_cache/{pip,npm,dpkg} $log
-    cat <<EOF >> /var/lib/lxc/$name/config
-lxc.mount.entry = $log var/log/$proj none bind,create=dir
-EOF
+    lxc config device add $name log disk source=${log} path=var/log/${proj}
+
 )
 
-lxc-start -n $name
+lxc start $name
 sleep 5
 
-lxc_attach="lxc-attach --clear-env -n $name -- /bin/bash"
+lxc_attach="lxc exec $name -- /bin/bash"
 cat <<"EOF" | $lxc_attach
 set -exuo pipefail
 
@@ -62,5 +58,7 @@ EOF
 
 [ -n "$no_login" ] || (
 {{>lxc-wait.sh}}
-{{ssh}} $(lxc-info -n $name -iH)
+
+
+{{ssh}} "$(lxc exec $name -- hostname -I)"
 )

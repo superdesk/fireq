@@ -31,6 +31,7 @@ unset cfg path
 [ -z "${db_clean:-}" ] || (
 ./fire lxc-db -cb - $lxc
 )
+
 cat <<"EOF2" | {{ssh}} $lxc
 {{>header.sh}}
 
