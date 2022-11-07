@@ -18,6 +18,7 @@ if [ ! -d $repo/.git ]; then
     unset repo_sha
     {{/is_pr}}
     unset repo repo_ref
+    git submodule update --init
 fi
 
 # Merge the `.fireq.json` file from the source repo (i.e. the repo/branch of a PR, or a customers repo/branch)

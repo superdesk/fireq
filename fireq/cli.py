@@ -15,6 +15,7 @@ import subprocess as sp
 import time
 import tempfile
 import urllib.request
+import base64
 from concurrent import futures
 from collections import namedtuple, OrderedDict
 from pathlib import Path
@@ -215,6 +216,10 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
             github_access_token=conf["github_access_token"],
             repo=scope.repo,
         ),
+        'github_basic_credentials': base64.b64encode("{}:{}".format(
+            "petrjasek",
+            conf["github_access_token"],
+        ).encode()).decode(),  # used to authenticate private repos
     })
 
     if scope == scopes.sd:
