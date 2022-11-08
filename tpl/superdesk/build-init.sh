@@ -54,5 +54,10 @@ cat <<EOF > /etc/profile.d/activate.sh
 EOF
 {{/develop}}
 
+# configure git auth for private repos
+git config --global http.https://github.com/.extraheader AUTHORIZATION: basic {{github_basic_credentials}}
+git config --global --unset-all url.https://github.com/.insteadOf
+git config --global --add url.https://github.com/.insteadOf git@github.com:
+
 _activate
 pip install -U pip wheel setuptools
