@@ -357,7 +357,7 @@ def run_jobs(ref, targets=None, all=False):
         host_ssl = True
         host_logs = _logs.www
         logs_url = '%swww/%s' % (conf['log_url'], uid)
-        db_host = conf['lxc_data']
+        db_host = "data-lb" if _ref.scope.name == "lb" else conf['lxc_data']
         db_name = uid
         test_data = 1
         restart_url = (
