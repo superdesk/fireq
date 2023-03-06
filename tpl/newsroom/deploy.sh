@@ -27,7 +27,7 @@ web: gunicorn -b 0.0.0.0:\$PORT -w 3 app:app
 websocket: python -m newsroom.websocket
 worker: celery -A newsroom.worker.celery -Q "\${SUPERDESK_CELERY_PREFIX}newsroom" worker
 beat: celery -A newsroom.worker.celery beat --pid=
-logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
+logs: journalctl -u "{{name}}*" -f >> {{logs}}/main.log
 EOF
 
 cat <<"EOF" > /etc/systemd/system/{{name}}.service

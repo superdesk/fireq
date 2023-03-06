@@ -55,7 +55,7 @@ pip install -U honcho
 cat <<EOF > {{repo}}/Procfile
 app: python app.py
 websocket: python -m newsroom.websocket
-logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
+logs: journalctl -u "{{name}}*" -f >> {{logs}}/main.log
 EOF
 
 cat <<"EOF" > /etc/systemd/system/{{name}}.service
