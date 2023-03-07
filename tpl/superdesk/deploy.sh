@@ -29,7 +29,7 @@ gunicorn_opts='-t 300 -w 1 --access-logfile=- --access-logformat="%(m)s %(U)s st
 # keep repo Procfile for superdesk
 {{#is_superdesk}}
 cat <<EOF >> {{repo}}/server/Procfile
-logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
+logs: journalctl -u "{{name}}*" -f >> {{logs}}/main.log
 EOF
 {{/is_superdesk}}
 

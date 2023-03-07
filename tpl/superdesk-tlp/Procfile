@@ -1,4 +1,4 @@
-logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
+logs: journalctl -u "{{name}}*" -f >> {{logs}}/main.log
 rest: gunicorn -b 0.0.0.0:5000 wsgi $gunicorn_opts
 wamp: python3 -u ws.py
 work: celery -A worker worker -c 1
