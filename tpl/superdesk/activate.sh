@@ -105,6 +105,12 @@ SAMS_ELASTICSEARCH_URL="$ELASTICSEARCH_URL"
 SAMS_ELASTICSEARCH_INDEX="$SAMS_MONGO_DBNAME"
 STORAGE_DESTINATION_1="MongoGridFS,Default,$SAMS_MONGO_URI"
 
+MAIL_FROM=admin@test.superdesk.org
+MAIL_SERVER=localhost
+MAIL_PORT=25
+MAIL_USERNAME=__EMPTY__
+MAIL_PASSWORD=__EMPTY__
+
 if [ -f {{fireq_json}} ] && [ `jq ".videoserver?" {{fireq_json}}` == "true" ]; then
   VIDEO_SERVER_ENABLED=True
 fi
