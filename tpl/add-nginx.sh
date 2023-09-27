@@ -20,6 +20,20 @@ cat <<EOF > $path/default.inc
 {{>nginx.conf}}
 EOF
 
+if [ `_get_json_value separate_push_processes` == "true" ]; then
+    cat <<EOF >> $path/default.inc
+location /push {
+    proxy_pass http://localhost:5600;
+    proxy_set_header Host $HOST;
+}
+
+location /push_binary {
+    proxy_pass http://localhost:5600;
+    proxy_set_header Host $HOST;
+}
+EOF
+fi
+
 if [ -f {{fireq_json}} ] && [ `jq ".videoserver?" {{fireq_json}}` == "true" ]; then
 cat <<EOF > $path/videoserver.inc
 {{>nginx-videoserver.conf}}
