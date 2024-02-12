@@ -34,8 +34,8 @@ ssh_opts = (
 Scope = namedtuple('Scope', 'name, tpldir, repo')
 scopes = [
     Scope('sd', 'superdesk', 'superdesk/superdesk'),
-    Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
-    Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
+    #Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
+    #Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
     Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('sda', 'superdesk-analytics', 'superdesk/superdesk-analytics'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
@@ -226,15 +226,15 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
 
     if scope == scopes.sd:
         pass
-    elif scope == scopes.sds:
-        expand.update({
-            'repo_server': '/opt/superdesk/server-core',
-            'fireq_json': '/opt/superdesk/server-core/.fireq.json',
-        })
-    elif scope == scopes.sdc:
-        expand.update({
-            'repo_client': '/opt/superdesk/client-core/e2e/client',
-        })
+    #elif scope == scopes.sds:
+        #expand.update({
+            #'repo_server': '/opt/superdesk/server-core',
+            #'fireq_json': '/opt/superdesk/server-core/.fireq.json',
+        #})
+    #elif scope == scopes.sdc:
+        #expand.update({
+            #'repo_client': '/opt/superdesk/client-core/e2e/client',
+        #})
     elif scope == scopes.lb:
         expand.update({
             'name': 'liveblog',
