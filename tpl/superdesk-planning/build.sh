@@ -1,7 +1,7 @@
 {{>superdesk/build.sh}}
 
 cd {{repo_server}}
-pip install -Ue ../planning
+pip install -Ue ../superdesk-planning
 
 cd {{repo_client}}
-npm link ../planning
+npm link ../superdesk-planning
