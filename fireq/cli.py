@@ -36,7 +36,7 @@ scopes = [
     Scope('sd', 'superdesk', 'superdesk/superdesk'),
     #Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
     #Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
-    Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
+    #Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('sda', 'superdesk-analytics', 'superdesk/superdesk-analytics'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('fil', 'superdesk-fidelity', 'superdesk/superdesk-fi'),
