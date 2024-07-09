@@ -1,5 +1,8 @@
 ### prepopulate
 _activate
+
+unset ELASTIC_PORT
+unset _ELASTIC_PORT
 cd {{repo}}/server
 if _missing_db; then
     [ -f app_init_elastic.py ] && python app_init_elastic.py
