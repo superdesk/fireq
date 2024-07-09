@@ -24,6 +24,7 @@ elif [ -f {{scope}}.sh ]; then
 else
     cfg=sd
 fi
+
 cd ../../
 ./fire r -s {{scope}} init/$cfg | {{ssh}} $lxc
 unset cfg path

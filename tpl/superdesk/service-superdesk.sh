@@ -1,6 +1,5 @@
 . {{activate}}
 printenv | grep -v ELASTIC_PORT > {{repo}}/.env
-sed -i '/MAIL_SERVER/d' {{repo}}/.env
 
 cat <<"EOF" > /etc/systemd/system/{{name}}.service
 [Unit]

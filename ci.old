@@ -1,0 +1,3212 @@
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-master.test.superdesk.org;
+    access_log /var/log/nginx/sd-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-master.test.superdesk.org;
+    access_log /var/log/nginx/sd-master.access.log;
+
+    location / {
+        proxy_pass "http://sd-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name bel-develop.test.superdesk.org;
+    access_log /var/log/nginx/bel-develop.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name bel-develop.test.superdesk.org;
+    access_log /var/log/nginx/bel-develop.access.log;
+
+    location / {
+        proxy_pass "http://bel-develop:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://bel-develop:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name bel-master.test.superdesk.org;
+    access_log /var/log/nginx/bel-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name bel-master.test.superdesk.org;
+    access_log /var/log/nginx/bel-master.access.log;
+
+    location / {
+        proxy_pass "http://bel-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://bel-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name bel-uat.test.superdesk.org;
+    access_log /var/log/nginx/bel-uat.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name bel-uat.test.superdesk.org;
+    access_log /var/log/nginx/bel-uat.access.log;
+
+    location / {
+        proxy_pass "http://bel-uat:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://bel-uat:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name bel-videoserver.test.superdesk.org;
+    access_log /var/log/nginx/bel-videoserver.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name bel-videoserver.test.superdesk.org;
+    access_log /var/log/nginx/bel-videoserver.access.log;
+
+    location / {
+        proxy_pass "http://bel-videoserver:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://bel-videoserver:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name lb-dependabotnpmandyarnclientangular183.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientangular183.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lb-dependabotnpmandyarnclientangular183.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientangular183.access.log;
+
+    location / {
+        proxy_pass "http://lb-dependabotnpmandyarnclientangular183:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://lb-dependabotnpmandyarnclientangular183:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name lb-dependabotnpmandyarnclientdecodeuricomponent022.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientdecodeuricomponent022.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lb-dependabotnpmandyarnclientdecodeuricomponent022.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientdecodeuricomponent022.access.log;
+
+    location / {
+        proxy_pass "http://lb-dependabotnpmandyarnclientdecodeuricomponent022:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://lb-dependabotnpmandyarnclientdecodeuricomponent022:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name lb-dependabotnpmandyarnclientminimatchandgrunt312.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientminimatchandgrunt312.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lb-dependabotnpmandyarnclientminimatchandgrunt312.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientminimatchandgrunt312.access.log;
+
+    location / {
+        proxy_pass "http://lb-dependabotnpmandyarnclientminimatchandgrunt312:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://lb-dependabotnpmandyarnclientminimatchandgrunt312:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name lb-dependabotnpmandyarnclientmsandgruntcontribwatch212.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientmsandgruntcontribwatch212.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lb-dependabotnpmandyarnclientmsandgruntcontribwatch212.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientmsandgruntcontribwatch212.access.log;
+
+    location / {
+        proxy_pass "http://lb-dependabotnpmandyarnclientmsandgruntcontribwatch212:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://lb-dependabotnpmandyarnclientmsandgruntcontribwatch212:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name lb-dependabotnpmandyarnclientuaparserjs0733.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientuaparserjs0733.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lb-dependabotnpmandyarnclientuaparserjs0733.test.superdesk.org;
+    access_log /var/log/nginx/lb-dependabotnpmandyarnclientuaparserjs0733.access.log;
+
+    location / {
+        proxy_pass "http://lb-dependabotnpmandyarnclientuaparserjs0733:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://lb-dependabotnpmandyarnclientuaparserjs0733:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name lb-hgsupereditorrole.test.superdesk.org;
+    access_log /var/log/nginx/lb-hgsupereditorrole.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lb-hgsupereditorrole.test.superdesk.org;
+    access_log /var/log/nginx/lb-hgsupereditorrole.access.log;
+
+    location / {
+        proxy_pass "http://lb-hgsupereditorrole:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://lb-hgsupereditorrole:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name lb-master.test.superdesk.org;
+    access_log /var/log/nginx/lb-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lb-master.test.superdesk.org;
+    access_log /var/log/nginx/lb-master.access.log;
+
+    location / {
+        proxy_pass "http://lb-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://lb-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name lb-releasev3830.test.superdesk.org;
+    access_log /var/log/nginx/lb-releasev3830.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name lb-releasev3830.test.superdesk.org;
+    access_log /var/log/nginx/lb-releasev3830.access.log;
+
+    location / {
+        proxy_pass "http://lb-releasev3830:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://lb-releasev3830:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name ncp-cpcn81.test.superdesk.org;
+    access_log /var/log/nginx/ncp-cpcn81.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ncp-cpcn81.test.superdesk.org;
+    access_log /var/log/nginx/ncp-cpcn81.access.log;
+
+    location / {
+        proxy_pass "http://ncp-cpcn81:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://ncp-cpcn81:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name ncp-sttnhub246.test.superdesk.org;
+    access_log /var/log/nginx/ncp-sttnhub246.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ncp-sttnhub246.test.superdesk.org;
+    access_log /var/log/nginx/ncp-sttnhub246.access.log;
+
+    location / {
+        proxy_pass "http://ncp-sttnhub246:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://ncp-sttnhub246:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name ncp-submodules.test.superdesk.org;
+    access_log /var/log/nginx/ncp-submodules.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ncp-submodules.test.superdesk.org;
+    access_log /var/log/nginx/ncp-submodules.access.log;
+
+    location / {
+        proxy_pass "http://ncp-submodules:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://ncp-submodules:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name ncp-uat.test.superdesk.org;
+    access_log /var/log/nginx/ncp-uat.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ncp-uat.test.superdesk.org;
+    access_log /var/log/nginx/ncp-uat.access.log;
+
+    location / {
+        proxy_pass "http://ncp-uat:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://ncp-uat:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name nr-kuna.test.superdesk.org;
+    access_log /var/log/nginx/nr-kuna.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name nr-kuna.test.superdesk.org;
+    access_log /var/log/nginx/nr-kuna.access.log;
+
+    location / {
+        proxy_pass "http://nr-kuna:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://nr-kuna:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name nr-master.test.superdesk.org;
+    access_log /var/log/nginx/nr-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name nr-master.test.superdesk.org;
+    access_log /var/log/nginx/nr-master.access.log;
+
+    location / {
+        proxy_pass "http://nr-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://nr-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name nra-develop.test.superdesk.org;
+    access_log /var/log/nginx/nra-develop.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name nra-develop.test.superdesk.org;
+    access_log /var/log/nginx/nra-develop.access.log;
+
+    location / {
+        proxy_pass "http://nra-develop:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://nra-develop:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name scp-master.test.superdesk.org;
+    access_log /var/log/nginx/scp-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name scp-master.test.superdesk.org;
+    access_log /var/log/nginx/scp-master.access.log;
+
+    location / {
+        proxy_pass "http://scp-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://scp-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name scp-uat.test.superdesk.org;
+    access_log /var/log/nginx/scp-uat.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name scp-uat.test.superdesk.org;
+    access_log /var/log/nginx/scp-uat.access.log;
+
+    location / {
+        proxy_pass "http://scp-uat:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://scp-uat:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name scp-uat2.test.superdesk.org;
+    access_log /var/log/nginx/scp-uat2.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name scp-uat2.test.superdesk.org;
+    access_log /var/log/nginx/scp-uat2.access.log;
+
+    location / {
+        proxy_pass "http://scp-uat2:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://scp-uat2:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-analytics.test.superdesk.org;
+    access_log /var/log/nginx/sd-analytics.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-analytics.test.superdesk.org;
+    access_log /var/log/nginx/sd-analytics.access.log;
+
+    location / {
+        proxy_pass "http://sd-analytics:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-analytics:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-authoringreactpostbroadcasting.test.superdesk.org;
+    access_log /var/log/nginx/sd-authoringreactpostbroadcasting.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-authoringreactpostbroadcasting.test.superdesk.org;
+    access_log /var/log/nginx/sd-authoringreactpostbroadcasting.access.log;
+
+    location / {
+        proxy_pass "http://sd-authoringreactpostbroadcasting:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-authoringreactpostbroadcasting:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-broadcasting.test.superdesk.org;
+    access_log /var/log/nginx/sd-broadcasting.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-broadcasting.test.superdesk.org;
+    access_log /var/log/nginx/sd-broadcasting.access.log;
+
+    location / {
+        proxy_pass "http://sd-broadcasting:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-broadcasting:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-develop.test.superdesk.org;
+    access_log /var/log/nginx/sd-develop.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-develop.test.superdesk.org;
+    access_log /var/log/nginx/sd-develop.access.log;
+
+    location / {
+        proxy_pass "http://sd-develop:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-develop:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-featcontenttypes.test.superdesk.org;
+    access_log /var/log/nginx/sd-featcontenttypes.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-featcontenttypes.test.superdesk.org;
+    access_log /var/log/nginx/sd-featcontenttypes.access.log;
+
+    location / {
+        proxy_pass "http://sd-featcontenttypes:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-featcontenttypes:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-hotfix261.test.superdesk.org;
+    access_log /var/log/nginx/sd-hotfix261.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-hotfix261.test.superdesk.org;
+    access_log /var/log/nginx/sd-hotfix261.access.log;
+
+    location / {
+        proxy_pass "http://sd-hotfix261:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-hotfix261:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-naspeh.test.superdesk.org;
+    access_log /var/log/nginx/sd-naspeh.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-naspeh.test.superdesk.org;
+    access_log /var/log/nginx/sd-naspeh.access.log;
+
+    location / {
+        proxy_pass "http://sd-naspeh:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-naspeh:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-samsdevelop.test.superdesk.org;
+    access_log /var/log/nginx/sd-samsdevelop.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-samsdevelop.test.superdesk.org;
+    access_log /var/log/nginx/sd-samsdevelop.access.log;
+
+    location / {
+        proxy_pass "http://sd-samsdevelop:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-samsdevelop:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sd-support23.test.superdesk.org;
+    access_log /var/log/nginx/sd-support23.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sd-support23.test.superdesk.org;
+    access_log /var/log/nginx/sd-support23.access.log;
+
+    location / {
+        proxy_pass "http://sd-support23:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sd-support23:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sda-hotfix252.test.superdesk.org;
+    access_log /var/log/nginx/sda-hotfix252.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sda-hotfix252.test.superdesk.org;
+    access_log /var/log/nginx/sda-hotfix252.access.log;
+
+    location / {
+        proxy_pass "http://sda-hotfix252:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sda-hotfix252:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sda-master.test.superdesk.org;
+    access_log /var/log/nginx/sda-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sda-master.test.superdesk.org;
+    access_log /var/log/nginx/sda-master.access.log;
+
+    location / {
+        proxy_pass "http://sda-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sda-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-authoringreactpostbroadcasting.test.superdesk.org;
+    access_log /var/log/nginx/sdc-authoringreactpostbroadcasting.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-authoringreactpostbroadcasting.test.superdesk.org;
+    access_log /var/log/nginx/sdc-authoringreactpostbroadcasting.access.log;
+
+    location / {
+        proxy_pass "http://sdc-authoringreactpostbroadcasting:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-authoringreactpostbroadcasting:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-broadcasting.test.superdesk.org;
+    access_log /var/log/nginx/sdc-broadcasting.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-broadcasting.test.superdesk.org;
+    access_log /var/log/nginx/sdc-broadcasting.access.log;
+
+    location / {
+        proxy_pass "http://sdc-broadcasting:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-broadcasting:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-contentprofilesfornontextcontenttypes.test.superdesk.org;
+    access_log /var/log/nginx/sdc-contentprofilesfornontextcontenttypes.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-contentprofilesfornontextcontenttypes.test.superdesk.org;
+    access_log /var/log/nginx/sdc-contentprofilesfornontextcontenttypes.access.log;
+
+    location / {
+        proxy_pass "http://sdc-contentprofilesfornontextcontenttypes:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-contentprofilesfornontextcontenttypes:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-develop.test.superdesk.org;
+    access_log /var/log/nginx/sdc-develop.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-develop.test.superdesk.org;
+    access_log /var/log/nginx/sdc-develop.access.log;
+
+    location / {
+        proxy_pass "http://sdc-develop:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-develop:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-hotfix261.test.superdesk.org;
+    access_log /var/log/nginx/sdc-hotfix261.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-hotfix261.test.superdesk.org;
+    access_log /var/log/nginx/sdc-hotfix261.access.log;
+
+    location / {
+        proxy_pass "http://sdc-hotfix261:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-hotfix261:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-hotfix262.test.superdesk.org;
+    access_log /var/log/nginx/sdc-hotfix262.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-hotfix262.test.superdesk.org;
+    access_log /var/log/nginx/sdc-hotfix262.access.log;
+
+    location / {
+        proxy_pass "http://sdc-hotfix262:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-hotfix262:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-hotfix263.test.superdesk.org;
+    access_log /var/log/nginx/sdc-hotfix263.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-hotfix263.test.superdesk.org;
+    access_log /var/log/nginx/sdc-hotfix263.access.log;
+
+    location / {
+        proxy_pass "http://sdc-hotfix263:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-hotfix263:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-master.test.superdesk.org;
+    access_log /var/log/nginx/sdc-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-master.test.superdesk.org;
+    access_log /var/log/nginx/sdc-master.access.log;
+
+    location / {
+        proxy_pass "http://sdc-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdc-toolbarexportmodalreact.test.superdesk.org;
+    access_log /var/log/nginx/sdc-toolbarexportmodalreact.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdc-toolbarexportmodalreact.test.superdesk.org;
+    access_log /var/log/nginx/sdc-toolbarexportmodalreact.access.log;
+
+    location / {
+        proxy_pass "http://sdc-toolbarexportmodalreact:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdc-toolbarexportmodalreact:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdcpr-4243.test.superdesk.org;
+    access_log /var/log/nginx/sdcpr-4243.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdcpr-4243.test.superdesk.org;
+    access_log /var/log/nginx/sdcpr-4243.access.log;
+
+    location / {
+        proxy_pass "http://sdcpr-4243:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdcpr-4243:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdcpr-4244.test.superdesk.org;
+    access_log /var/log/nginx/sdcpr-4244.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdcpr-4244.test.superdesk.org;
+    access_log /var/log/nginx/sdcpr-4244.access.log;
+
+    location / {
+        proxy_pass "http://sdcpr-4244:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdcpr-4244:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-beta26.test.superdesk.org;
+    access_log /var/log/nginx/sdp-beta26.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-beta26.test.superdesk.org;
+    access_log /var/log/nginx/sdp-beta26.access.log;
+
+    location / {
+        proxy_pass "http://sdp-beta26:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-beta26:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-develop.test.superdesk.org;
+    access_log /var/log/nginx/sdp-develop.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-develop.test.superdesk.org;
+    access_log /var/log/nginx/sdp-develop.access.log;
+
+    location / {
+        proxy_pass "http://sdp-develop:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-develop:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-hotfix252.test.superdesk.org;
+    access_log /var/log/nginx/sdp-hotfix252.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-hotfix252.test.superdesk.org;
+    access_log /var/log/nginx/sdp-hotfix252.access.log;
+
+    location / {
+        proxy_pass "http://sdp-hotfix252:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-hotfix252:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-hotfix261.test.superdesk.org;
+    access_log /var/log/nginx/sdp-hotfix261.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-hotfix261.test.superdesk.org;
+    access_log /var/log/nginx/sdp-hotfix261.access.log;
+
+    location / {
+        proxy_pass "http://sdp-hotfix261:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-hotfix261:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-hotfix262.test.superdesk.org;
+    access_log /var/log/nginx/sdp-hotfix262.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-hotfix262.test.superdesk.org;
+    access_log /var/log/nginx/sdp-hotfix262.access.log;
+
+    location / {
+        proxy_pass "http://sdp-hotfix262:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-hotfix262:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-master.test.superdesk.org;
+    access_log /var/log/nginx/sdp-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-master.test.superdesk.org;
+    access_log /var/log/nginx/sdp-master.access.log;
+
+    location / {
+        proxy_pass "http://sdp-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-menucomponentfix.test.superdesk.org;
+    access_log /var/log/nginx/sdp-menucomponentfix.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-menucomponentfix.test.superdesk.org;
+    access_log /var/log/nginx/sdp-menucomponentfix.access.log;
+
+    location / {
+        proxy_pass "http://sdp-menucomponentfix:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-menucomponentfix:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-menucomponentfixes.test.superdesk.org;
+    access_log /var/log/nginx/sdp-menucomponentfixes.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-menucomponentfixes.test.superdesk.org;
+    access_log /var/log/nginx/sdp-menucomponentfixes.access.log;
+
+    location / {
+        proxy_pass "http://sdp-menucomponentfixes:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-menucomponentfixes:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-planningavatar.test.superdesk.org;
+    access_log /var/log/nginx/sdp-planningavatar.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-planningavatar.test.superdesk.org;
+    access_log /var/log/nginx/sdp-planningavatar.access.log;
+
+    location / {
+        proxy_pass "http://sdp-planningavatar:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-planningavatar:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdp-spikeeventdatefix.test.superdesk.org;
+    access_log /var/log/nginx/sdp-spikeeventdatefix.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdp-spikeeventdatefix.test.superdesk.org;
+    access_log /var/log/nginx/sdp-spikeeventdatefix.access.log;
+
+    location / {
+        proxy_pass "http://sdp-spikeeventdatefix:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdp-spikeeventdatefix:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdppr-1799.test.superdesk.org;
+    access_log /var/log/nginx/sdppr-1799.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdppr-1799.test.superdesk.org;
+    access_log /var/log/nginx/sdppr-1799.access.log;
+
+    location / {
+        proxy_pass "http://sdppr-1799:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdppr-1799:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sdppr-1800.test.superdesk.org;
+    access_log /var/log/nginx/sdppr-1800.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sdppr-1800.test.superdesk.org;
+    access_log /var/log/nginx/sdppr-1800.access.log;
+
+    location / {
+        proxy_pass "http://sdppr-1800:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sdppr-1800:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-develop.test.superdesk.org;
+    access_log /var/log/nginx/sds-develop.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-develop.test.superdesk.org;
+    access_log /var/log/nginx/sds-develop.access.log;
+
+    location / {
+        proxy_pass "http://sds-develop:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-develop:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-featcontentprofiles.test.superdesk.org;
+    access_log /var/log/nginx/sds-featcontentprofiles.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-featcontentprofiles.test.superdesk.org;
+    access_log /var/log/nginx/sds-featcontentprofiles.access.log;
+
+    location / {
+        proxy_pass "http://sds-featcontentprofiles:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-featcontentprofiles:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-featrundowns.test.superdesk.org;
+    access_log /var/log/nginx/sds-featrundowns.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-featrundowns.test.superdesk.org;
+    access_log /var/log/nginx/sds-featrundowns.access.log;
+
+    location / {
+        proxy_pass "http://sds-featrundowns:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-featrundowns:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-hotfix222.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix222.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-hotfix222.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix222.access.log;
+
+    location / {
+        proxy_pass "http://sds-hotfix222:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-hotfix222:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-hotfix246.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix246.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-hotfix246.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix246.access.log;
+
+    location / {
+        proxy_pass "http://sds-hotfix246:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-hotfix246:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-hotfix254.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix254.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-hotfix254.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix254.access.log;
+
+    location / {
+        proxy_pass "http://sds-hotfix254:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-hotfix254:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-hotfix261.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix261.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-hotfix261.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix261.access.log;
+
+    location / {
+        proxy_pass "http://sds-hotfix261:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-hotfix261:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-hotfix264.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix264.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-hotfix264.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix264.access.log;
+
+    location / {
+        proxy_pass "http://sds-hotfix264:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-hotfix264:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-hotfix265.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix265.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-hotfix265.test.superdesk.org;
+    access_log /var/log/nginx/sds-hotfix265.access.log;
+
+    location / {
+        proxy_pass "http://sds-hotfix265:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-hotfix265:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-master.test.superdesk.org;
+    access_log /var/log/nginx/sds-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-master.test.superdesk.org;
+    access_log /var/log/nginx/sds-master.access.log;
+
+    location / {
+        proxy_pass "http://sds-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sds-support24.test.superdesk.org;
+    access_log /var/log/nginx/sds-support24.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sds-support24.test.superdesk.org;
+    access_log /var/log/nginx/sds-support24.access.log;
+
+    location / {
+        proxy_pass "http://sds-support24:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sds-support24:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name stt-uat.test.superdesk.org;
+    access_log /var/log/nginx/stt-uat.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name stt-uat.test.superdesk.org;
+    access_log /var/log/nginx/stt-uat.access.log;
+
+    location / {
+        proxy_pass "http://stt-uat:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://stt-uat:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name sttn-uat.test.superdesk.org;
+    access_log /var/log/nginx/sttn-uat.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name sttn-uat.test.superdesk.org;
+    access_log /var/log/nginx/sttn-uat.access.log;
+
+    location / {
+        proxy_pass "http://sttn-uat:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://sttn-uat:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name tgan-hotfix153.test.superdesk.org;
+    access_log /var/log/nginx/tgan-hotfix153.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name tgan-hotfix153.test.superdesk.org;
+    access_log /var/log/nginx/tgan-hotfix153.access.log;
+
+    location / {
+        proxy_pass "http://tgan-hotfix153:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://tgan-hotfix153:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name tgan-master.test.superdesk.org;
+    access_log /var/log/nginx/tgan-master.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name tgan-master.test.superdesk.org;
+    access_log /var/log/nginx/tgan-master.access.log;
+
+    location / {
+        proxy_pass "http://tgan-master:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://tgan-master:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
+server {
+    listen  80;
+    listen [::]:80;
+
+    server_name tgas-uat.test.superdesk.org;
+    access_log /var/log/nginx/tgas-uat.access.log;
+
+    location /.well-known {
+        root /var/tmp;
+    }
+    location / {
+        return 302 https://$host$request_uri;
+    }
+}
+server {
+    listen  443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name tgas-uat.test.superdesk.org;
+    access_log /var/log/nginx/tgas-uat.access.log;
+
+    location / {
+        proxy_pass "http://tgas-uat:80";
+        expires epoch;
+    }
+
+    location /ws {
+        proxy_pass "http://tgas-uat:80";
+        proxy_buffering off;
+        proxy_read_timeout 600;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /robots.txt {
+        root /var/www/html;
+        expires max;
+    }
+
+    location /.well-known {
+        root /var/tmp;
+    }
+}
