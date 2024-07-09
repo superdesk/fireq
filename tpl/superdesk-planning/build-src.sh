@@ -1,6 +1,6 @@
 # Download the Planning repo first
 # So the fireq.json file is available
-repo={{repo}}/planning
+repo={{repo}}/superdesk-planning
 {{>superdesk/build-src-repo.sh}}
 
 # Use the config `superdesk_branch` if set

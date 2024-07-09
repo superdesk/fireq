@@ -39,6 +39,11 @@ about = '''
     text-decoration: none;
     border-bottom: 2px solid currentColor;
    }
+ b.name {
+    font-size: 100%;
+    display: inline-block;
+    width: 15rem;
+   }
 </style>
 </head>
 <h3><a title="Fireq Continuous Integration system" href="https://github.com/superdesk/fireq/blob/master/docs/ci.md" target="_blank">
@@ -351,7 +356,7 @@ repo_tpl = '''
 <ul>
 {{#items}}
     <li>
-        <b style="font-size:100%">{{name}}</b>
+        <b class="name">{{name}}</b>
         <a href="{{url}}"
 		{{#status_ok}}
 		style="color:green"

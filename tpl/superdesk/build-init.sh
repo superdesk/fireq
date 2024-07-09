@@ -1,8 +1,10 @@
 locale-gen en_US.UTF-8
 
 [ -d {{logs}} ] || mkdir -p {{logs}}
-systemctl disable rsyslog
-systemctl stop rsyslog
+
+# rsyslog is required
+#systemctl disable rsyslog
+#systemctl stop rsyslog
 
 cat <<"EOF" > /etc/logrotate.d/{{name}}
 {{logs}}/*.log {
