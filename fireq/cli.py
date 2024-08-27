@@ -63,6 +63,7 @@ scopes = [
     Scope('sdbrasil', 'superdesk', 'superdesk/superdesk-brasil'),
     Scope('sdinsr', 'superdesk', 'superdesk/superdesk-insajder'),
     Scope('bor', 'superdesk', 'superdesk/superdesk-borsen'),
+    Scope('etv', 'superdesk', 'superdesk/superdesk-etv'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
