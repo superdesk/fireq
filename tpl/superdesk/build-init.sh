@@ -1,6 +1,8 @@
 locale-gen en_US.UTF-8
 
 [ -d {{logs}} ] || mkdir -p {{logs}}
+
+# rsyslog is required
 #systemctl disable rsyslog
 #systemctl stop rsyslog
 

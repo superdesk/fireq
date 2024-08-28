@@ -11,7 +11,7 @@ if _missing_db; then
 
     # for master it should be '--admin=true' for devel just '--admin'
     python manage.py users:create --help | grep -- '-a ADMIN' && admin='--admin=true' || admin='--admin'
-    python manage.py users:create -u admin -p admin -e 'admin@example.com' $admin
+    python manage.py users:create -u admin -p admin -fn Admin -ln Admin -e 'admin@example.com' $admin
 
 else
     python manage.py app:initialize_data
