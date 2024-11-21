@@ -66,4 +66,3 @@ EOF
 nginx -s reload
 EOF2
 {{/proxy_ssh}}
-nginx -s reload

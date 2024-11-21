@@ -15,8 +15,9 @@ _activate
 
 {{^develop}}
 [ -z "${grunt_build-1}" ] || (
+export NODE_OPTIONS=--max_old_space_size=4096
 cd {{repo_client}}
-time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
+time (npm run build || npx grunt build --webpack-no-progress)
 )
 {{/develop}}
 
@@ -24,12 +25,22 @@ time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
 pip install -U honcho gunicorn
 
 gunicorn_opts='-t 300 -w 1 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
+
+# keep repo Procfile for superdesk
+{{#is_superdesk}}
+cat <<EOF >> {{repo}}/server/Procfile
+logs: journalctl -u "{{name}}*" -f >> {{logs}}/main.log
+EOF
+{{/is_superdesk}}
+
+{{^is_superdesk}}
 cat <<EOF > {{repo}}/server/Procfile
 {{>Procfile}}
 EOF
+{{/is_superdesk}}
 
 # If SAMS is enabled in fireq.json, add SAMS WSGI to the Procfile
-if [ -f {{fireq_json}} ] && [ `jq ".sams?" {{fireq_json}}` == "true" ]; then
+if [ `_get_json_value sams` == "true" ]; then
     cat <<EOF >> {{repo}}/server/Procfile
 sams: gunicorn -b localhost:5700 --chdir {{repo}}/server/sams sams.apps.api.wsgi $gunicorn_opts
 EOF
@@ -101,7 +112,6 @@ systemctl enable {{name}}
 systemctl restart {{name}}
 
 {{>add-nginx.sh}}
-
 
 [ -z "${smtp-1}" ] || (
 {{>add-smtp.sh}}

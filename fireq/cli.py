@@ -15,6 +15,7 @@ import subprocess as sp
 import time
 import tempfile
 import urllib.request
+import base64
 from concurrent import futures
 from collections import namedtuple, OrderedDict
 from pathlib import Path
@@ -33,9 +34,9 @@ ssh_opts = (
 Scope = namedtuple('Scope', 'name, tpldir, repo')
 scopes = [
     Scope('sd', 'superdesk', 'superdesk/superdesk'),
-    Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
-    Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
-    Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
+    #Scope('sds', 'superdesk-server', 'superdesk/superdesk-core'),
+    #Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
+    #Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('sda', 'superdesk-analytics', 'superdesk/superdesk-analytics'),
     Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('fil', 'superdesk-fidelity', 'superdesk/superdesk-fi'),
@@ -45,10 +46,24 @@ scopes = [
     Scope('bel', 'superdesk-belga', 'superdesk/superdesk-belga'),
     #Scope('anp', 'superdesk', 'superdesk/superdesk-anp'),
     Scope('scl', 'superdesk', 'superdesk/superdesk-cp-lji'),
-    Scope('ncl', 'newshub-cp', 'superdesk/newshub-cp-lji'),
+    Scope('ncl', 'newsroom-app', 'superdesk/newsroom-app-cp-lji'),
     Scope('scp', 'superdesk', 'superdesk/superdesk-cp'),
+    Scope('ncp', 'newsroom-app', 'superdesk/newsroom-app-cp'),
     #Scope('tlp', 'superdesk-tlp', 'superdesk/superdesk-tlp'),
-    Scope('sdpriv', 'superdesk-private', 'superdesk/superdesk-private')
+    Scope('sdpriv', 'superdesk-private', 'superdesk/superdesk-private'),
+    Scope('nra', 'newsroom-app', 'superdesk/newsroom-app'),
+    Scope('tgas', 'superdesk', 'superdesk/superdesk-tga'),
+    Scope('tgan', 'newsroom-app', 'superdesk/newsroom-app-tga'),
+    Scope('sttn', 'newsroom-app', 'superdesk/newsroom-app-stt'),
+    Scope('sdansa', 'superdesk', 'superdesk/superdesk-ansa'),
+    Scope('aaps', 'superdesk', 'superdesk/superdesk-aap'),
+    Scope('sdewtn', 'superdesk', 'superdesk/superdesk-ewtn'),
+    Scope('sdnepali', 'superdesk', 'superdesk/superdesk-nepali'),
+    Scope('sdsp', 'superdesk', 'superdesk/superdesk-sp'),
+    Scope('sdbrasil', 'superdesk', 'superdesk/superdesk-brasil'),
+    Scope('sdinsr', 'superdesk', 'superdesk/superdesk-insajder'),
+    Scope('bor', 'superdesk', 'superdesk/superdesk-borsen'),
+    Scope('etv', 'superdesk', 'superdesk/superdesk-etv'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
@@ -202,25 +217,40 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     # TODO: move superdesk based logic to separate file
     expand.update({
         'scope': scope.name,
-        'repo_remote': 'git@github.com:%s.git' % scope.repo
+        'repo_remote': 'https://{github_access_token}@github.com/{repo}.git'.format(
+            github_access_token=conf["github_access_token"],
+            repo=scope.repo,
+        ),
+        'github_basic_credentials': base64.b64encode("{}:{}".format(
+            "petrjasek",
+            conf["github_access_token"],
+        ).encode()).decode(),  # used to authenticate private repos
     })
 
     if scope == scopes.sd:
         pass
-    elif scope == scopes.sds:
-        expand.update({
-            'repo_server': '/opt/superdesk/server-core',
-            'fireq_json': '/opt/superdesk/server-core/.fireq.json',
-        })
-    elif scope == scopes.sdc:
-        expand.update({
-            'repo_client': '/opt/superdesk/client-core',
-        })
+    #elif scope == scopes.sds:
+        #expand.update({
+            #'repo_server': '/opt/superdesk/server-core',
+            #'fireq_json': '/opt/superdesk/server-core/.fireq.json',
+        #})
+    #elif scope == scopes.sdc:
+        #expand.update({
+            #'repo_client': '/opt/superdesk/client-core/e2e/client',
+        #})
     elif scope == scopes.lb:
         expand.update({
             'name': 'liveblog',
         })
     elif scope == scopes.nr:
+        expand.update({
+            'name': 'newsroom',
+            'fireq_json': '/opt/newsroom/.fireq.json',
+        })
+    elif scope.tpldir == scopes.nra.tpldir:
+        # Check to see if this scope uses the ``newsroom-app`` template directory
+        # This is so customer repos such as ``newsroom-app-stt`` or ``newsroom-app-tga``
+        # will use these config changes as well as the ``newsroom-app`` test app
         expand.update({
             'name': 'newsroom',
             'fireq_json': '/opt/newsroom/.fireq.json',
@@ -304,7 +334,7 @@ def run_job(target, tpl, ctx, logs, lxc_clean=False):
             log.info('success: %s', info)
 
         if lxc_clean and conf['lxc_clean'] and error != 'terminated':
-            cmd = 'lxc-destroy -fn %s--%s || true' % (ctx['uid'], target)
+            cmd = 'lxc delete -f %s--%s || true' % (ctx['uid'], target)
             sh(cmd, log_file, exit=False, quiet=True)
     return code
 
@@ -324,13 +354,15 @@ def run_jobs(ref, targets=None, all=False):
         repo_ref = _ref.val
         repo_name = _ref.scope.repo
         repo_sha = _ref.sha
-        lxc_base = conf['lxc_base']
+        # liveblog does not work with python 3.8 yet,
+        # so using different base for it
+        lxc_base = "base-sd--18-04" if _ref.scope.name == "lb" else conf['lxc_base']
         lxc_build = '%s--build' % uid
         host = '%s.%s' % (uid, conf['domain'])
         host_ssl = True
         host_logs = _logs.www
         logs_url = '%swww/%s' % (conf['log_url'], uid)
-        db_host = conf['lxc_data']
+        db_host = "data-lb" if _ref.scope.name == "lb" else conf['lxc_data']
         db_name = uid
         test_data = 1
         restart_url = (
@@ -462,6 +494,9 @@ def gen_files(commit, no_diff):
         ('nr', 'newsroom', [
             ('install.sh', 'install', {}),
         ]),
+        ('nra', 'newsroom-app', [
+            ('install.sh', 'install', {}),
+        ]),
     ]
     for scope_name, tpldir, files in items:
         for target, filename, opts in files:
@@ -481,7 +516,7 @@ def gen_files(commit, no_diff):
 
 
 def lxc_ls(opts):
-    names = sp.check_output('lxc-ls -1 %s' % opts, shell=True)
+    names = sp.check_output('lxc ls -c n --format csv %s' % opts, shell=True)
     return sorted(names.decode().split())
 
 
@@ -501,7 +536,7 @@ def ci_nginx(lxc_prefix=None, ssl=False, live=False):
         label = 'ci'
         ssl = True
 
-    names = lxc_ls('--filter="^%s(pr)?-[a-z0-9]*$" --running' % lxc_prefix)
+    names = lxc_ls('"^%s(pr)?-[a-z0-9]*$" status=running' % lxc_prefix)
     cert_name = 'sd-master'
     if cert_name in names:
         # acme.sh uses first domain for directory name
@@ -602,7 +637,7 @@ def gh_clean(scope, using_mongo=False):
         if using_mongo:
             return mongo_ls(pattern)
         else:
-            return lxc_ls('--filter="%s"' % pattern)
+            return lxc_ls('"%s"' % pattern)
 
     scopes_ = [getattr(scopes, s) for s in scope] if scope else scopes
     for s in scopes_:
@@ -754,7 +789,7 @@ def main(args=None):
         .arg('name')\
         .arg('-c', '--cmd', default='')\
         .exe(lambda a: sh(
-            'ssh {ssh_opts} $(lxc-info -n {name} -iH) {cmd}'
+            'ssh {ssh_opts} $(lxc exec {name} -- hostname -I) {cmd}'
             .format(ssh_opts=ssh_opts, name=a.name, cmd=a.cmd)
         ))
 

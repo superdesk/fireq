@@ -1,8 +1,10 @@
 locale-gen en_US.UTF-8
 
 [ -d {{logs}} ] || mkdir -p {{logs}}
-systemctl disable rsyslog
-systemctl stop rsyslog
+
+# rsyslog is required
+#systemctl disable rsyslog
+#systemctl stop rsyslog
 
 cat <<"EOF" > /etc/logrotate.d/{{name}}
 {{logs}}/*.log {
@@ -25,7 +27,8 @@ libtiff5-dev libjpeg8-dev zlib1g-dev \
 libfreetype6-dev liblcms2-dev libwebp-dev \
 curl libfontconfig libssl-dev \
 libxml2-dev libxslt1-dev \
-libxmlsec1-dev jq
+libxmlsec1-dev jq libexempi-dev \
+unixodbc-dev
 
 {{>add-node.sh}}
 
@@ -52,6 +55,10 @@ cat <<EOF > /etc/profile.d/activate.sh
 [ -f {{activate}} ] && . {{activate}}
 EOF
 {{/develop}}
+
+# configure git auth for private repos
+git config --global http.https://github.com/.extraheader 'AUTHORIZATION: basic {{github_basic_credentials}}'
+git config --global --add url.https://github.com/.insteadOf git@github.com:
 
 _activate
 pip install -U pip wheel setuptools

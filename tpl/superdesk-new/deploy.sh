@@ -39,7 +39,7 @@ pip install -U honcho gunicorn
 
 gunicorn_opts='-t 300 -w 2 --access-logfile=- --access-logformat="%(m)s %(U)s status=%(s)s time=%(T)ss size=%(B)sb"'
 cat <<EOF > {{repo}}/Procfile
-logs: journalctl -u {{name}}* -f >> {{logs}}/main.log
+logs: journalctl -u "{{name}}*" -f >> {{logs}}/main.log
 rest: gunicorn -b 0.0.0.0:5000 manage $gunicorn_opts
 wamp: python manage.py ws
 work: celery -A manage worker -c 2
@@ -68,7 +68,6 @@ EOF
 systemctl enable $service
 systemctl restart $service
 unset service
-
 
 {{>add-nginx.sh}}
 

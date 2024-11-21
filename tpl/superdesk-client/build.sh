@@ -10,6 +10,12 @@ rm -rf $repo
 #branch=1.4
 {{>superdesk/build-src-cores.sh}}
 
+# Merge the `.fireq.json` file using the `{{fireq_json}}` variable
+# which is set from the scope, for superdesk defaults to:
+# /opt/superdesk/env/src/superdesk-core/.fireq.json
+_merge_json_from_env_file
+_print_json_config
+
 chunks=/var/tmp/e2e-chunks.py
 cat <<"EOF" > $chunks
 {{>e2e-chunks.py}}
@@ -22,13 +28,19 @@ unset chunks
 cd {{repo}}/server
 time pip install -r requirements.txt
 
-# use superdesk-core from here
-cd {{repo_client}}/test-server
-time pip install -Ur requirements.txt
+if [ -d {{repo_client}}/test-server ]; then # handles old server location
+    # use superdesk-core from here
+    cd {{repo_client}}/test-server
+    time pip install -Ur requirements.txt
+elif [ -d {{repo_client}}/../server ]; then # handles new test server location: /client/e2e/server
+    # use superdesk-core from here
+    cd {{repo_client}}/../server
+    time pip install -Ur requirements.txt
+fi
 
 {{>superdesk/build-sams.sh}}
 
 cd {{repo_client}}
 time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
-# will be used for e2e tests
-time node --max-old-space-size=4096  `which grunt` build --webpack-no-progress
+time npm run build
+

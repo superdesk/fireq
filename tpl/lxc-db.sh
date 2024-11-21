@@ -24,7 +24,7 @@ restore='{{restore}}'
 mongo="mongo --quiet --host $db_host"
 
 backupdir=/var/tmp/data/backups
-[ -d $backupdir ] || mkdir $backupdir
+[ -d $backupdir ] || mkdir -p $backupdir
 
 dbs() {
     cat <<EOF | $mongo

@@ -23,9 +23,32 @@ from . import log, conf, root, pretty_json, get_restart_url, gh
 from .cli import scopes, Ref
 
 about = '''
-<h2><a href="https://github.com/superdesk/fireq/blob/master/docs/ci.md">
-    About Fireq
-</a></h2>
+<head>
+<title>Fireq Continuous Integration</title>
+    <link rel="icon" type="image/png" href="/html/theme/favicon.ico" sizes="16x16">
+<style>
+ body, h3>a {
+    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace !important;
+    max-width: none !important;
+    text-decoration: none !important;
+   }
+ img#logo {
+    margin: 0 3px -4px 1px;
+   }
+ h3>a:hover {
+    text-decoration: none;
+    border-bottom: 2px solid currentColor;
+   }
+ b.name {
+    font-size: 100%;
+    display: inline-block;
+    width: 15rem;
+   }
+</style>
+</head>
+<h3><a title="Fireq Continuous Integration system" href="https://github.com/superdesk/fireq/blob/master/docs/ci.md" target="_blank">
+    Fireq<img src="/html/theme/fire_1f525.gif" alt="fireq-lxd" id="logo">CI
+</a></h3>
 '''
 
 
@@ -81,14 +104,14 @@ def get_app():
 async def auth_middleware(app, handler):
     """ Login via Github """
     def gh_client(**kw):
-        return GithubClient(conf['github_id'], conf['github_secret'], **kw)
+        return GithubClient(client_id=conf['github_id'], client_secret=conf['github_secret'], **kw)
 
     async def callback(request):
         session = await get_session(request)
-        log.debug('callback: session=%s GET=%s', session, request.GET)
-        if session.get('github_state') != request.GET.get('state'):
+        log.debug('callback: session=%s GET=%s', session, request.query_string)
+        if session.get('github_state') != request.query.get('state'):
             return web.HTTPBadRequest()
-        code = request.GET.get('code')
+        code = request.url.query['code']
         if not code:
             return web.HTTPBadRequest()
 
@@ -96,13 +119,14 @@ async def auth_middleware(app, handler):
         token, _ = await gh.get_access_token(code)
         gh = gh_client(access_token=token)
         req = await gh.request('GET', 'user')
-        user = await req.json()
-        req.close()
+        user = req
+        log.debug('user: %s \n\n', user)
         users = []
         for org in conf['github_orgs']:
             _, resp = await gh_api('orgs/%s/members?per_page=100' % org)
             users.extend(u['login'] for u in resp)
         log.debug('members %s: %s', len(users), users)
+        log.debug('login: %s\n\n', user.get('login'))
         if user.get('login') in users:
             session['login'] = user.get('login')
             session.pop('github_state', None)
@@ -235,8 +259,8 @@ async def restart(request):
 
     ref = request.match_info['ref']
     ref = Ref(repo, ref, '<sha>')
-    targets = request.GET.get('t', '').split(',')
-    all = request.GET.get('all')
+    targets = request.query.get('t', '').split(',')
+    all = request.query.get('all')
 
     request.app.loop.create_task(ci(ref, targets, all))
     await asyncio.sleep(2)
@@ -256,6 +280,35 @@ index_tpl = '''
 '''
 
 
+LOGS_PATH = '/var/log/fire/3/latest/'
+
+FAILURE_FILES = (
+    '!failure-build.json',
+    '!failure-www.json',
+)
+
+SUCCESS_FILES = (
+    '!success-build.json',
+    '!success-www.json'
+)
+
+
+def set_build_status(item):
+    """Get latest build status, 0 - OK, 1 - Failure, 2 - Pending"""
+    def file_status(files):
+        return [os.path.exists(os.path.join(LOGS_PATH, item['lxc'], filename)) for filename in files]
+
+    if all(file_status(SUCCESS_FILES)):
+        item['status_ok'] = True
+        return
+
+    if any(file_status(FAILURE_FILES)):
+        item['status_failure'] = True
+        return
+
+    item['status_pending'] = True
+
+
 async def repo(request):
     prefix = request.match_info['prefix']
     try:
@@ -273,7 +326,7 @@ async def repo(request):
             lxc = '%s-%s' % (prefix, name_cleaned)
             gh_url = 'https://github.com/%s/commits/%s' % (repo_name, ref)
 
-        return {
+        _info = {
             'protected_db': lxc in conf['protected_dbs'],
             'name': name,
             'lxc': lxc,
@@ -282,6 +335,9 @@ async def repo(request):
             'restart_url': get_restart_url(prefix, ref),
             'logs_url': '%slatest/%s/' % (conf['log_url'], lxc),
         }
+
+        set_build_status(_info)
+        return _info
 
     resp, body = await gh_api('repos/%s/pulls?per_page=100' % repo_name)
     pulls = [info(i['number'], True) for i in body]
@@ -300,8 +356,18 @@ repo_tpl = '''
 <ul>
 {{#items}}
     <li>
-        <b style="font-size:120%">{{name}}</b>
-        <a href="{{url}}" style="color:green">[instance]</a>
+        <b class="name">{{name}}</b>
+        <a href="{{url}}"
+		{{#status_ok}}
+		style="color:green"
+		{{/status_ok}}
+		{{#status_failure}}
+		style="color:red"
+		{{/status_failure}}
+		{{#status_pending}}
+		style="color:orange"
+		{{/status_pending}}
+	>[instance]</a>
         <a href="{{gh_url}}" style="color:gray">[github]</a>
         <a href="{{logs_url}}" style="color:black">[latest logs]</a>
         <a href="{{restart_url}}?t=www" style="color:black">[deploy]</a>
