@@ -39,7 +39,9 @@ MONGO_URI="mongodb://$DB_HOST/nr-master"
 CONTENTAPI_ELASTIC_INDEX=nr-master
 CONTENTAPI_ELASTICSEARCH_INDEX=nr-master
 CONTENTAPI_MONGO_URI="mongodb://$DB_HOST/nr-master"
-NEWS_API_ENABLED=true
 {{/is_pr}}
+
+# enables NewsAPI for all test instances
+NEWS_API_ENABLED=true
 
 set +a
