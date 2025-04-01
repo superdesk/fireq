@@ -21,4 +21,7 @@ _print_json_config
 {{>build-videoserver.sh}}
 
 cd {{repo_client}}
+
+{{>build-node-version.sh}}
+
 time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
