@@ -30,8 +30,6 @@ libxml2-dev libxslt1-dev \
 libxmlsec1-dev jq libexempi-dev \
 unixodbc-dev
 
-{{>add-node.sh}}
-
 ## virtualenv and activate script
 env={{repo_env}}
 [ -d $env ] && rm -rf $env
