@@ -195,6 +195,14 @@ def get_hook_ctx(headers, body, **extend):
         if body['action'] not in ('opened', 'reopened', 'synchronize'):
             log.info('skip %s:%s', event, body['action'])
             return
+
+        try:
+            if body['pull_request']['user']['type'].lower() == 'bot':
+                log.info('skip %s:%s - created by a bot', event, body['action'])
+                return
+        except (KeyError, TypeError, AttributeError):
+            pass
+
         ref = 'pull/%s' % body['number']
         sha = body['pull_request']['head']['sha']
     elif event == 'push':
