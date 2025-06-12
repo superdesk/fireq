@@ -12,6 +12,9 @@ time pip install -Ur requirements.txt
 _merge_json_from_env_file
 _print_json_config
 
+# if analytics is enabled in fireq.json, install highcharts server
+{{>install-highcharts-server.sh}}
+
 {{>build-sams.sh}}
 
 # if grammalecte is enabled in fireq.json, install grammalecte server
@@ -23,8 +26,5 @@ _print_json_config
 cd {{repo_client}}
 
 {{>build-node-version.sh}}
-
-# if analytics is enabled in fireq.json, install highcharts server
-{{>install-highcharts-server.sh}}
 
 time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
