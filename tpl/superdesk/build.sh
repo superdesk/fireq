@@ -24,4 +24,7 @@ cd {{repo_client}}
 
 {{>build-node-version.sh}}
 
+# if analytics is enabled in fireq.json, install highcharts server
+{{>install-highcharts-server.sh}}
+
 time npm ci --unsafe-perm || time npm install --unsafe-perm --no-audit
