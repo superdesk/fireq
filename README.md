@@ -30,4 +30,4 @@ cat files/superdesk/install | ./fire lxc-ssh sd
 ```
 
 ## History
-Details in according issue: [SDESK-146](https://dev.sourcefabric.org/browse/SDESK-146).
+Details in according issue: [SDESK-146](https://sofab.atlassian.net/browse/SDESK-146).
