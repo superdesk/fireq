@@ -17,6 +17,9 @@ _activate
 [ -z "${grunt_build-1}" ] || (
 export NODE_OPTIONS=--max_old_space_size=4096
 cd {{repo_client}}
+
+{{>build-node-version.sh}}
+
 time (npm run build || npx grunt build --webpack-no-progress)
 )
 {{/develop}}
