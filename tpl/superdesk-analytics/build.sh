@@ -4,4 +4,4 @@ cd {{repo_server}}
 pip install -Ue ../analytics
 
 cd {{repo_client}}
-npm link ../analytics
+npm install ../analytics
