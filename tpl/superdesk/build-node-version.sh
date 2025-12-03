@@ -1,6 +1,8 @@
 # Make sure nvm is active
 set +x
-source ~/.nvm/nvm.sh
+if [ -s ~/.nvm/nvm.sh ]; then
+    source ~/.nvm/nvm.sh
+fi
 set -x
 
 # Install the correct Node version based on package-lock.json

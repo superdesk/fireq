@@ -197,15 +197,20 @@ def get_hook_ctx(headers, body, **extend):
             return
 
         try:
-            if body['pull_request']['user']['type'].lower() == 'bot':
-                log.info('skip %s:%s - created by a bot', event, body['action'])
+            user = body['pull_request']['user']
+            if user['type'].lower() == 'bot' or user['login'] == 'dependabot[bot]':
+                log.info('skip %s:%s - created by a bot (%s)', event, body['action'], user['login'])
                 return
-        except (KeyError, TypeError, AttributeError):
+        except (KeyError, TypeError, AttributeError) as e:
+            log.error(e)
             pass
 
         ref = 'pull/%s' % body['number']
         sha = body['pull_request']['head']['sha']
     elif event == 'push':
+        if body.get('sender', {}).get('type', '').lower() == 'bot':
+            log.info('skip push - created by bot')
+            return
         sha = body['after']
         ref = re.sub('^refs/', '', body['ref'])
     else:
@@ -228,15 +233,7 @@ def get_hook_ctx(headers, body, **extend):
         log.info('Skip ref: %s', ref)
         return
 
-    log_path = (
-        'hooks/{time:%Y%m%d-%H%M%S}-{event}-{uid}-{sha}.json'
-        .format(uid=ref.uid, time=dt.datetime.now(), sha=sha, event=event)
-    )
-    log_file = Path(conf['log_root']) / log_path
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-    log_file.write_text(pretty_json([headers, body]))
-    log_url = conf['log_url'] + log_path
-    log.info('%s request=%s', ref, log_url)
+    log.info('Ref %s', ref)
     return ref
 
 
@@ -250,9 +247,7 @@ async def hook(request):
         return web.HTTPBadRequest()
 
     body = await request.json()
-    headers = dict(request.headers.items())
-    del headers['X-Hub-Signature']
-    ref = get_hook_ctx(headers, body, clean=True)
+    ref = get_hook_ctx(request.headers, body, clean=True)
     if ref:
         request.app.loop.create_task(ci(ref))
     return web.json_response(ref)
