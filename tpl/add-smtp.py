@@ -43,6 +43,7 @@ class Handler:
 
 
 if __name__ == '__main__':
+    controller = None
     try:
         parser = argparse.ArgumentParser(description='Run an SMTP server.')
         parser.add_argument('addr', help='addr to bind to')
@@ -55,11 +56,12 @@ if __name__ == '__main__':
         controller = Controller(handler, hostname=args.addr, port=args.port)
         controller.start()
         log.info('SMTP server running, press Ctrl+C to stop')
-        asyncio.get_event_loop().run_forever()
+        asyncio.run(asyncio.sleep(float('inf')))
     except KeyboardInterrupt:
         log.info('Cleaning up')
-        controller.stop()
     except Exception as e:
         log.exception(e)
     finally:
+        if controller is not None:
+            controller.stop()
         log.info('SMTP server stopped')
