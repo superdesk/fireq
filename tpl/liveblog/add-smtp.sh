@@ -1,8 +1,6 @@
 mails={{logs}}/mail
 mkdir -p $mails
 
-. {{repo_env}}/bin/activate && pip install aiosmtpd
-
 smtp_py=/var/tmp/smtp.py
 cat <<EOF > $smtp_py
 {{>add-smtp.py}}
