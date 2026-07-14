@@ -38,7 +38,6 @@ scopes = [
     #Scope('sdc', 'superdesk-client', 'superdesk/superdesk-client-core'),
     #Scope('sdp', 'superdesk-planning', 'superdesk/superdesk-planning'),
     Scope('sda', 'superdesk-analytics', 'superdesk/superdesk-analytics'),
-    Scope('ntb', 'superdesk', 'superdesk/superdesk-ntb'),
     Scope('fil', 'superdesk-fidelity', 'superdesk/superdesk-fi'),
     Scope('stt', 'superdesk-stt', 'superdesk/superdesk-stt'),
     Scope('lb', 'liveblog', 'liveblog/liveblog'),
@@ -60,7 +59,6 @@ scopes = [
     Scope('sdewtn', 'superdesk', 'superdesk/superdesk-ewtn'),
     Scope('sdnepali', 'superdesk', 'superdesk/superdesk-nepali'),
     Scope('sdsp', 'superdesk', 'superdesk/superdesk-sp'),
-    Scope('sdbrasil', 'superdesk', 'superdesk/superdesk-brasil'),
     #Scope('sdinsr', 'superdesk', 'superdesk/superdesk-insajder'),
     Scope('bor', 'superdesk', 'superdesk/superdesk-borsen'),
     Scope('etv', 'superdesk', 'superdesk/superdesk-etv'),
@@ -68,6 +66,7 @@ scopes = [
     Scope('dna', 'superdesk', 'superdesk/superdesk-dna'),
     Scope('pesacheck', 'superdesk', 'superdesk/superdesk-pesacheck'),
     Scope('spm', 'superdesk', 'superdesk/superdesk-publisher-mode'),
+    Scope('ilglobo', 'superdesk', 'superdesk/superdesk-ilglobo'),
 ]
 scopes = namedtuple('Scopes', [i[0] for i in scopes])(*[i for i in scopes])
 checks = {
