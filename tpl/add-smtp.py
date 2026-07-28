@@ -3,7 +3,8 @@ import asyncio
 import datetime as dt
 import logging
 import random
-from email.parser import Parser
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 
 from aiosmtpd.controller import Controller
@@ -24,10 +25,18 @@ class Handler:
         path.mkdir(exist_ok=True, parents=True)
         self._path = path
 
+    def _render_message(self, data):
+        msg = BytesParser(policy=policy.default).parsebytes(data)
+        body = msg.get_body(preferencelist=('html', 'plain')) or msg
+        content = body.get_content()
+        if isinstance(content, bytes):
+            charset = body.get_content_charset() or 'utf-8'
+            content = content.decode(charset, errors='replace')
+        headers = '\n'.join('{0}: {1}'.format(key, value) for key, value in msg.items())
+        return headers + '\n\n' + content, msg['subject']
+
     async def handle_DATA(self, server, session, envelope):
-        data = envelope.content.decode('utf-8', errors='replace')
-        msg = Parser().parsestr(data)
-        subject = msg['subject']
+        data, subject = self._render_message(envelope.content)
         rcpttos = envelope.rcpt_tos
         log.info('to=%r subject=%r', rcpttos, subject)
         for addr in rcpttos:
