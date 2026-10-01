@@ -7,6 +7,25 @@ git config --global url.'https://'.insteadOf git:// ;
 # npm >= 7 lockfiles resolve github dependencies to ssh urls
 git config --global --add url.https://github.com/.insteadOf ssh://git@github.com/
 
+# The server's Python comes from the repo's .fireq.json ("python": "python3.8"),
+# so branches on different versions build from the same base container. Ubuntu
+# ships python3.8 on 18.04 only; newer releases get it from the deadsnakes PPA.
+python=$(_get_json_value python python3)
+if [ "$python" != python3 ]; then
+    if ! apt-cache show $python > /dev/null 2>&1; then
+        apt-get -y install --no-install-recommends software-properties-common
+        add-apt-repository -y ppa:deadsnakes/ppa
+        apt-get update
+    fi
+    apt-get -y install --no-install-recommends \
+        $python $python-venv $python-dev $python-distutils
+    rm -rf {{repo_env}}
+    $python -m venv {{repo_env}}
+    _activate
+    pip install -U pip wheel setuptools
+fi
+unset python
+
 cd {{repo_server}}
 time pip install 'pip<=20.2.3'
 time pip install 'setuptools<50'
