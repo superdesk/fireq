@@ -21,3 +21,10 @@ curl -s -XPUT $ELASTICSEARCH_URL/$ELASTICSEARCH_INDEX
 
 python manage.py register_local_themes
 python manage.py register_bloglist
+
+# Multi-tenant branches: `users:create` above knows nothing about tenants, so the
+# admin cannot see any tenant-scoped resource until it belongs to one. The migration
+# command assigns everything without a tenant to a single one; no-op on later runs.
+if python manage.py liveblog:migrate_tenancy --help > /dev/null 2>&1; then
+    python manage.py liveblog:migrate_tenancy --tenant-name "Fireq"
+fi
