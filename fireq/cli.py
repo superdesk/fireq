@@ -8,10 +8,12 @@ __ https://mustache.github.io/mustache.5.html
 import argparse
 import datetime as dt
 import json
+import os
 import random
 import re
 import signal
 import subprocess as sp
+import threading
 import time
 import tempfile
 import urllib.request
@@ -279,7 +281,115 @@ def endpoint(tpl, scope=None, *, tpldir=None, expand=None, header=True):
     return render_tpl(tpl, ctx, search_dirs)
 
 
-def sh(cmd, log_file=None, exit=True, header=True, quiet=False, env=None):
+# Job shells started by `run_job`. Each runs in its own process group so that a
+# terminated `fire ci` can stop a job and everything it spawned before the
+# per-instance lock is released. Otherwise the job keeps running as an orphan
+# and overlaps with the next run on the same containers (see `stop_jobs`).
+_jobs = {}
+_jobs_lock = threading.Lock()
+_terminating = threading.Event()
+
+
+def _call(cmd, isolate=False, **kw):
+    if not isolate:
+        return sp.call(cmd, **kw)
+
+    proc = sp.Popen(cmd, start_new_session=True, **kw)
+    with _jobs_lock:
+        _jobs[proc.pid] = proc
+    try:
+        return proc.wait()
+    finally:
+        with _jobs_lock:
+            _jobs.pop(proc.pid, None)
+
+
+def signal_jobs():
+    """Send SIGTERM to every running job shell and its children.
+
+    Safe inside a signal handler: it does not wait. `stop_jobs` waits.
+    """
+    _terminating.set()
+    with _jobs_lock:
+        procs = list(_jobs.values())
+
+    for proc in procs:
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+
+
+def stop_jobs(timeout=60):
+    """Stop all running job shells and wait for them, SIGKILL after `timeout`.
+
+    Do not call it from a signal handler: the interrupted frame may be inside
+    `Popen.wait` on the same process, and waiting again there can deadlock.
+    """
+    signal_jobs()
+    with _jobs_lock:
+        procs = list(_jobs.values())
+
+    deadline = time.time() + timeout
+    for proc in procs:
+        try:
+            proc.wait(max(0, deadline - time.time()))
+        except sp.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait()
+
+
+def lxd_busy(operations, uid):
+    """Names of the `uid` containers that have a running LXD operation.
+
+    `operations` is the output of `lxc operation list --format json`.
+    """
+    busy = set()
+    for op in operations:
+        if op.get('status') != 'Running':
+            continue
+        for paths in (op.get('resources') or {}).values():
+            for path in paths or []:
+                name = path.split('?', 1)[0].rstrip('/').rsplit('/', 1)[-1]
+                if name == uid or name.startswith(uid + '--'):
+                    busy.add(name)
+    return busy
+
+
+def wait_for_lxd(uid, timeout=600):
+    """Wait until LXD has no running operation on the `uid` containers.
+
+    Killing an `lxc copy` client does not cancel the copy inside the LXD
+    daemon. Starting the next run while it is still going leaves a storage
+    volume without an instance, and every later copy to that name fails with
+    "Cannot create volume, already exists on target storage".
+    """
+    if dry_run:
+        return
+
+    deadline = time.time() + timeout
+    while True:
+        try:
+            out = sp.check_output('lxc operation list --format json', shell=True)
+            busy = lxd_busy(json.loads(out.decode() or '[]'), uid)
+        except Exception as e:
+            log.warning('cannot list LXD operations, not waiting: %s', e)
+            return
+
+        if not busy:
+            return
+        if time.time() > deadline:
+            raise SystemExit(
+                'LXD is still busy with %s after %ss' % (', '.join(sorted(busy)), timeout)
+            )
+        log.info('waiting for LXD operations on %s', ', '.join(sorted(busy)))
+        time.sleep(5)
+
+
+def sh(cmd, log_file=None, exit=True, header=True, quiet=False, env=None, isolate=False):
     if header:
         cmd = 'set -eux\n%s' % cmd
     if env:
@@ -303,9 +413,9 @@ def sh(cmd, log_file=None, exit=True, header=True, quiet=False, env=None):
         with tempfile.NamedTemporaryFile('w', encoding='utf-8') as tmp:
             tmp.write(cmd)
             tmp.flush()
-            code = sp.call('/bin/bash {}'.format(tmp.name), shell=True)
+            code = _call('/bin/bash {}'.format(tmp.name), isolate, shell=True)
     else:
-        code = sp.call(cmd, executable='/bin/bash', shell=True)
+        code = _call(cmd, isolate, executable='/bin/bash', shell=True)
 
     if exit and code:
         raise SystemExit(code)
@@ -322,8 +432,11 @@ def run_job(target, tpl, ctx, logs, lxc_clean=False):
     logs.file(target + '.sh').write_text(cmd)
     error, code = 'terminated', 1
     try:
-        code = sh(cmd, log_file, exit=False, quiet=True)
-        error = None if code == 0 else 'failure: code=%s' % code
+        code = sh(cmd, log_file, exit=False, quiet=True, isolate=True)
+        if _terminating.is_set():
+            error = 'terminated'
+        else:
+            error = None if code == 0 else 'failure: code=%s' % code
     except Exception as e:
         logs.file(target + '.exception').write_text(e)
         error = str(e)
@@ -347,8 +460,20 @@ def run_job(target, tpl, ctx, logs, lxc_clean=False):
 def run_jobs_with_lock(scope, ref, *a, **kw):
     ref = Ref(scope, ref)
 
+    def terminate(*a):
+        signal_jobs()
+        raise SystemExit('Terminated.')
+    signal.signal(signal.SIGINT, terminate)
+    signal.signal(signal.SIGTERM, terminate)
+
     with lock.kill_previous('fire_run_jobs:{0.uid}:'.format(ref)):
-        run_jobs(ref, *a, **kw)
+        try:
+            wait_for_lxd(ref.uid)
+            run_jobs(ref, *a, **kw)
+        finally:
+            # The lock is released right after this, and the next run for this
+            # instance may start, so no job of this run may still be running.
+            stop_jobs()
 
 
 def run_jobs(ref, targets=None, all=False):
@@ -421,6 +546,7 @@ def run_jobs(ref, targets=None, all=False):
         ctx.update(clean_build=1)
 
     def clean(*a, targets=tuple(targets) + (target,)):
+        signal_jobs()
         gh.clean_pending_statuses(ref, targets, logs)
         raise SystemExit('Terminated.')
     signal.signal(signal.SIGINT, clean)
