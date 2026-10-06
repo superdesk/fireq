@@ -8,8 +8,20 @@ import time
 from . import log
 
 
+def wait_exit(pid, timeout):
+    """Wait until process `pid` has exited, at most `timeout` seconds."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        time.sleep(1)
+    return False
+
+
 @contextlib.contextmanager
-def kill_previous(name):
+def kill_previous(name, timeout=180):
     # try to kill previous process by socket name
     # inspired by http://stackoverflow.com/a/7758075
     cmd = 'ss -a | grep -oE "%s[0-9]+" || true' % name
@@ -18,8 +30,10 @@ def kill_previous(name):
         pid = int(txt.decode().rsplit(':', 1)[1])
         try:
             os.kill(pid, signal.SIGTERM)
-            # wait a bit when process and related containers will be cleaned
-            time.sleep(10)
+            # The previous run stops its jobs before exiting; a fixed short
+            # sleep let both runs work on the same containers at once.
+            if not wait_exit(pid, timeout):
+                log.error('previous run pid=%s still alive after %ss', pid, timeout)
         except Exception as e:
             log.exception(e)
 
